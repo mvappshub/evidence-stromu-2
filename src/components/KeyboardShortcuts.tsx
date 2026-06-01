@@ -20,10 +20,11 @@ const shortcuts = [
   { keys: 'P', description: 'Režim vkládání' },
   { keys: 'Esc', description: 'Zrušit výběr' },
   { keys: 'Ctrl+Z', description: 'Zpět poslední vložení' },
+  { keys: 'Ctrl+K', description: 'Globální vyhledávání' },
   { keys: '?', description: 'Zobrazit klávesové zkratky' },
 ]
 
-export function KeyboardShortcuts() {
+export function KeyboardShortcuts({ onCtrlK }: { onCtrlK?: () => void }) {
   const [helpOpen, setHelpOpen] = useState(false)
   const setViewMode = useUiStore((s) => s.setViewMode)
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
@@ -40,6 +41,12 @@ export function KeyboardShortcuts() {
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'z') {
           // Undo - handled by MapView, don't duplicate
+          return
+        }
+        if (e.key === 'k' || e.key === 'K') {
+          e.preventDefault()
+          setHelpOpen(false) // close help if open
+          onCtrlK?.()
           return
         }
         return
@@ -77,7 +84,7 @@ export function KeyboardShortcuts() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setViewMode, setSelectedRecordNumber, togglePlaceMode])
+  }, [setViewMode, setSelectedRecordNumber, togglePlaceMode, onCtrlK])
 
   return (
     <>

@@ -1,7 +1,7 @@
 'use client'
 
 import { SessionProvider, useSession, signIn } from 'next-auth/react'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TreePine, Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
@@ -52,6 +53,23 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
   const [registerLoading, setRegisterLoading] = useState(false)
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showRegPassword, setShowRegPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
+  const [tiltStyle, setTiltStyle] = useState({ transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)' })
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!cardRef.current) return
+    const rect = cardRef.current.getBoundingClientRect()
+    const x = (e.clientX - rect.left) / rect.width
+    const y = (e.clientY - rect.top) / rect.height
+    const rotateY = (x - 0.5) * 4
+    const rotateX = (0.5 - y) * 4
+    setTiltStyle({ transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)` })
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    setTiltStyle({ transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)' })
+  }, [])
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -131,7 +149,16 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-green-50 via-background to-emerald-50 dark:from-green-950/30 dark:via-background dark:to-emerald-950/20 animated-gradient-bg relative">
+    <div className="flex items-center justify-center min-h-screen p-4 mesh-gradient-bg relative overflow-hidden">
+      {/* Floating leaf particles */}
+      <div className="leaf-particle" style={{ width: 8, height: 8, left: '10%', bottom: '-5%', '--leaf-duration': '14s', '--leaf-delay': '0s' } as React.CSSProperties} />
+      <div className="leaf-particle" style={{ width: 6, height: 6, left: '25%', bottom: '-8%', '--leaf-duration': '18s', '--leaf-delay': '2s' } as React.CSSProperties} />
+      <div className="leaf-particle" style={{ width: 10, height: 10, left: '45%', bottom: '-3%', '--leaf-duration': '12s', '--leaf-delay': '4s' } as React.CSSProperties} />
+      <div className="leaf-particle" style={{ width: 7, height: 7, left: '65%', bottom: '-6%', '--leaf-duration': '16s', '--leaf-delay': '1s' } as React.CSSProperties} />
+      <div className="leaf-particle" style={{ width: 5, height: 5, left: '80%', bottom: '-4%', '--leaf-duration': '20s', '--leaf-delay': '3s' } as React.CSSProperties} />
+      <div className="leaf-particle" style={{ width: 9, height: 9, left: '55%', bottom: '-7%', '--leaf-duration': '15s', '--leaf-delay': '5s' } as React.CSSProperties} />
+      <div className="leaf-particle" style={{ width: 6, height: 6, left: '35%', bottom: '-2%', '--leaf-duration': '17s', '--leaf-delay': '7s' } as React.CSSProperties} />
+
       {/* Decorative tree SVG on desktop */}
       <div className="hidden lg:flex items-center justify-center mr-8 opacity-15 pointer-events-none select-none">
         <svg width="200" height="300" viewBox="0 0 200 300" fill="none" className="text-green-700 dark:text-green-400">
@@ -147,13 +174,19 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
         </svg>
       </div>
 
-      <Card className="w-full max-w-md shadow-xl shadow-green-900/10 dark:shadow-green-900/20 border-green-100 dark:border-green-900/30 animate-in fade-in slide-in-from-bottom-4 duration-500 hover-lift">
+      <Card
+        ref={cardRef}
+        className="w-full max-w-md shadow-xl shadow-green-900/10 dark:shadow-green-900/20 border-green-100 dark:border-green-900/30 animate-in fade-in slide-in-from-bottom-4 duration-500 hover-lift parallax-tilt"
+        style={tiltStyle}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-3 size-14 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
             <TreePine className="size-7 text-green-600 dark:text-green-400" />
           </div>
           <CardTitle className="text-xl">Evidenční systém výsadby</CardTitle>
-          <CardDescription className="text-green-700/70 dark:text-green-400/70">
+          <CardDescription className="text-green-700/70 dark:text-green-400/70 typing-cursor">
             Evidence výsadby a údržby stromů
           </CardDescription>
         </CardHeader>
@@ -221,7 +254,16 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
 
-                <div className="text-right">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="remember-me"
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(checked === true)}
+                      className="checkbox-green"
+                    />
+                    <Label htmlFor="remember-me" className="text-xs text-muted-foreground cursor-pointer">Zapamatovat si mě</Label>
+                  </div>
                   <button
                     type="button"
                     className="text-xs text-green-700 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 hover:underline"

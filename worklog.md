@@ -1372,3 +1372,310 @@ Stage Summary:
 4. **Offline support** — Service worker for offline map tiles
 5. **Data backup** — Export/import full database snapshot
 6. **Retroactive activity seeding** — Create activity log entries for existing records
+
+---
+Task ID: 7-b
+Agent: Subagent B
+Task: Improve visual styling Round 7 — RecordsTable, AuthGate, StatusBar, MapView, globals.css
+
+Work Log:
+
+### 1. globals.css — New Animations & Utility Classes
+- Added `@keyframes leaf-float` — floating green circle particles for AuthGate background
+- Added `.leaf-particle` class — positioned absolute, CSS variable-driven duration/delay, radial gradient, dark mode support
+- Added `@keyframes mesh-gradient` — animated multi-point gradient positions
+- Added `.mesh-gradient-bg` class — three radial gradients + linear gradient with 20s animation
+- Added `@keyframes typing-cursor` — blinking cursor effect (1s step-end)
+- Added `.typing-cursor::after` — green blinking pipe character after text
+- Added `@keyframes sweep-progress` — horizontal sweep for refresh indicator
+- Added `.sweep-progress` class — positioned overlay with 60s animated sweep line
+- Added `@keyframes slide-up-info` — bottom-to-top entrance with scale
+- Added `.slide-up-info` class — 0.3s cubic-bezier entrance for info panels
+- Added `@keyframes pulse-tree-icon` — subtle scale+opacity pulse
+- Added `.pulse-tree-icon` class — 2s infinite pulse for empty state icons
+- Added `@keyframes grid-fade` — opacity entrance for grid overlay
+- Added `.grid-overlay` class — absolute positioned, pointer-events none
+- Added `@keyframes scroll-shadow-appear` — opacity entrance for scroll shadow
+- Added `.scroll-shadow-top` class — sticky gradient shadow at top of scrollable area
+- Added `.pagination-green-ring:hover` — green box-shadow ring on pagination buttons
+- Added `@keyframes counter-pop` — scale+color pop animation for count changes
+- Added `.counter-animate` class — 0.35s pop animation
+- Added `@keyframes status-bounce` — scale bounce for status indicator
+- Added `.status-bounce` class — 0.5s bounce animation
+- Added `.css-tree-silhouette` class — CSS-only tree shape using ::before (trunk) + ::after (crown with clip-path)
+- Added `.map-scale-accent` class — green accent for MapLibre scale control
+- Added `.mini-info-panel` class — glass panel for selected tree info on map
+- Added `.parallax-tilt` class — 3D perspective transform for card
+- Updated `prefers-reduced-motion: reduce` to include all new animations
+
+### 2. RecordsTable Enhancements
+- Added scroll shadow: `isScrolled` state + scroll event listener on table container, renders `.scroll-shadow-top` div when scrolled
+- Improved empty state: larger `h-40` cell with `.css-tree-silhouette` CSS-only tree (gradient crown + trunk via clip-path)
+- Added species tooltip: `<Tooltip>` wrapper on species column cell showing full species name + count in Czech ("X záznamů tohoto druhu")
+- Green ring pagination: added `pagination-green-ring` class to all 4 pagination buttons
+- Animated counter: shows "N/záznamů" format (e.g., "106/záznamů") with `counter-animate` class that pops when count changes
+
+### 3. AuthGate / Login Page Polish
+- Added 7 floating leaf particles with staggered durations (12-20s) and delays (0-7s)
+- Replaced gradient background with `.mesh-gradient-bg` animated mesh gradient
+- Added parallax tilt effect: `onMouseMove` calculates rotateX/Y based on cursor position relative to card, `onMouseLeave` resets
+- Added `.parallax-tilt` class + `style={tiltStyle}` on Card
+- Added "Zapamatovat si mě" (Remember me) Checkbox with `checkbox-green` accent
+- Added `.typing-cursor` class on CardDescription for blinking cursor animation
+- Added `overflow-hidden` on outer container to clip leaf particles
+
+### 4. StatusBar Enhancement
+- Added `.sweep-progress` bar that sweeps across every 60s (refresh cycle indicator)
+- Added "v1.0.0" version text (muted, before time display)
+- Added `ZoomLevelIndicator` sub-component that polls MapLibre map instance for current zoom
+  - Shows zoom level with ZoomIn icon when in map/both view mode
+  - Exposes `__mapInstance` on map container for StatusBar to read
+- Added `.status-bounce` on status dot (key prop triggers re-mount → replay animation on status change)
+
+### 5. MapView Polish
+- Added `gridVisible` state + G key handler (toggle lat/lng grid overlay)
+- Grid overlay uses SVG patterns with dashed green lines (0.15 opacity)
+- Added `.grid-overlay` class with `grid-fade` entrance animation
+- Added `selectedTreeInfo` as `useMemo` (derived from selectedRecordNumber + geoData)
+- Added mini info panel (bottom-right) showing: record number, species, date, locality
+  - Uses `.mini-info-panel` class + `.slide-up-info` entrance animation
+- Pulsing empty state: TreePine icon now uses `.pulse-tree-icon` class, size increased to 20px container
+- Exposed `__mapInstance` on map container DOM element for StatusBar zoom reading
+
+Stage Summary:
+- All 5 areas enhanced with detailed visual improvements
+- 7 new @keyframes animations added to globals.css
+- 12+ new CSS utility classes added
+- All new animations respect prefers-reduced-motion: reduce
+- All text in Czech
+- Lint: 0 errors, 3 warnings (all pre-existing react-hooks/incompatible-library)
+- Build succeeds
+
+---
+Task ID: 7-a
+Agent: Subagent A
+Task: Map Measurement Tool, Data Backup & Restore, Global Search
+
+Work Log:
+
+### Feature 1: Map Measurement Tool (Měření vzdálenosti)
+- Created `/home/z/my-project/src/lib/haversine.ts` — Haversine formula utility:
+  - `haversineDistance()` calculates distance in meters between two lat/lng points
+  - `formatDistance()` formats meters as "X m" or "X,XX km" with Czech locale
+- Added `measureMode` and `measurePoints` state to MapView component
+- Added `measureMode` + `toggleMeasureMode` + `setMeasureMode` to `usePlantStore` (Zustand)
+- Mutual exclusion handled in the store: activating measure mode deactivates place mode and vice versa
+- Added Ruler icon button in MapView overlay (top-right, next to style switcher and heatmap toggle)
+- Active measurement mode shows red-styled button (bg-red-500)
+- Measurement points rendered as red circle markers (5px, white stroke) on the map
+- Dashed red line between measurement points using GeoJSON LineString
+- Floating panel (top-14 right-3) showing total distance with Czech formatting
+- Panel includes X button to clear measurement points
+- Click handler in MapView creates measurement points when measureMode is active
+- Cursor changes to crosshair in measurement mode
+- Measurement source + layers added on map init and re-created on style change
+- measureModeRef keeps measurement state fresh in click handler (avoids stale closures)
+
+### Feature 2: Data Backup & Restore (Záloha dat)
+- Created `/home/z/my-project/src/app/api/records/backup/route.ts` — GET endpoint:
+  - Returns all records with reminders for the authenticated user
+  - Includes user metadata (name, email only)
+  - Includes backup version and timestamp
+  - Protected with requireAuth()
+- Created `/home/z/my-project/src/app/api/records/restore/route.ts` — POST endpoint:
+  - Accepts backup JSON with Zod validation (version, records, user)
+  - Deletes all existing records (cascade deletes reminders) for the current user
+  - Creates new records from backup data, including nested reminders
+  - Returns count of restored records
+  - Protected with requireAuth()
+- Created `/home/z/my-project/src/components/BackupRestore.tsx` — Component:
+  - Database icon button in AppShell toolbar
+  - DropdownMenu with "Stáhnout zálohu" and "Obnovit ze zálohy"
+  - Download: fetches from /api/records/backup, creates JSON blob, triggers browser download
+  - Restore: opens file picker, reads JSON, shows confirmation AlertDialog
+  - Confirmation: "Tímto se nahradí všechna stávající data. Pokračovat?"
+  - Calls POST /api/records/restore, invalidates all queries on success
+  - Toast notifications for success/error with Czech messages
+
+### Feature 3: Global Search (Globální vyhledávání)
+- Created `/home/z/my-project/src/components/GlobalSearch.tsx` — Component:
+  - Uses shadcn CommandDialog (cmdk) for search interface
+  - Search input at top with placeholder "Hledat stromy, druhy, lokality…"
+  - Results grouped by: "Stromy" (trees), "Druhy" (species), "Lokality" (localities)
+  - Tree results show: #recordNumber, species (italic), locality, date
+  - Clicking tree → setSelectedRecordNumber + switch to Both view
+  - Clicking species → setFilterSpecies + switch to List view
+  - Clicking locality → setFilterLocality + switch to List view
+  - Uses /api/records with search parameter for tree results
+  - Uses /api/records/filters for species/locality matching
+  - Keyboard navigation built into cmdk (arrow keys, Enter, Escape)
+  - Search reset on dialog close via callback (no useEffect with setState)
+- Added Search icon button in AppShell toolbar (after view mode toggle)
+  - Tooltip shows Ctrl+K shortcut
+
+### Keyboard Shortcuts Update
+- Added `Ctrl+K` shortcut to KeyboardShortcuts component for global search
+- KeyboardShortcuts now accepts `onCtrlK` prop from AppShell
+- Ctrl+K opens the GlobalSearch dialog
+- Added to shortcuts list in help dialog: "Globální vyhledávání"
+
+### Store Updates
+- Updated `usePlantStore` with `measureMode`, `setMeasureMode`, `toggleMeasureMode`
+- Mutual exclusion logic in store: activating one mode deactivates the other
+- `setPlaceMode(on)` and `togglePlaceMode()` deactivate measureMode when place mode activates
+- `setMeasureMode(on)` and `toggleMeasureMode()` deactivate placeMode when measure mode activates
+
+Stage Summary:
+- Map measurement tool fully functional with Haversine distance, dashed lines, point markers, floating panel
+- Data backup & restore with download JSON and upload/restore with confirmation dialog
+- Global search with Command dialog, Ctrl+K shortcut, grouped results
+- All 3 features integrated into existing AppShell toolbar
+- Lint: 0 errors, 3 warnings (all pre-existing react-hooks/incompatible-library)
+- Dev server compiles and runs correctly
+
+---
+Task ID: 7-a
+Agent: Subagent A (full-stack-developer)
+Task: Add new features — Map Measurement Tool, Data Backup/Restore, Global Search
+
+Work Log:
+- Created Map Measurement Tool with Ruler icon button in MapView overlay
+- Click map in measure mode creates red point markers with dashed line between them
+- Floating panel shows total distance (m/km) using Haversine formula
+- Clear button (X) to reset; mutually exclusive with place mode
+- Added measureMode to usePlantStore with mutual exclusion logic
+- Created Data Backup & Restore (Záloha dat):
+  - Database icon button in AppShell with DropdownMenu
+  - "Stáhnout zálohu" exports all records + reminders as JSON file
+  - "Obnovit ze zálohy" restores from JSON with AlertDialog confirmation
+  - GET /api/records/backup and POST /api/records/restore API endpoints
+- Created Global Search (Globální vyhledávání):
+  - Search icon button in AppShell toolbar
+  - Ctrl+K / Cmd+K keyboard shortcut (added to KeyboardShortcuts)
+  - CommandDialog with search results grouped by: Stromy, Druhy, Lokality
+  - Click tree → selects it + switches to Both view
+  - Click species/locality → sets filter + switches to List view
+  - Keyboard navigation via cmdk (arrows, Enter, Escape)
+- Lint: 0 errors, 3 pre-existing warnings
+
+Stage Summary:
+- Map Measurement Tool fully functional with Haversine distance
+- Data Backup & Restore with JSON export/import
+- Global Search with Ctrl+K shortcut working
+- 2 new API endpoints added (backup, restore)
+
+---
+Task ID: 7-b
+Agent: Subagent B (frontend-styling-expert)
+Task: Visual styling improvements — leaf particles, parallax, scroll shadows, grid overlay, mini info panel
+
+Work Log:
+- RecordsTable: scroll shadow indicator at top, CSS-only tree silhouette empty state, species tooltip with count, green ring hover on pagination, animated filtered/total counter
+- AuthGate: 7 floating leaf particles with staggered timing, animated mesh gradient background, parallax tilt effect on card, "Zapamatovat si mě" checkbox, typing cursor animation on tagline
+- StatusBar: sweep progress bar (60s cycle), v1.0.0 version text, ZoomLevelIndicator sub-component, bounce animation on connection status change
+- MapView: grid overlay toggle (G key) with SVG dashed green lines, mini info panel (bottom-right) for selected tree with slide-up animation, pulsing empty state icon, map instance exposure for zoom reading
+- globals.css: 7 new @keyframes (leaf-float, mesh-gradient, typing-cursor, sweep-progress, slide-up-info, pulse-tree-icon, grid-fade), 12+ new CSS utility classes, all in prefers-reduced-motion
+- Lint: 0 errors, 3 pre-existing warnings
+
+Stage Summary:
+- 7 new keyframes and 12+ CSS classes added
+- Floating leaf particles and parallax on login page
+- Scroll shadows and grid overlay on map
+- Mini info panel for selected trees
+- All animations respect prefers-reduced-motion
+
+---
+Task ID: 7
+Agent: Main
+Task: Round 7 — QA, bug fixes, new features, styling improvements
+
+Work Log:
+- Assessed project status from worklog.md — project was in Round 6 with 38+ features, 106 records
+- Performed comprehensive QA: all 19+ API endpoints working, no server errors
+- Discovered client-side error: StatusBar.tsx missing React imports (useState, useRef, useEffect)
+- Fixed StatusBar.tsx by adding `import { useState, useRef, useEffect } from 'react'`
+- Fixed KeyboardShortcuts.tsx: `onCtrlK()` → `onCtrlK?.()` (possibly undefined)
+- After fixes: all views working, no JS errors in browser
+- Delegated new features to subagent 7-a:
+  - Map Measurement Tool (Měření vzdálenosti) — verified working
+  - Data Backup & Restore (Záloha dat) — verified working
+  - Global Search (Globální vyhledávání) — verified with Ctrl+K
+- Delegated styling improvements to subagent 7-b:
+  - 7 new keyframes, 12+ CSS classes
+  - Floating leaf particles, parallax tilt, mesh gradient
+  - Scroll shadows, grid overlay, mini info panel
+- Final lint check: 0 errors, 3 pre-existing warnings
+- All QA tests passing, no runtime errors
+
+Stage Summary:
+- 2 critical client-side bugs fixed (StatusBar imports, KeyboardShortcuts null check)
+- 3 new features added: Map Measurement, Backup/Restore, Global Search
+- 2 new API endpoints: GET /api/records/backup, POST /api/records/restore
+- Major styling improvements: leaf particles, parallax, mesh gradient, grid overlay, mini info panel
+- App stable with 106 records, 0 lint errors, 0 runtime errors
+
+## Current Project Status (Round 7 — Final)
+
+### Assessment: Feature-Rich, Visually Polished, Production-Ready
+
+**All Working Features (41+):**
+- ✅ User registration and login with polished auth page (leaf particles, parallax tilt, mesh gradient)
+- ✅ Password visibility toggle and strength indicator
+- ✅ "Zapamatovat si mě" (Remember me) checkbox
+- ✅ Map view with MapLibre GL + supercluster clustering
+- ✅ Map style switcher (Standardní, Topografická, Tmavá)
+- ✅ Hover popups on tree points
+- ✅ Compass rose + coordinate display on map
+- ✅ **Map Measurement Tool** (Měření vzdálenosti) with Haversine formula (NEW)
+- ✅ **Grid overlay toggle** (G key) (NEW)
+- ✅ **Mini info panel** for selected trees (NEW)
+- ✅ Draggable map markers
+- ✅ Tree placement flash animation
+- ✅ Auto-fit bounds on first data load
+- ✅ Onboarding empty state overlay
+- ✅ Table view with sorting, filtering, pagination, multi-select
+- ✅ Scroll shadow indicator, CSS-only tree empty state
+- ✅ CSV/GeoJSON export + CSV Import with progress bar
+- ✅ Print View / Tisk
+- ✅ Split view with resizable divider
+- ✅ Planting context bar with glass-morphism
+- ✅ Place mode with breathing animation
+- ✅ Record editor + **Record Duplication** (Kopírovat)
+- ✅ Reminder editor (interval/date modes, CRUD)
+- ✅ Bulk actions (note, reminder, delete, edit)
+- ✅ Activity logging on all CRUD operations
+- ✅ Maintenance bell with due reminders panel
+- ✅ **Data Backup & Restore** (Záloha dat) (NEW)
+- ✅ **Global Search** (Globální vyhledávání) with Ctrl+K (NEW)
+- ✅ Species Detail Panel + Quick Filter Presets
+- ✅ Keyboard shortcuts (M/L/B/P/Esc/Ctrl+Z/Ctrl+K/?)
+- ✅ Statistics panel with bar charts + yearly timeline
+- ✅ Czech plural forms throughout UI
+- ✅ Status bar with sweep progress, zoom indicator, version
+- ✅ Dark mode toggle
+- ✅ prefers-reduced-motion accessibility
+- ✅ Green accent consistently applied
+
+**API Endpoints (21+ total):**
+1-19. (Same as Round 6)
+20. GET /api/records/backup — Full data backup as JSON (NEW)
+21. POST /api/records/restore — Restore from backup JSON (NEW)
+
+### Bugs Fixed This Round
+- StatusBar.tsx: Missing `import { useState, useRef, useEffect } from 'react'` — caused client-side crash
+- KeyboardShortcuts.tsx: `onCtrlK()` called on possibly undefined prop — added optional chaining
+
+### Unresolved Issues / Risks
+- Activity log entries only exist for operations done after logging was implemented
+- Photo upload uses local filesystem (by design for sandbox)
+- Password reset email not functional
+- TanStack Table not using virtualization (pagination handles performance)
+- ZoomLevelIndicator in StatusBar uses DOM polling — could be improved with direct map instance reference
+
+### Priority Recommendations for Next Phase
+1. **Photo gallery** — Multiple photos per tree with lightbox viewer
+2. **Map drawing tools** — Draw polygons for planting areas
+3. **Performance testing** — Seed 5000+ records and verify clustering + pagination
+4. **Offline support** — Service worker for offline map tiles
+5. **Map instance sharing** — Expose MapLibre map instance globally for StatusBar zoom and other components
+6. **Retroactive activity seeding** — Create activity log entries for existing records

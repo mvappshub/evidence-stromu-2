@@ -6,7 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import Supercluster from 'supercluster'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { TreePine } from 'lucide-react'
+import { TreePine, Ruler, X } from 'lucide-react'
 import { useUiStore } from '@/store/useUiStore'
 import { usePlantStore } from '@/store/usePlantStore'
 import { MapStyleSwitcher, getMapStyle } from './MapStyleSwitcher'
@@ -15,6 +15,7 @@ import { HeatmapToggle } from './HeatmapToggle'
 import type { LayerMode } from './HeatmapToggle'
 import { MapLegend } from './MapLegend'
 import { toast } from 'sonner'
+import { haversineDistance, formatDistance } from '@/lib/haversine'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -151,6 +152,8 @@ export function MapView() {
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
   const speciesFilter = useUiStore((s) => s.speciesFilter)
   const placeMode = usePlantStore((s) => s.placeMode)
+  const measureMode = usePlantStore((s) => s.measureMode)
+  const toggleMeasureMode = usePlantStore((s) => s.toggleMeasureMode)
   const activeSpecies = usePlantStore((s) => s.activeSpecies)
   const activeDate = usePlantStore((s) => s.activeDate)
   const activeLocality = usePlantStore((s) => s.activeLocality)
@@ -160,9 +163,31 @@ export function MapView() {
   const queryClient = useQueryClient()
 
   const placeModeRef = useRef(placeMode)
+  const measureModeRef = useRef(measureMode)
 
   // Keep placeMode ref updated
   useEffect(() => { placeModeRef.current = placeMode }, [placeMode])
+  // Keep measureMode ref updated
+  useEffect(() => { measureModeRef.current = measureMode }, [measureMode])
+
+  /* ---- Measurement tool state ----------------------------------- */
+  const [measurePoints, setMeasurePoints] = useState<Array<{ lat: number; lng: number }>>([])
+
+  // Compute total measurement distance
+  const totalMeasureDistance = useMemo(() => {
+    let total = 0
+    for (let i = 1; i < measurePoints.length; i++) {
+      total += haversineDistance(
+        measurePoints[i - 1].lat, measurePoints[i - 1].lng,
+        measurePoints[i].lat, measurePoints[i].lng
+      )
+    }
+    return total
+  }, [measurePoints])
+
+  const clearMeasurePoints = useCallback(() => {
+    setMeasurePoints([])
+  }, [])
 
   /* ---- Layer mode state ----------------------------------------- */
   const [layerMode, setLayerMode] = useState<LayerMode>('points')
@@ -170,6 +195,7 @@ export function MapView() {
   /* ---- Mouse coordinate state ----------------------------------- */
   const [cursorCoord, setCursorCoord] = useState<{ lat: number; lng: number } | null>(null)
   const [mapBearing, setMapBearing] = useState(0)
+  const [gridVisible, setGridVisible] = useState(false)
 
   /* ---- Data fetching --------------------------------------------- */
   const geojsonQueryParams = useMemo(() => {
@@ -427,6 +453,34 @@ export function MapView() {
       // Add heatmap source and layer (hidden by default)
       addHeatmapToMap(map, false)
 
+      // Add measurement line source + layer
+      map.addSource('measure-source', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      })
+      map.addLayer({
+        id: 'measure-line-layer',
+        type: 'line',
+        source: 'measure-source',
+        paint: {
+          'line-color': '#ef4444',
+          'line-width': 2,
+          'line-dasharray': [4, 3],
+        },
+      })
+      map.addLayer({
+        id: 'measure-points-layer',
+        type: 'circle',
+        source: 'measure-source',
+        filter: ['==', ['get', 'measurePoint'], true],
+        paint: {
+          'circle-color': '#ef4444',
+          'circle-radius': 5,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+        },
+      })
+
       // Hover popup on individual tree points
       map.on('mousemove', 'trees-layer', (e) => {
         if (e.features && e.features.length > 0) {
@@ -528,6 +582,13 @@ export function MapView() {
         return
       }
 
+      if (measureModeRef.current) {
+        // Add measurement point
+        const { lat, lng } = e.lngLat
+        setMeasurePoints((prev) => [...prev, { lat, lng }])
+        return
+      }
+
       // Check if we clicked on a tree point
       const features = map.queryRenderedFeatures(e.point, {
         layers: ['trees-layer', 'selected-tree-layer'],
@@ -570,14 +631,20 @@ export function MapView() {
       map.off('click', handleMapClick)
       map.off('click', handleClusterClick)
     }
-  }, [placeMode, createMutation, setSelectedRecordNumber])
+  }, [placeMode, createMutation, setSelectedRecordNumber, setMeasurePoints])
 
-  /* ---- Cursor style based on place mode -------------------------- */
+  /* ---- Cursor style based on place/measure mode ------------------ */
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    map.getCanvas().style.cursor = placeMode ? 'crosshair' : ''
-  }, [placeMode])
+    if (placeMode) {
+      map.getCanvas().style.cursor = 'crosshair'
+    } else if (measureMode) {
+      map.getCanvas().style.cursor = 'crosshair'
+    } else {
+      map.getCanvas().style.cursor = ''
+    }
+  }, [placeMode, measureMode])
 
   /* ---- Track mouse coordinates + bearing ------------------------- */
   useEffect(() => {
@@ -742,6 +809,23 @@ export function MapView() {
           // Re-add heatmap source + layer (hidden by default; will be shown if layerMode is heatmap)
           addHeatmapToMap(map, false)
 
+          // Re-add measurement source + layers
+          if (!map.getSource('measure-source')) {
+            map.addSource('measure-source', {
+              type: 'geojson',
+              data: { type: 'FeatureCollection', features: [] },
+            })
+            map.addLayer({
+              id: 'measure-line-layer', type: 'line', source: 'measure-source',
+              paint: { 'line-color': '#ef4444', 'line-width': 2, 'line-dasharray': [4, 3] },
+            })
+            map.addLayer({
+              id: 'measure-points-layer', type: 'circle', source: 'measure-source',
+              filter: ['==', ['get', 'measurePoint'], true],
+              paint: { 'circle-color': '#ef4444', 'circle-radius': 5, 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' },
+            })
+          }
+
           // Reset layer mode to points on style change (layers are recreated in default visibility)
           setLayerMode('points')
 
@@ -806,6 +890,83 @@ export function MapView() {
     }
   }, [layerMode])
 
+  /* ---- Update measurement GeoJSON source ------------------------- */
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !isMapReady.current) return
+    if (!map.getSource('measure-source')) return
+
+    const features: Array<GeoJSON.Feature> = []
+
+    // Add point features
+    measurePoints.forEach((pt, idx) => {
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [pt.lng, pt.lat] },
+        properties: { measurePoint: true, index: idx },
+      })
+    })
+
+    // Add line feature if 2+ points
+    if (measurePoints.length >= 2) {
+      features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: measurePoints.map((pt) => [pt.lng, pt.lat]),
+        },
+        properties: { measureLine: true },
+      })
+    }
+
+    ;(map.getSource('measure-source') as maplibregl.GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features,
+    })
+  }, [measurePoints])
+
+  /* ---- Grid overlay toggle (G key) ---------------------------- */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'g' &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !(e.target instanceof HTMLInputElement) &&
+        !(e.target instanceof HTMLTextAreaElement) &&
+        !(e.target instanceof HTMLSelectElement)
+      ) {
+        setGridVisible((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  /* ---- Update selected tree info panel (derived as useMemo) ---- */
+  const selectedTreeInfo = useMemo(() => {
+    if (selectedRecordNumber == null || !geoData?.features) return null
+    const feature = geoData.features.find(
+      (f) => f.properties.recordNumber === selectedRecordNumber
+    )
+    if (!feature) return null
+    return {
+      species: feature.properties.speciesLatin,
+      date: feature.properties.plantedAt ? format(new Date(feature.properties.plantedAt), 'd.M.yyyy') : '',
+      locality: feature.properties.locality,
+      recordNumber: feature.properties.recordNumber,
+    }
+  }, [selectedRecordNumber, geoData])
+
+  /* ---- Expose map instance for StatusBar zoom level ------------- */
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const container = map.getContainer()
+    ;(container as HTMLElement & { __mapInstance?: object }).__mapInstance = map
+  }, [geoData])
+
   /* ---- Resize handler -------------------------------------------- */
   useEffect(() => {
     const handleResize = () => {
@@ -840,7 +1001,42 @@ export function MapView() {
       <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
         <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={handleStyleChange} className="style-switcher-fade-in" />
         <HeatmapToggle mode={layerMode} onToggle={handleLayerModeToggle} />
+        <button
+          type="button"
+          onClick={toggleMeasureMode}
+          className={`size-8 rounded-md border flex items-center justify-center transition-colors shadow-sm ${
+            measureMode
+              ? 'bg-red-500 border-red-600 text-white hover:bg-red-600'
+              : 'bg-background/90 border-border text-muted-foreground hover:text-foreground hover:bg-background'
+          }`}
+          title="Měření vzdálenosti"
+        >
+          <Ruler className="size-3.5" />
+        </button>
       </div>
+
+      {/* Measurement distance panel */}
+      {measureMode && measurePoints.length > 0 && (
+        <div className="absolute top-14 right-3 z-10 bg-background/95 border border-border rounded-lg shadow-lg p-3 min-w-[160px]">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="text-xs font-medium text-muted-foreground">Měření vzdálenosti</span>
+            <button
+              type="button"
+              onClick={clearMeasurePoints}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title="Vymazat body"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+          <div className="text-lg font-bold tabular-nums text-red-600 dark:text-red-400">
+            {formatDistance(totalMeasureDistance)}
+          </div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            {measurePoints.length} {measurePoints.length === 1 ? 'bod' : measurePoints.length < 5 ? 'body' : 'bodů'}
+          </div>
+        </div>
+      )}
       <MapLegend layerMode={layerMode} />
 
       {/* Coordinate display */}
@@ -858,12 +1054,30 @@ export function MapView() {
           style={{ left: marker.x, top: marker.y }}
         />
       ))}
+      {/* Grid overlay */}
+      {gridVisible && (
+        <div className="grid-overlay">
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="lat-grid" width="100%" height="50" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="50" x2="100%" y2="50" stroke="oklch(0.55 0.15 145 / 0.15)" strokeWidth="0.5" strokeDasharray="4 4" />
+              </pattern>
+              <pattern id="lng-grid" width="50" height="100%" patternUnits="userSpaceOnUse">
+                <line x1="50" y1="0" x2="50" y2="100%" stroke="oklch(0.55 0.15 145 / 0.15)" strokeWidth="0.5" strokeDasharray="4 4" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#lat-grid)" />
+            <rect width="100%" height="100%" fill="url(#lng-grid)" />
+          </svg>
+        </div>
+      )}
+
       {/* Empty state overlay for new users */}
       {geoData?.features?.length === 0 && !isGeoLoading && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm">
           <div className="text-center space-y-3 max-w-sm px-4">
-            <div className="size-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <TreePine className="size-8 text-green-600" />
+            <div className="size-20 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center pulse-tree-icon">
+              <TreePine className="size-10 text-green-600" />
             </div>
             <h3 className="text-lg font-semibold">Začněte evidovat stromy</h3>
             <p className="text-sm text-muted-foreground">
@@ -873,6 +1087,20 @@ export function MapView() {
               <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 rounded border bg-muted text-[10px] font-mono">P</kbd> Režim vkládání</span>
               <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 rounded border bg-muted text-[10px] font-mono">?</kbd> Klávesové zkratky</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mini info panel for selected tree */}
+      {selectedTreeInfo && (
+        <div className="absolute bottom-14 right-3 z-10 mini-info-panel slide-up-info">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono text-xs text-green-600 dark:text-green-400 font-semibold">#{selectedTreeInfo.recordNumber}</span>
+            <span className="text-sm italic font-medium truncate">{selectedTreeInfo.species}</span>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+            <span>📅 {selectedTreeInfo.date}</span>
+            {selectedTreeInfo.locality && <span>📍 {selectedTreeInfo.locality}</span>}
           </div>
         </div>
       )}

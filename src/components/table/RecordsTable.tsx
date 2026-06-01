@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -98,6 +98,10 @@ export function RecordsTable() {
   const [pagination, setPagination] = useState({ page: 0, pageSize: 50 })
   const [editorOpen, setEditorOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+  const tableScrollRef = useRef<HTMLDivElement>(null)
+  const [prevCount, setPrevCount] = useState<number | null>(null)
+  const [countAnimating, setCountAnimating] = useState(false)
 
   // Build query params
   const queryParams = useMemo(() => {
@@ -151,6 +155,27 @@ export function RecordsTable() {
 
   const speciesOptions = filterData?.species ?? []
   const localityOptions = filterData?.localities ?? []
+
+  // Track scroll position for shadow indicator
+  useEffect(() => {
+    const el = tableScrollRef.current
+    if (!el) return
+    const onScroll = () => setIsScrolled(el.scrollTop > 8)
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // Animated counter when filtered count changes
+  useEffect(() => {
+    if (data?.count !== undefined && prevCount !== null && data.count !== prevCount) {
+      setCountAnimating(true)
+      const timer = setTimeout(() => setCountAnimating(false), 400)
+      return () => clearTimeout(timer)
+    }
+    if (data?.count !== undefined) {
+      setPrevCount(data.count)
+    }
+  }, [data?.count])
 
   // Species frequency map for dot indicator
   const speciesFrequencyMap = useMemo(() => {
@@ -268,16 +293,22 @@ export function RecordsTable() {
           const freq = speciesFrequencyMap[row.original.speciesLatin] ?? 0
           const intensity = maxSpeciesFreq > 0 ? freq / maxSpeciesFreq : 0
           return (
-            <span className="text-sm italic inline-flex items-center">
-              {row.original.speciesLatin}
-              <span
-                className="species-freq-dot"
-                style={{
-                  backgroundColor: `oklch(${0.4 + intensity * 0.3} ${0.1 + intensity * 0.12} 145 / ${0.3 + intensity * 0.7})`,
-                }}
-                title={`${freq}× v tabulce`}
-              />
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-sm italic inline-flex items-center cursor-default">
+                  {row.original.speciesLatin}
+                  <span
+                    className="species-freq-dot"
+                    style={{
+                      backgroundColor: `oklch(${0.4 + intensity * 0.3} ${0.1 + intensity * 0.12} 145 / ${0.3 + intensity * 0.7})`,
+                    }}
+                  />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                <em>{row.original.speciesLatin}</em> — {freq} {czechPlural(freq, ['záznam', 'záznamy', 'záznamů'])} tohoto druhu
+              </TooltipContent>
+            </Tooltip>
           )
         },
       },
@@ -541,7 +572,10 @@ export function RecordsTable() {
 
         <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap flex items-center gap-1">
           <TreePine className="size-3 text-green-600" />
-          {data?.count !== undefined ? czechPlural(data.count, ['záznam', 'záznamy', 'záznamů']) : '…'}
+          <span className={cn('tabular-nums', countAnimating && 'counter-animate')}>
+            {data?.count !== undefined ? data.count : '…'}
+          </span>
+          /<span className="tabular-nums text-muted-foreground/60">{data?.count !== undefined ? czechPlural(data.count, ['záznam', 'záznamy', 'záznamů']) : '…'}</span>
         </span>
 
         <div className="flex items-center gap-0.5">
@@ -612,7 +646,8 @@ export function RecordsTable() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto relative" ref={tableScrollRef}>
+        {isScrolled && <div className="scroll-shadow-top" />}
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -657,10 +692,11 @@ export function RecordsTable() {
               </TableRow>
             ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-32">
-                  <div className="flex flex-col items-center gap-3 py-6 text-muted-foreground bg-gradient-to-b from-green-50/50 to-transparent dark:from-green-950/10 dark:to-transparent">
-                    <div className="size-16 rounded-full bg-green-50 dark:bg-green-950/20 flex items-center justify-center">
-                      <TreePine className="size-8 text-green-400" />
+                <TableCell colSpan={columns.length} className="h-40">
+                  <div className="flex flex-col items-center gap-4 py-8 text-muted-foreground bg-gradient-to-b from-green-50/50 to-transparent dark:from-green-950/10 dark:to-transparent">
+                    <div className="size-24 relative flex items-center justify-center">
+                      <div className="css-tree-silhouette w-10 h-14" />
+                      <div className="absolute inset-0 rounded-full bg-green-100/50 dark:bg-green-950/20" />
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium">Žádné záznamy k zobrazení</p>
@@ -735,7 +771,7 @@ export function RecordsTable() {
           <Button
             variant="outline"
             size="icon"
-            className="size-7 hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+            className="size-7 pagination-green-ring hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             disabled={pagination.page === 0}
             onClick={() => setPagination((p) => ({ ...p, page: 0 }))}
           >
@@ -744,7 +780,7 @@ export function RecordsTable() {
           <Button
             variant="outline"
             size="icon"
-            className="size-7 hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+            className="size-7 pagination-green-ring hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             disabled={pagination.page === 0}
             onClick={() =>
               setPagination((p) => ({ ...p, page: Math.max(0, p.page - 1) }))
@@ -758,7 +794,7 @@ export function RecordsTable() {
           <Button
             variant="outline"
             size="icon"
-            className="size-7 hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+            className="size-7 pagination-green-ring hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             disabled={pagination.page >= totalPages - 1}
             onClick={() =>
               setPagination((p) => ({ ...p, page: p.page + 1 }))
@@ -769,7 +805,7 @@ export function RecordsTable() {
           <Button
             variant="outline"
             size="icon"
-            className="size-7 hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+            className="size-7 pagination-green-ring hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             disabled={pagination.page >= totalPages - 1}
             onClick={() =>
               setPagination((p) => ({ ...p, page: totalPages - 1 }))

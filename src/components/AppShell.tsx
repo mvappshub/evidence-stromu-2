@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useQuery } from '@tanstack/react-query'
-import { TreePine, Map, List, Columns2, Moon, Sun, LogOut, Upload } from 'lucide-react'
+import { TreePine, Map, List, Columns2, Moon, Sun, LogOut, Upload, Database, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -23,6 +23,8 @@ import { StatisticsPanel } from '@/components/StatisticsPanel'
 import { SpeciesDetailPanel } from '@/components/SpeciesDetailPanel'
 import { ActivityLog } from '@/components/ActivityLog'
 import { ImportDialog } from '@/components/ImportDialog'
+import { BackupRestore } from '@/components/BackupRestore'
+import { GlobalSearch } from '@/components/GlobalSearch'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
 import { czechPlural } from '@/lib/czech-plural'
@@ -40,6 +42,7 @@ export function AppShell() {
   const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
   const [importOpen, setImportOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const { data: countData } = useQuery({
     queryKey: ['records-count'],
@@ -102,6 +105,18 @@ export function AppShell() {
 
       <div className="flex-1" />
 
+      {/* Global search */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-7" onClick={() => setSearchOpen(true)}>
+            <Search className="size-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">
+          Vyhledávání <kbd className="ml-1 px-1 py-0.5 rounded border bg-muted text-[10px] font-mono">Ctrl+K</kbd>
+        </TooltipContent>
+      </Tooltip>
+
       {/* Maintenance bell */}
       <MaintenanceBell />
 
@@ -124,8 +139,11 @@ export function AppShell() {
       {/* Activity log */}
       <ActivityLog />
 
+      {/* Backup & Restore */}
+      <BackupRestore />
+
       {/* Keyboard shortcuts */}
-      <KeyboardShortcuts />
+      <KeyboardShortcuts onCtrlK={() => setSearchOpen(true)} />
 
       {/* User menu */}
       <DropdownMenu>
@@ -155,6 +173,9 @@ export function AppShell() {
       </DropdownMenu>
       {/* Import dialog */}
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
+
+      {/* Global search dialog */}
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   )
 }

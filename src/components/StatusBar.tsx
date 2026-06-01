@@ -21,7 +21,7 @@ export function StatusBar() {
   })
 
   return (
-    <div className="h-6 border-t bg-muted/50 flex items-center px-3 gap-4 text-[10px] text-muted-foreground shrink-0">
+    <div className="h-6 border-t glass-bar flex items-center px-3 gap-4 text-[10px] text-muted-foreground shrink-0 z-20">
       <span className="flex items-center gap-1">
         <Database className="size-3" />
         SQLite

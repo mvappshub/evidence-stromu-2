@@ -6,10 +6,12 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import Supercluster from 'supercluster'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { TreePine } from 'lucide-react'
 import { useUiStore } from '@/store/useUiStore'
 import { usePlantStore } from '@/store/usePlantStore'
 import { MapStyleSwitcher, getMapStyle } from './MapStyleSwitcher'
 import type { MapStyleKey } from './MapStyleSwitcher'
+import { toast } from 'sonner'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -91,6 +93,8 @@ export function MapView() {
   const updateMapSourceRef = useRef<(map: maplibregl.Map) => void>(() => {})
   const popupRef = useRef<maplibregl.Popup | null>(null)
   const hasFittedBounds = useRef(false)
+  const selectedMarkerRef = useRef<maplibregl.Marker | null>(null)
+  const updateMutateRef = useRef<((args: { recordNumber: number; lat: number; lng: number }) => void) | null>(null)
 
   const selectedRecordNumber = useUiStore((s) => s.selectedRecordNumber)
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
@@ -138,12 +142,16 @@ export function MapView() {
       const rn: number = data.record?.recordNumber ?? data.recordNumber
       if (rn) {
         setLastInsertedRecordNumber(rn)
+        toast.success('Strom vložen', { description: `Záznam #${rn} vytvořen` })
       }
       if (activeSpecies) {
         addToRecentSpecies(activeSpecies)
       }
       queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
       queryClient.invalidateQueries({ queryKey: ['records'] })
+    },
+    onError: () => {
+      toast.error('Chyba', { description: 'Nepodařilo se vložit strom' })
     },
   })
 
@@ -160,8 +168,12 @@ export function MapView() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+      toast.success('Pozice aktualizována')
     },
   })
+
+  // Keep updateMutate ref updated for drag handler
+  useEffect(() => { updateMutateRef.current = updateMutation.mutate }, [updateMutation])
 
   /* ---- Build supercluster index from geoData --------------------- */
   const superclusterIndex = useMemo(() => {
@@ -505,6 +517,61 @@ export function MapView() {
     }
   }, [selectedRecordNumber, geoData])
 
+  /* ---- Draggable marker for selected tree ------------------------ */
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !isMapReady.current) return
+
+    // Remove existing marker
+    if (selectedMarkerRef.current) {
+      selectedMarkerRef.current.remove()
+      selectedMarkerRef.current = null
+    }
+
+    if (selectedRecordNumber == null) return
+
+    // Find the feature
+    const feature = geoData?.features?.find(
+      (f) => f.properties.recordNumber === selectedRecordNumber
+    )
+    if (!feature) return
+
+    const [lng, lat] = feature.geometry.coordinates
+
+    // Create a custom marker element
+    const el = document.createElement('div')
+    el.className = 'selected-tree-marker'
+    el.style.width = '18px'
+    el.style.height = '18px'
+    el.style.borderRadius = '50%'
+    el.style.backgroundColor = '#22c55e'
+    el.style.border = '3px solid #eab308'
+    el.style.cursor = 'grab'
+    el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)'
+
+    const marker = new maplibregl.Marker({ element: el, draggable: true })
+      .setLngLat([lng, lat])
+      .addTo(map)
+
+    marker.on('dragend', () => {
+      const lngLat = marker.getLngLat()
+      updateMutateRef.current?.({
+        recordNumber: selectedRecordNumber,
+        lat: lngLat.lat,
+        lng: lngLat.lng,
+      })
+    })
+
+    selectedMarkerRef.current = marker
+
+    return () => {
+      if (selectedMarkerRef.current) {
+        selectedMarkerRef.current.remove()
+        selectedMarkerRef.current = null
+      }
+    }
+  }, [selectedRecordNumber, geoData, updateMutation])
+
   /* ---- Undo (Ctrl+Z) -------------------------------------------- */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -618,6 +685,24 @@ export function MapView() {
           style={{ left: marker.x, top: marker.y }}
         />
       ))}
+      {/* Empty state overlay for new users */}
+      {geoData?.features?.length === 0 && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+          <div className="text-center space-y-3 max-w-sm px-4">
+            <div className="size-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <TreePine className="size-8 text-green-600" />
+            </div>
+            <h3 className="text-lg font-semibold">Začněte evidovat stromy</h3>
+            <p className="text-sm text-muted-foreground">
+              Klikněte na tlačítko <strong>„Vkládat&quot;</strong> dole na mapě a poté klikněte na místo, kde byl strom vysazen.
+            </p>
+            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 rounded border bg-muted text-[10px] font-mono">P</kbd> Režim vkládání</span>
+              <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 rounded border bg-muted text-[10px] font-mono">?</kbd> Klávesové zkratky</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

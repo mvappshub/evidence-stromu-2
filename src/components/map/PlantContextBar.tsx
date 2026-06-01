@@ -47,7 +47,7 @@ export function PlantContextBar() {
     <div className="absolute bottom-4 left-4 right-4 z-10">
       <div
         className={cn(
-          'rounded-xl border shadow-lg px-3 py-2.5',
+          'rounded-xl border shadow-lg elevation-2 px-3 py-2.5',
           'bg-background/80 backdrop-blur-md',
           'flex flex-col gap-2'
         )}
@@ -111,8 +111,8 @@ export function PlantContextBar() {
             </PopoverContent>
           </Popover>
 
-          {/* Locality input */}
-          <div className="relative flex-1 min-w-[100px]">
+          {/* Locality input — hidden on very small screens */}
+          <div className="relative flex-1 min-w-[100px] hidden sm:block">
             <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
             <Input
               value={activeLocality}

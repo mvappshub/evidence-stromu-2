@@ -6,7 +6,7 @@ export async function GET() {
   const auth = await requireAuth()
   if ("error" in auth) return auth.error
 
-  const [totalCount, speciesBreakdown, dateRange, localityBreakdown] = await Promise.all([
+  const [totalCount, speciesBreakdown, dateRange, localityBreakdown, yearCounts] = await Promise.all([
     db.treeRecord.count({ where: { createdById: auth.userId } }),
     db.treeRecord.groupBy({
       by: ['speciesLatin'],
@@ -26,7 +26,18 @@ export async function GET() {
       orderBy: { _count: { locality: 'desc' } },
       take: 10,
     }),
+    db.treeRecord.findMany({
+      where: { createdById: auth.userId },
+      select: { plantedAt: true },
+    }),
   ])
+
+  // Build yearly breakdown from plantedAt dates
+  const yearlyBreakdownMap: Record<string, number> = {}
+  yearCounts.forEach(r => {
+    const year = new Date(r.plantedAt).getFullYear().toString()
+    yearlyBreakdownMap[year] = (yearlyBreakdownMap[year] || 0) + 1
+  })
 
   return NextResponse.json({
     totalCount,
@@ -42,5 +53,8 @@ export async function GET() {
       locality: l.locality,
       count: l._count.locality,
     })),
+    yearlyBreakdown: Object.entries(yearlyBreakdownMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([year, count]) => ({ year, count })),
   })
 }

@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { useUiStore } from '@/store/useUiStore'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 interface DueReminder {
@@ -58,6 +59,10 @@ export function MaintenanceBell() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reminders-due'] })
       queryClient.invalidateQueries({ queryKey: ['records'] })
+      toast.success('Připomínka vyřízena')
+    },
+    onError: () => {
+      toast.error('Chyba při potvrzování')
     },
   })
 

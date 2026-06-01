@@ -314,7 +314,7 @@ export function RecordsTable() {
     <div className="flex flex-col h-full">
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b bg-muted/30">
-        <div className="relative flex-1 min-w-[180px]">
+        <div className="relative flex-1 min-w-0 w-full sm:w-auto sm:min-w-[180px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
             placeholder="Hledat druh, lokalitu, poznámku…"
@@ -334,7 +334,7 @@ export function RecordsTable() {
             setPagination((p) => ({ ...p, page: 0 }))
           }}
         >
-          <SelectTrigger className="h-8 text-sm w-[160px]">
+          <SelectTrigger className="h-8 text-sm w-full sm:w-[160px]">
             <SelectValue placeholder="Druh" />
           </SelectTrigger>
           <SelectContent>
@@ -354,7 +354,7 @@ export function RecordsTable() {
             setPagination((p) => ({ ...p, page: 0 }))
           }}
         >
-          <SelectTrigger className="h-8 text-sm w-[160px]">
+          <SelectTrigger className="h-8 text-sm w-full sm:w-[160px]">
             <SelectValue placeholder="Lokalita" />
           </SelectTrigger>
           <SelectContent>
@@ -437,7 +437,7 @@ export function RecordsTable() {
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
+          <TableBody className="table-stripe">
             {isLoading ? (
               // Loading skeleton
               Array.from({ length: 8 }).map((_, idx) => (
@@ -460,17 +460,14 @@ export function RecordsTable() {
               </TableRow>
             ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  <div className="flex flex-col items-center gap-3 py-8 text-muted-foreground">
+                <TableCell colSpan={columns.length} className="h-32">
+                  <div className="flex flex-col items-center gap-3 py-6 text-muted-foreground">
                     <div className="size-16 rounded-full bg-green-50 dark:bg-green-950/20 flex items-center justify-center">
                       <TreePine className="size-8 text-green-400" />
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-medium">Žádné záznamy k zobrazení</p>
-                      <p className="text-xs mt-1">Přidejte nový záznam kliknutím na mapu v režimu vkládání</p>
+                      <p className="text-xs mt-1">Přidejte nový záznam kliknutím na mapu v režimu vkládání, nebo zmáčkněte <kbd className="px-1 py-0.5 rounded border bg-muted text-[10px] font-mono">P</kbd></p>
                     </div>
                   </div>
                 </TableCell>

@@ -48,7 +48,7 @@ export function AppShell() {
   })
 
   return (
-    <div className="h-10 border-b bg-background/95 backdrop-blur-sm flex items-center px-2 gap-1 shrink-0">
+    <div className="h-10 border-b glass-bar flex items-center px-2 gap-1 shrink-0 flex-wrap overflow-hidden z-20">
       {/* Logo icon only */}
       <TreePine className="size-5 text-green-600 shrink-0 mx-1" />
 

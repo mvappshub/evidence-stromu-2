@@ -37,6 +37,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import type { Reminder } from '@/lib/types'
 
 const reminderFormSchema = z.object({
@@ -140,8 +141,13 @@ export function ReminderEditor({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
+      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
       form.reset()
       onAfterSubmit?.()
+      toast.success('Připomínka vytvořena')
+    },
+    onError: (error) => {
+      toast.error('Chyba', { description: error.message })
     },
   })
 
@@ -158,8 +164,13 @@ export function ReminderEditor({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
+      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
       setEditingId(null)
       onAfterSubmit?.()
+      toast.success('Připomínka aktualizována')
+    },
+    onError: (error) => {
+      toast.error('Chyba', { description: error.message })
     },
   })
 
@@ -174,7 +185,12 @@ export function ReminderEditor({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
+      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
       onAfterSubmit?.()
+      toast.success('Připomínka smazána')
+    },
+    onError: (error) => {
+      toast.error('Chyba', { description: error.message })
     },
   })
 
@@ -189,7 +205,13 @@ export function ReminderEditor({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
+      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+      queryClient.invalidateQueries({ queryKey: ['reminders-due'] })
       onAfterSubmit?.()
+      toast.success('Připomínka vyřízena')
+    },
+    onError: (error) => {
+      toast.error('Chyba', { description: error.message })
     },
   })
 

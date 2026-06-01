@@ -219,3 +219,53 @@
   font-size: 16px;
   animation: tree-place-flash 0.8s ease-out forwards;
 }
+
+/* Draggable selected tree marker */
+.selected-tree-marker:hover {
+  cursor: grab !important;
+  transform: scale(1.2);
+  transition: transform 0.15s ease;
+}
+.selected-tree-marker:active {
+  cursor: grabbing !important;
+  transform: scale(1.1);
+}
+
+/* Table alternating row stripes */
+.table-stripe tr:nth-child(even) {
+  background-color: oklch(0.98 0.002 145 / 0.3);
+}
+.dark .table-stripe tr:nth-child(even) {
+  background-color: oklch(0.22 0.005 145 / 0.15);
+}
+
+/* Subtle elevation for panels and cards */
+.elevation-1 {
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
+}
+.elevation-2 {
+  box-shadow: 0 3px 6px oklch(0 0 0 / 0.08), 0 2px 4px oklch(0 0 0 / 0.04);
+}
+
+/* Toolbar glass effect */
+.glass-bar {
+  background: oklch(1 0 0 / 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dark .glass-bar {
+  background: oklch(0.15 0 0 / 0.85);
+}
+
+/* Smooth focus ring for inputs */
+input:focus-visible, textarea:focus-visible {
+  box-shadow: 0 0 0 2px oklch(0.6 0.2 145 / 0.3);
+}
+
+/* Transition for interactive elements */
+.interactive-transition {
+  transition: all 0.15s ease;
+}
+.interactive-transition:hover {
+  transform: translateY(-1px);
+}

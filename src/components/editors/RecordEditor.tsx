@@ -45,6 +45,7 @@ import {
 import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/store/useUiStore'
+import { toast } from 'sonner'
 import type { TreeRecord } from '@/lib/types'
 
 const recordEditSchema = z.object({
@@ -114,7 +115,14 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
+      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
       onOpenChange(false)
+      if (record) {
+        toast.success('Záznam uložen', { description: `Záznam #${record.recordNumber} aktualizován` })
+      }
+    },
+    onError: () => {
+      toast.error('Chyba při ukládání')
     },
   })
 
@@ -129,8 +137,15 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
+      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
       setSelectedRecordNumber(null)
       onOpenChange(false)
+      if (record) {
+        toast.success('Záznam smazán', { description: `Záznam #${record.recordNumber} byl odstraněn` })
+      }
+    },
+    onError: () => {
+      toast.error('Chyba při mazání')
     },
   })
 

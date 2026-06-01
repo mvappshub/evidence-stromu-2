@@ -17,8 +17,11 @@ import {
 } from '@/components/ui/tooltip'
 import { useUiStore } from '@/store/useUiStore'
 import { MaintenanceBell } from '@/components/MaintenanceBell'
+import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
+import { StatisticsPanel } from '@/components/StatisticsPanel'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
+import { czechPlural } from '@/lib/czech-plural'
 import type { ViewMode } from '@/lib/types'
 
 const viewModes: { mode: ViewMode; icon: typeof Map; label: string }[] = [
@@ -77,7 +80,7 @@ export function AppShell() {
 
       {countData !== undefined && (
         <span className="text-[10px] text-muted-foreground ml-1 tabular-nums">
-          {countData} stromů
+          {czechPlural(countData, ['strom', 'stromy', 'stromů'])}
         </span>
       )}
 
@@ -85,6 +88,12 @@ export function AppShell() {
 
       {/* Maintenance bell */}
       <MaintenanceBell />
+
+      {/* Statistics panel */}
+      <StatisticsPanel />
+
+      {/* Keyboard shortcuts */}
+      <KeyboardShortcuts />
 
       {/* User menu */}
       <DropdownMenu>

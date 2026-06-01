@@ -276,13 +276,13 @@ export function MapView() {
           'circle-radius': [
             'step',
             ['get', 'point_count'],
-            16,
+            18,
             10,
-            22,
+            24,
             50,
-            28,
+            30,
             200,
-            34,
+            36,
           ],
           'circle-stroke-width': 3,
           'circle-stroke-color': '#ffffff',
@@ -299,7 +299,7 @@ export function MapView() {
         layout: {
           'text-field': ['get', 'point_count'],
           'text-font': ['Open Sans Bold'],
-          'text-size': 12,
+          'text-size': 13,
         },
         paint: {
           'text-color': '#ffffff',
@@ -314,7 +314,7 @@ export function MapView() {
         filter: ['!=', ['get', 'cluster'], true],
         paint: {
           'circle-color': '#22c55e',
-          'circle-radius': 5,
+          'circle-radius': 6,
           'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
         },
@@ -328,7 +328,7 @@ export function MapView() {
         filter: ['==', ['get', 'selected'], true],
         paint: {
           'circle-color': '#22c55e',
-          'circle-radius': 7,
+          'circle-radius': 9,
           'circle-stroke-width': 3,
           'circle-stroke-color': '#eab308',
         },
@@ -408,6 +408,18 @@ export function MapView() {
     updateMapSource(map)
   }, [geoData, selectedRecordNumber, updateMapSource])
 
+  /* ---- Flash markers for tree placement visual feedback ---------- */
+  const [flashMarkers, setFlashMarkers] = useState<Array<{ id: number; x: number; y: number }>>([])
+
+  const addFlashMarker = useCallback((x: number, y: number) => {
+    const id = Date.now() + Math.random()
+    setFlashMarkers((prev) => [...prev, { id, x, y }])
+    // Remove after animation completes (800ms)
+    setTimeout(() => {
+      setFlashMarkers((prev) => prev.filter((m) => m.id !== id))
+    }, 900)
+  }, [])
+
   /* ---- Handle click: place mode or select ------------------------ */
   useEffect(() => {
     const map = mapRef.current
@@ -417,6 +429,8 @@ export function MapView() {
       if (placeMode) {
         // Insert new tree at click location
         const { lat, lng } = e.lngLat
+        // Show visual feedback flash at click point
+        addFlashMarker(e.point.x, e.point.y)
         createMutation.mutate({ lat, lng })
         return
       }
@@ -534,25 +548,25 @@ export function MapView() {
             filter: ['==', ['get', 'cluster'], true],
             paint: {
               'circle-color': ['step', ['get', 'point_count'], '#86efac', 10, '#4ade80', 50, '#22c55e', 200, '#16a34a'],
-              'circle-radius': ['step', ['get', 'point_count'], 16, 10, 22, 50, 28, 200, 34],
+              'circle-radius': ['step', ['get', 'point_count'], 18, 10, 24, 50, 30, 200, 36],
               'circle-stroke-width': 3, 'circle-stroke-color': '#ffffff', 'circle-opacity': 0.9,
             },
           })
           map.addLayer({
             id: 'cluster-count-layer', type: 'symbol', source: 'trees-source',
             filter: ['==', ['get', 'cluster'], true],
-            layout: { 'text-field': ['get', 'point_count'], 'text-font': ['Open Sans Bold'], 'text-size': 12 },
+            layout: { 'text-field': ['get', 'point_count'], 'text-font': ['Open Sans Bold'], 'text-size': 13 },
             paint: { 'text-color': '#ffffff' },
           })
           map.addLayer({
             id: 'trees-layer', type: 'circle', source: 'trees-source',
             filter: ['!=', ['get', 'cluster'], true],
-            paint: { 'circle-color': '#22c55e', 'circle-radius': 5, 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' },
+            paint: { 'circle-color': '#22c55e', 'circle-radius': 6, 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' },
           })
           map.addLayer({
             id: 'selected-tree-layer', type: 'circle', source: 'trees-source',
             filter: ['==', ['get', 'selected'], true],
-            paint: { 'circle-color': '#22c55e', 'circle-radius': 7, 'circle-stroke-width': 3, 'circle-stroke-color': '#eab308' },
+            paint: { 'circle-color': '#22c55e', 'circle-radius': 9, 'circle-stroke-width': 3, 'circle-stroke-color': '#eab308' },
           })
           // Re-add hover handlers
           map.on('mousemove', 'trees-layer', (e) => {
@@ -596,6 +610,14 @@ export function MapView() {
       <div className="absolute top-3 right-12 z-10">
         <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={handleStyleChange} />
       </div>
+      {/* Flash markers for tree placement visual feedback */}
+      {flashMarkers.map((marker) => (
+        <div
+          key={marker.id}
+          className="tree-flash-marker"
+          style={{ left: marker.x, top: marker.y }}
+        />
+      ))}
     </div>
   )
 }

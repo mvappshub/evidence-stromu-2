@@ -5,6 +5,7 @@ import { AppShell } from '@/components/AppShell'
 import { MapView } from '@/components/map/MapView'
 import { PlantContextBar } from '@/components/map/PlantContextBar'
 import { RecordsTable } from '@/components/table/RecordsTable'
+import { StatusBar } from '@/components/StatusBar'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from 'next-themes'
@@ -49,6 +50,7 @@ function AppContent() {
     <div className="h-screen flex flex-col">
       <AppShell />
       <WorkArea />
+      <StatusBar />
     </div>
   )
 }

@@ -179,3 +179,43 @@
 .place-mode-active {
   animation: place-mode-pulse 2s infinite;
 }
+
+/* Tree placement flash animation */
+@keyframes tree-place-flash {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+    background-color: oklch(0.7 0.2 145 / 0.9);
+    box-shadow: 0 0 0 0 oklch(0.7 0.2 145 / 0.6);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0.8;
+    background-color: oklch(0.7 0.2 145 / 0.5);
+    box-shadow: 0 0 20px 10px oklch(0.7 0.2 145 / 0.2);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+    background-color: oklch(0.7 0.2 145 / 0);
+    box-shadow: 0 0 30px 15px oklch(0.7 0.2 145 / 0);
+  }
+}
+.tree-flash-marker {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+  animation: tree-place-flash 0.8s ease-out forwards;
+}
+.tree-flash-marker::after {
+  content: '🌳';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  animation: tree-place-flash 0.8s ease-out forwards;
+}

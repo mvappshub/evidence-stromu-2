@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Bell,
   FileText,
+  Trash2,
   X,
   Loader2,
 } from 'lucide-react'
@@ -23,6 +24,17 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { ReminderEditor } from '@/components/editors/ReminderEditor'
 import type { Reminder } from '@/lib/types'
 
@@ -67,8 +79,24 @@ export function BulkActionBar({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
+      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
       setNoteDialogOpen(false)
       noteForm.reset()
+      onClearSelection()
+    },
+  })
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async () => {
+      await Promise.all(
+        selectedRecordNumbers.map(n =>
+          fetch(`/api/records/${n}`, { method: 'DELETE' })
+        )
+      )
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['records'] })
+      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
       onClearSelection()
     },
   })
@@ -107,6 +135,36 @@ export function BulkActionBar({
           <Bell className="size-3.5" />
           Nastavit připomínku
         </Button>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="size-3.5" />
+              Smazat ({selectedRecordNumbers.length})
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Smazat vybrané záznamy?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tato akce je nevratná. {selectedRecordNumbers.length} {selectedRecordNumbers.length === 1 ? 'záznam' : selectedRecordNumbers.length < 5 ? 'záznamy' : 'záznamů'} a všechny jejich připomínky budou trvale smazány.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Zrušit</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => bulkDeleteMutation.mutate()}
+                className="bg-destructive text-white hover:bg-destructive/90"
+              >
+                {bulkDeleteMutation.isPending ? 'Mazání…' : 'Smazat'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <Button
           variant="ghost"

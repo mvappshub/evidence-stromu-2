@@ -291,44 +291,54 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
           {/* Photo */}
           <div className="space-y-1.5">
             <Label className="text-xs">Fotografie</Label>
-            <div className="flex items-center gap-2">
-              {photoPath && (
-                <div className="size-12 rounded border overflow-hidden bg-muted flex items-center justify-center">
+            {photoPath ? (
+              <div className="space-y-2">
+                <div className="relative rounded-lg border overflow-hidden bg-muted aspect-video max-w-[300px]">
                   <img
                     src={photoPath}
                     alt="Foto stromu"
-                    className="size-full object-cover"
+                    className="w-full h-full object-cover"
                   />
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer">
+                    <Button type="button" variant="outline" size="sm" className="gap-1" disabled={uploading} asChild>
+                      <span>
+                        {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <ImageIcon className="size-3.5" />}
+                        {uploading ? 'Nahrávám…' : 'Změnit foto'}
+                      </span>
+                    </Button>
+                    <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1 text-destructive hover:text-destructive"
+                    onClick={() => setPhotoPath(null)}
+                  >
+                    Odstranit
+                  </Button>
+                </div>
+              </div>
+            ) : (
               <label className="cursor-pointer">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1"
-                  disabled={uploading}
-                  asChild
-                >
-                  <span>
-                    {uploading ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : photoPath ? (
-                      <ImageIcon className="size-3.5" />
-                    ) : (
-                      <Upload className="size-3.5" />
-                    )}
-                    {uploading ? 'Nahrávám…' : photoPath ? 'Změnit' : 'Nahrát foto'}
-                  </span>
-                </Button>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
+                <div className={cn(
+                  "flex items-center gap-3 rounded-lg border-2 border-dashed p-4 transition-colors",
+                  "border-muted-foreground/25 hover:border-green-400/50 hover:bg-green-50/50 dark:hover:bg-green-950/10",
+                  "cursor-pointer"
+                )}>
+                  <div className="size-10 rounded-full bg-muted flex items-center justify-center">
+                    <Upload className="size-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Nahrát fotografii</p>
+                    <p className="text-xs text-muted-foreground">Klikněte pro výběr souboru</p>
+                  </div>
+                </div>
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
               </label>
-            </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2">

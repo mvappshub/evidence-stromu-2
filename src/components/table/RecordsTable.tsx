@@ -23,6 +23,8 @@ import {
   TreePine,
   Loader2,
   MapPin,
+  FileJson,
+  FileSpreadsheet,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,6 +51,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { czechPlural } from '@/lib/czech-plural'
 import { CoordCell } from '@/components/table/CoordCell'
 import { ReminderCell } from '@/components/table/ReminderCell'
 import { BulkActionBar } from '@/components/table/BulkActionBar'
@@ -106,29 +109,18 @@ export function RecordsTable() {
   })
 
   // Fetch unique species and locality values for filter dropdowns
-  const { data: filterData } = useQuery<RecordsResponse>({
+  const { data: filterData } = useQuery<{ species: string[]; localities: string[] }>({
     queryKey: ['records-filters'],
     queryFn: async () => {
-      const res = await fetch('/api/records?limit=1000')
+      const res = await fetch('/api/records/filters')
       if (!res.ok) throw new Error('Failed')
       return res.json()
     },
     staleTime: 60_000,
   })
 
-  const speciesOptions = useMemo(() => {
-    if (!filterData?.records) return []
-    const set = new Set(filterData.records.map((r) => r.speciesLatin))
-    return Array.from(set).sort()
-  }, [filterData])
-
-  const localityOptions = useMemo(() => {
-    if (!filterData?.records) return []
-    const set = new Set(
-      filterData.records.map((r) => r.locality).filter(Boolean) as string[]
-    )
-    return Array.from(set).sort()
-  }, [filterData])
+  const speciesOptions = filterData?.species ?? []
+  const localityOptions = filterData?.localities ?? []
 
   // Selected record for editor
   const editingRecord = useMemo(() => {
@@ -377,8 +369,49 @@ export function RecordsTable() {
 
         <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap flex items-center gap-1">
           <TreePine className="size-3 text-green-600" />
-          {data?.count ?? '…'} záznamů
+          {data?.count !== undefined ? czechPlural(data.count, ['záznam', 'záznamy', 'záznamů']) : '…'}
         </span>
+
+        <div className="flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={() => {
+                  const params = new URLSearchParams()
+                  if (searchQuery) params.set('search', searchQuery)
+                  if (filterSpecies) params.set('species', filterSpecies)
+                  if (filterLocality) params.set('locality', filterLocality)
+                  window.open(`/api/records/export?format=csv&${params.toString()}`, '_blank')
+                }}
+              >
+                <FileSpreadsheet className="size-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Exportovat CSV</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={() => {
+                  const params = new URLSearchParams()
+                  if (searchQuery) params.set('search', searchQuery)
+                  if (filterSpecies) params.set('species', filterSpecies)
+                  if (filterLocality) params.set('locality', filterLocality)
+                  window.open(`/api/records/export?format=geojson&${params.toString()}`, '_blank')
+                }}
+              >
+                <FileJson className="size-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Exportovat GeoJSON</TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       {/* Table */}

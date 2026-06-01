@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 import { writeFile } from "fs/promises"
 import { join } from "path"
 import { requireAuth } from "@/lib/api-auth"
 
-export async function POST(request: Request) {
-  const auth = await requireAuth()
+export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request)
   if ("error" in auth) return auth.error
 
   try {

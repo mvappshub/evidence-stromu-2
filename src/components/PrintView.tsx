@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,7 +10,6 @@ import {
 } from '@/components/ui/tooltip'
 import { format } from 'date-fns'
 import { cs } from 'date-fns/locale'
-import { czechPlural } from '@/lib/czech-plural'
 import type { TreeRecord } from '@/lib/types'
 
 interface PrintViewProps {
@@ -31,8 +29,6 @@ export function PrintView({
   dateTo,
   recordCount,
 }: PrintViewProps) {
-  const queryClient = useQueryClient()
-
   const handlePrint = useCallback(async () => {
     // Build the same query params as the table
     const params = new URLSearchParams()
@@ -61,6 +57,15 @@ export function PrintView({
 
     const now = format(new Date(), 'd. MMMM yyyy', { locale: cs })
 
+    // Build filter criteria description
+    const filters: string[] = []
+    if (searchQuery) filters.push(`Hledání: "${searchQuery}"`)
+    if (filterSpecies) filters.push(`Druh: ${filterSpecies}`)
+    if (filterLocality) filters.push(`Lokalita: ${filterLocality}`)
+    if (dateFrom) filters.push(`Od: ${dateFrom}`)
+    if (dateTo) filters.push(`Do: ${dateTo}`)
+    const filterText = filters.length > 0 ? filters.join(' · ') : 'Žádný filtr'
+
     // Build HTML content for the print window
     const html = `<!DOCTYPE html>
 <html lang="cs">
@@ -71,7 +76,7 @@ export function PrintView({
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 11px;
+      font-size: 10px;
       color: #1a1a1a;
       padding: 20mm 15mm;
       background: white;
@@ -79,19 +84,28 @@ export function PrintView({
     h1 {
       font-size: 20px;
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       color: #15803d;
     }
     .subtitle {
-      font-size: 12px;
+      font-size: 11px;
       color: #666;
-      margin-bottom: 16px;
+      margin-bottom: 4px;
+    }
+    .filters {
+      font-size: 10px;
+      color: #888;
+      margin-bottom: 12px;
+      padding: 4px 8px;
+      background: #fafafa;
+      border-radius: 4px;
+      border: 1px solid #eee;
     }
     .summary {
       display: flex;
       gap: 24px;
-      margin-bottom: 16px;
-      padding: 12px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
       background: #f0fdf4;
       border-radius: 6px;
       border: 1px solid #bbf7d0;
@@ -101,7 +115,7 @@ export function PrintView({
       flex-direction: column;
     }
     .summary-label {
-      font-size: 10px;
+      font-size: 9px;
       color: #666;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -112,8 +126,8 @@ export function PrintView({
       color: #15803d;
     }
     .species-list {
-      margin-bottom: 16px;
-      font-size: 11px;
+      margin-bottom: 12px;
+      font-size: 10px;
     }
     .species-list span {
       color: #666;
@@ -126,16 +140,16 @@ export function PrintView({
     th {
       background: #f5f5f5;
       font-weight: 600;
-      font-size: 10px;
+      font-size: 9px;
       text-transform: uppercase;
       letter-spacing: 0.03em;
       color: #555;
-      padding: 6px 8px;
+      padding: 5px 6px;
       border-bottom: 2px solid #ddd;
       text-align: left;
     }
     td {
-      padding: 5px 8px;
+      padding: 4px 6px;
       border-bottom: 1px solid #eee;
       vertical-align: top;
     }
@@ -145,30 +159,41 @@ export function PrintView({
     .species-cell {
       font-style: italic;
     }
+    .coord-cell {
+      font-family: monospace;
+      font-size: 9px;
+    }
     .locality-cell, .note-cell {
-      max-width: 150px;
+      max-width: 120px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .footer {
-      margin-top: 24px;
+      margin-top: 20px;
       padding-top: 8px;
-      border-top: 1px solid #ddd;
+      border-top: 2px solid #22c55e;
       font-size: 9px;
       color: #999;
       display: flex;
       justify-content: space-between;
     }
+    .footer strong {
+      color: #15803d;
+    }
     @media print {
       body { padding: 10mm; }
       .no-print { display: none; }
+    }
+    @page {
+      margin: 1.5cm;
     }
   </style>
 </head>
 <body>
   <h1>🌳 Evidence výsadby stromů</h1>
-  <p class="subtitle">Vytištěno ${now}${searchQuery || filterSpecies || filterLocality || dateFrom || dateTo ? ' • Filtrováno' : ''}</p>
+  <p class="subtitle">Vytištěno ${now}</p>
+  <p class="filters">Filtr: ${filterText}</p>
 
   <div class="summary">
     <div class="summary-item">
@@ -197,8 +222,10 @@ export function PrintView({
       <tr>
         <th>Číslo</th>
         <th>Druh</th>
-        <th>Datum</th>
+        <th>Datum výsadby</th>
         <th>Lokalita</th>
+        <th>Zem. šířka</th>
+        <th>Zem. délka</th>
         <th>Poznámka</th>
       </tr>
     </thead>
@@ -209,6 +236,8 @@ export function PrintView({
         <td class="species-cell">${r.speciesLatin}</td>
         <td>${format(new Date(r.plantedAt), 'd.M.yyyy')}</td>
         <td class="locality-cell">${r.locality ?? '—'}</td>
+        <td class="coord-cell">${r.lat.toFixed(6)}</td>
+        <td class="coord-cell">${r.lng.toFixed(6)}</td>
         <td class="note-cell">${r.note ?? '—'}</td>
       </tr>
       `).join('')}
@@ -216,8 +245,8 @@ export function PrintView({
   </table>
 
   <div class="footer">
-    <span>Evidence výsadby stromů • ${now}</span>
-    <span>Strana 1</span>
+    <span><strong>Evidence výsadby stromů</strong> · ${now}</span>
+    <span>Celkem <strong>${recordCount}</strong> záznamů</span>
   </div>
 
   <div class="no-print" style="margin-top: 20px; text-align: center;">
@@ -236,7 +265,7 @@ export function PrintView({
       printWindow.document.write(html)
       printWindow.document.close()
     }
-  }, [searchQuery, filterSpecies, filterLocality, dateFrom, dateTo, recordCount, queryClient])
+  }, [searchQuery, filterSpecies, filterLocality, dateFrom, dateTo, recordCount])
 
   return (
     <Tooltip>

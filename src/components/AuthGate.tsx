@@ -1,7 +1,6 @@
 'use client'
 
-import { SessionProvider, useSession, signIn } from 'next-auth/react'
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -13,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TreePine, Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/store/useAuthStore'
 
 const loginSchema = z.object({
   email: z.string().email('Zadejte platný e-mail'),
@@ -48,7 +48,7 @@ function getPasswordStrength(password: string): { label: string; color: string; 
 }
 
 function AuthGateInner({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession()
+  const { isAuthenticated, isLoading, setAuth, logout, hydrate } = useAuthStore()
   const [loginLoading, setLoginLoading] = useState(false)
   const [registerLoading, setRegisterLoading] = useState(false)
   const [showLoginPassword, setShowLoginPassword] = useState(false)
@@ -56,6 +56,11 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
   const [rememberMe, setRememberMe] = useState(false)
   const [tiltStyle, setTiltStyle] = useState({ transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)' })
   const cardRef = useRef<HTMLDivElement>(null)
+
+  // Hydrate auth state from localStorage on mount
+  useEffect(() => {
+    hydrate()
+  }, [hydrate])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!cardRef.current) return
@@ -84,7 +89,8 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
   const regPassword = registerForm.watch('password')
   const passwordStrength = useMemo(() => getPasswordStrength(regPassword || ''), [regPassword])
 
-  if (status === 'loading') {
+  // Show loading spinner while checking auth state
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -92,20 +98,31 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (session) {
+  // If authenticated, show the app
+  if (isAuthenticated) {
     return <>{children}</>
   }
 
   const onLogin = async (data: LoginForm) => {
     setLoginLoading(true)
     try {
-      const result = await signIn('credentials', {
-        email: data.email,
-        password: data.password,
-        redirect: false,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email, password: data.password }),
       })
-      if (result?.error) {
-        toast.error('Neplatný e-mail nebo heslo')
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        toast.error(result.error || 'Neplatný e-mail nebo heslo')
+        return
+      }
+
+      // Store token and user in auth store (persisted to localStorage)
+      if (result.token && result.user) {
+        setAuth(result.token, result.user)
+        toast.success('Přihlášení úspěšné')
       }
     } catch {
       toast.error('Chyba při přihlášení')
@@ -133,14 +150,21 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
         return
       }
 
-      toast.success('Registrace úspěšná, přihlašte se')
+      toast.success('Registrace úspěšná')
 
-      // Auto sign in after registration
-      await signIn('credentials', {
-        email: data.email,
-        password: data.password,
-        redirect: false,
+      // Auto sign in after registration using custom login endpoint
+      const loginRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email, password: data.password }),
       })
+
+      if (loginRes.ok) {
+        const loginResult = await loginRes.json()
+        if (loginResult.token && loginResult.user) {
+          setAuth(loginResult.token, loginResult.user)
+        }
+      }
     } catch {
       toast.error('Chyba při registraci')
     } finally {
@@ -346,7 +370,7 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
                         <div className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color} ${passwordStrength.width}`} />
                       </div>
                       <p className="text-[10px] text-muted-foreground">
-                        Sila hesla: <span className="font-medium">{passwordStrength.label}</span>
+                        Síla hesla: <span className="font-medium">{passwordStrength.label}</span>
                       </p>
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
                         <span className={regPassword.length >= 6 ? 'text-green-600 dark:text-green-400' : ''}>Min. 6 znaků</span>
@@ -389,9 +413,5 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
 }
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  return (
-    <SessionProvider>
-      <AuthGateInner>{children}</AuthGateInner>
-    </SessionProvider>
-  )
+  return <AuthGateInner>{children}</AuthGateInner>
 }

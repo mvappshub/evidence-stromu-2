@@ -55,7 +55,7 @@ function WorkArea() {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={45} minSize={25}>
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full gradient-divider-v">
             <DashboardPanel />
             <div className="flex-1 min-h-0">
               <RecordsTable />

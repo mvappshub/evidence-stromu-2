@@ -17,7 +17,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ n: string }> }
 ) {
-  const auth = await requireAuth()
+  const auth = await requireAuth(request)
   if ("error" in auth) return auth.error
 
   try {
@@ -83,7 +83,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ n: string }> }
 ) {
-  const auth = await requireAuth()
+  const auth = await requireAuth(_request)
   if ("error" in auth) return auth.error
 
   try {

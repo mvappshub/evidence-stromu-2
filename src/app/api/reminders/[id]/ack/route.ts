@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
 import { advanceIntervalReminder } from "@/lib/reminder-utils"
 
 export async function POST(
-  _request: Request,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth()
+  const auth = await requireAuth(_request)
   if ("error" in auth) return auth.error
 
   try {

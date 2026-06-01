@@ -3,7 +3,7 @@ import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth()
+  const auth = await requireAuth(request)
   if ("error" in auth) return auth.error
 
   const { searchParams } = new URL(request.url)

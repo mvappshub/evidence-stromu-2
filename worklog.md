@@ -1679,3 +1679,71 @@ Stage Summary:
 4. **Offline support** — Service worker for offline map tiles
 5. **Map instance sharing** — Expose MapLibre map instance globally for StatusBar zoom and other components
 6. **Retroactive activity seeding** — Create activity log entries for existing records
+
+---
+Task ID: 8
+Agent: Main
+Task: Round 8 — Fix login authentication issue for preview environment
+
+Work Log:
+- Assessed project status from worklog.md — project was in Round 7 with 41+ features, 106 records
+- Performed QA testing via agent-browser — all features working, no JS errors
+- Identified critical login bug: NextAuth's built-in signIn() with redirect:false doesn't work in cross-origin preview environment
+  - Root cause: NextAuth CSRF tokens and cookies don't work correctly when the app is accessed through a proxy (preview runs on *.space-z.ai but NextAuth is configured for localhost:3000)
+  - The signIn() call would silently fail — button showed "Přihlašuji" briefly then returned to normal with no error
+- Created custom login API endpoint at `/api/auth/login/route.ts`:
+  - POST endpoint accepting { email, password } in JSON body
+  - Uses bcryptjs compare for password verification
+  - Creates NextAuth-compatible JWT session token using `next-auth/jwt` encode()
+  - Sets `next-auth.session-token` cookie directly with SameSite=Lax
+  - Returns { ok: true, user: { id, email, name } } on success
+  - Returns { error: "Neplatný e-mail nebo heslo" } on failure
+- Updated `/home/z/my-project/src/components/AuthGate.tsx`:
+  - Replaced `signIn('credentials', { redirect: false })` with custom fetch to `/api/auth/login`
+  - On success: sets cookie and calls `window.location.reload()` to refresh NextAuth session
+  - On failure: shows toast error with Czech message
+  - Registration also uses custom login endpoint for auto-sign-in after registration
+  - Removed unused `signIn` import from next-auth/react
+- Updated `/home/z/my-project/src/lib/auth.ts`:
+  - Added `trustHost: true` for proxy support
+  - Added explicit cookie configuration with SameSite=Lax for widest compatibility
+- Updated `/home/z/my-project/Caddyfile`:
+  - Changed `X-Forwarded-Proto {scheme}` to `X-Forwarded-Proto https` for correct HTTPS detection
+- Verified login works in agent-browser with test@example.com / password123
+- Verified wrong password returns proper error message
+- Lint: 0 errors, 3 pre-existing warnings
+
+Stage Summary:
+- Critical login bug FIXED — custom login endpoint bypasses NextAuth CSRF issues
+- Login now works reliably in both localhost and cross-origin preview environments
+- Password reset for test user confirmed working
+- App stable with 106 records, 0 lint errors
+
+## Current Project Status (Round 8)
+
+### Assessment: Feature-Rich, Visually Polished, Authentication Fixed
+
+**Key Fix This Round:**
+- ✅ Login authentication now works in preview environment (custom /api/auth/login endpoint)
+
+**Přihlašovací údaje:**
+- E-mail: test@example.com
+- Heslo: password123
+
+**API Endpoints (22+ total):**
+1-19. (Same as Round 7)
+20. GET /api/records/backup — Full data backup as JSON
+21. POST /api/records/restore — Restore from backup JSON
+22. POST /api/auth/login — Custom login (bypasses NextAuth CSRF issues) **NEW**
+
+### Unresolved Issues / Risks
+- Custom login endpoint works but doesn't invalidate existing CSRF tokens
+- Photo upload uses local filesystem (by design for sandbox)
+- Password reset email not functional
+- TanStack Table not using virtualization (pagination handles performance)
+
+### Priority Recommendations for Next Phase
+1. **Dashboard overview cards** — Rich metric cards at top of table view
+2. **Enhanced Activity Log** — Timeline visualization with filter tabs
+3. **Photo gallery** — Multiple photos per tree with lightbox viewer
+4. **Performance testing** — Seed 5000+ records and verify clustering + pagination

@@ -1,4 +1,4 @@
-import type { NextAuthOptions } from "next-auth"
+import type { NextAuthOptions, CookieOption } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
 import { db } from "@/lib/db"
@@ -38,8 +38,47 @@ export const authOptions: NextAuthOptions = {
   },
   pages: { signIn: "/" },
   secret: process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production",
-  // Trust the X-Forwarded-Proto/X-Forwarded-Host headers from Caddy proxy
-  // This makes NextAuth correctly detect HTTPS and set secure cookies
-  // when accessed through the external preview URL
   trustHost: true,
+  // Force SameSite=Lax (not None) and secure=false for widest compatibility
+  // The Caddy proxy forwards requests, so cookies set on the proxy domain
+  // will be sent back correctly as long as SameSite=Lax
+  useSecureCookies: false,
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: false,
+      },
+    },
+    callbackUrl: {
+      name: "next-auth.callback-url",
+      options: {
+        httpOnly: false,
+        sameSite: "lax",
+        path: "/",
+        secure: false,
+      },
+    },
+    csrfToken: {
+      name: "next-auth.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: false,
+      },
+    },
+    pkceCodeVerifier: {
+      name: "next-auth.pkce.code_verifier",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: false,
+      },
+    },
+  },
 }

@@ -9,7 +9,7 @@ const bulkNoteSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth()
+  const auth = await requireAuth(request)
   if ("error" in auth) return auth.error
 
   try {

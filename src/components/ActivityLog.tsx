@@ -9,7 +9,7 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Check,
+  CheckCircle,
   Bell,
   TreePine,
   Loader2,
@@ -17,16 +17,13 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetTrigger,
-} from '@/components/ui/sheet'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/store/useUiStore'
 
@@ -46,11 +43,11 @@ interface ActivityResponse {
   activities: ActivityEntry[]
 }
 
-const actionConfig: Record<string, { icon: typeof Plus; label: string; dotColor: string; bgColor: string }> = {
-  create: { icon: Plus, label: 'Vytvořeno', dotColor: 'bg-green-500', bgColor: 'text-green-600 dark:text-green-400' },
-  update: { icon: Pencil, label: 'Upraveno', dotColor: 'bg-amber-500', bgColor: 'text-amber-600 dark:text-amber-400' },
-  delete: { icon: Trash2, label: 'Smazáno', dotColor: 'bg-red-500', bgColor: 'text-red-600 dark:text-red-400' },
-  ack: { icon: Check, label: 'Vyřízeno', dotColor: 'bg-blue-500', bgColor: 'text-blue-600 dark:text-blue-400' },
+const actionConfig: Record<string, { icon: typeof Plus; label: string; bgColor: string; ringColor: string }> = {
+  create: { icon: Plus, label: 'Vytvořeno', bgColor: 'text-green-600 dark:text-green-400', ringColor: 'ring-green-200 dark:ring-green-800 bg-green-50 dark:bg-green-950/50' },
+  update: { icon: Pencil, label: 'Upraveno', bgColor: 'text-amber-600 dark:text-amber-400', ringColor: 'ring-amber-200 dark:ring-amber-800 bg-amber-50 dark:bg-amber-950/50' },
+  delete: { icon: Trash2, label: 'Smazáno', bgColor: 'text-red-600 dark:text-red-400', ringColor: 'ring-red-200 dark:ring-red-800 bg-red-50 dark:bg-red-950/50' },
+  ack: { icon: CheckCircle, label: 'Vyřízeno', bgColor: 'text-blue-600 dark:text-blue-400', ringColor: 'ring-blue-200 dark:ring-blue-800 bg-blue-50 dark:bg-blue-950/50' },
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -102,65 +99,62 @@ function TimelineEntry({
   return (
     <div
       className={cn(
-        'relative flex gap-3 group',
+        'relative flex gap-2.5 group',
         isRecord && 'cursor-pointer'
       )}
       onClick={handleClick}
     >
-      {/* Timeline line + dot */}
+      {/* Timeline line + icon */}
       <div className="flex flex-col items-center shrink-0">
         <div
           className={cn(
-            'size-7 rounded-full flex items-center justify-center shrink-0 z-10 border-2 border-background',
-            activity.action === 'create' && 'bg-green-100 dark:bg-green-950',
-            activity.action === 'update' && 'bg-amber-100 dark:bg-amber-950',
-            activity.action === 'delete' && 'bg-red-100 dark:bg-red-950',
-            activity.action === 'ack' && 'bg-blue-100 dark:bg-blue-950',
+            'size-6 rounded-full flex items-center justify-center shrink-0 z-10 ring-1',
+            config.ringColor
           )}
         >
-          <Icon className={cn('size-3.5', config.bgColor)} />
+          <Icon className={cn('size-3', config.bgColor)} />
         </div>
         {/* Vertical line */}
-        <div className="w-px flex-1 bg-border min-h-4" />
+        <div className="w-px flex-1 bg-border/60 min-h-3" />
       </div>
 
       {/* Content */}
       <div className={cn(
-        'pb-4 min-w-0 flex-1',
-        isRecord && 'group-hover:bg-muted/50 rounded-md px-2 -mx-2 transition-colors'
+        'pb-3 min-w-0 flex-1',
+        isRecord && 'group-hover:bg-muted/40 rounded-md px-1.5 -mx-1.5 transition-colors'
       )}>
         <div className="flex items-center gap-1.5 mb-0.5">
-          <span className={cn('text-[11px] font-semibold', config.bgColor)}>
+          <span className={cn('text-[10px] font-semibold', config.bgColor)}>
             {config.label}
           </span>
           {isRecord ? (
-            <Badge variant="outline" className="h-4 px-1 text-[9px] gap-0.5 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400">
-              <TreePine className="size-2.5" />
-              Záznam
+            <Badge variant="outline" className="h-3.5 px-1 text-[8px] gap-0.5 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400">
+              <TreePine className="size-2" />
+              Strom
             </Badge>
           ) : (
-            <Badge variant="outline" className="h-4 px-1 text-[9px] gap-0.5 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400">
-              <Bell className="size-2.5" />
+            <Badge variant="outline" className="h-3.5 px-1 text-[8px] gap-0.5 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400">
+              <Bell className="size-2" />
               Připomínka
             </Badge>
           )}
         </div>
-        <p className="text-xs truncate">
+        <p className="text-[11px] truncate leading-snug">
           {getEntityDescription(activity)}
         </p>
         {activity.recordLocality && (
-          <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+          <p className="text-[9px] text-muted-foreground truncate mt-0.5">
             📍 {activity.recordLocality}
           </p>
         )}
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="text-[9px] text-muted-foreground">
             {formatTimeAgo(activity.createdAt)}
           </span>
           {activity.userName && (
             <>
-              <span className="text-[10px] text-muted-foreground">·</span>
-              <span className="text-[10px] text-muted-foreground truncate">
+              <span className="text-[9px] text-muted-foreground/50">·</span>
+              <span className="text-[9px] text-muted-foreground truncate">
                 {activity.userName}
               </span>
             </>
@@ -171,17 +165,34 @@ function TimelineEntry({
   )
 }
 
+function ActivitySkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex gap-2.5">
+          <div className="flex flex-col items-center shrink-0">
+            <Skeleton className="size-6 rounded-full" />
+            <div className="w-px flex-1 bg-border/40 min-h-3" />
+          </div>
+          <div className="flex-1 space-y-1.5 pb-3">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-36" />
+            <Skeleton className="h-2 w-24" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function ActivityLog() {
   const [open, setOpen] = useState(false)
-  const [filter, setFilter] = useState('all')
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
 
   const { data, isLoading } = useQuery<ActivityResponse>({
-    queryKey: ['activity-log', filter],
+    queryKey: ['activity-log'],
     queryFn: async () => {
       const params = new URLSearchParams({ limit: '50' })
-      if (filter === 'records') params.set('entityType', 'record')
-      if (filter === 'reminders') params.set('entityType', 'reminder')
       const res = await fetch(`/api/activity-log?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch activity log')
       return res.json()
@@ -198,54 +209,39 @@ export function ActivityLog() {
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="size-7" title="Aktivita">
           <Clock className="size-3.5" />
         </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="w-96 sm:max-w-md p-0 flex flex-col">
-        <SheetHeader className="p-4 border-b bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20">
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <div className="p-3 border-b bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20">
           <div className="flex items-center gap-2">
-            <div className="size-8 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center">
-              <Activity className="size-4 text-green-600 dark:text-green-400" />
+            <div className="size-6 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center">
+              <Activity className="size-3 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <SheetTitle className="text-sm">Panel aktivit</SheetTitle>
-              <SheetDescription className="text-[11px]">
-                Přehled posledních akcí v aplikaci
-              </SheetDescription>
+              <p className="text-xs font-semibold">Panel aktivit</p>
+              <p className="text-[9px] text-muted-foreground">
+                Přehled posledních akcí
+              </p>
             </div>
           </div>
-        </SheetHeader>
-
-        {/* Filter tabs */}
-        <div className="px-4 pt-3">
-          <Tabs value={filter} onValueChange={setFilter}>
-            <TabsList className="w-full h-8">
-              <TabsTrigger value="all" className="text-xs flex-1">Vše</TabsTrigger>
-              <TabsTrigger value="records" className="text-xs flex-1">Záznamy</TabsTrigger>
-              <TabsTrigger value="reminders" className="text-xs flex-1">Připomínky</TabsTrigger>
-            </TabsList>
-          </Tabs>
         </div>
 
-        {/* Timeline content */}
-        <ScrollArea className="flex-1 max-h-[calc(100vh-200px)]">
-          <div className="px-4 py-3">
+        <ScrollArea className="max-h-96">
+          <div className="p-3">
             {isLoading ? (
-              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-8">
-                <Loader2 className="size-3.5 animate-spin" />
-                Načítání…
-              </div>
+              <ActivitySkeleton />
             ) : activities.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
-                <div className="size-14 rounded-full bg-muted/50 flex items-center justify-center">
-                  <Activity className="size-6 text-muted-foreground/50" />
+              <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+                <div className="size-10 rounded-full bg-muted/50 flex items-center justify-center">
+                  <Activity className="size-4 text-muted-foreground/50" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium">Žádná aktivita</p>
-                  <p className="text-xs mt-1">Zde se zobrazí provedené akce</p>
+                  <p className="text-xs font-medium">Žádná aktivita</p>
+                  <p className="text-[10px] mt-0.5">Zde se zobrazí provedené akce</p>
                 </div>
               </div>
             ) : (
@@ -261,7 +257,7 @@ export function ActivityLog() {
             )}
           </div>
         </ScrollArea>
-      </SheetContent>
-    </Sheet>
+      </PopoverContent>
+    </Popover>
   )
 }

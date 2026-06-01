@@ -43,7 +43,7 @@ function parseCoord(val: string): number {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth()
+  const auth = await requireAuth(request)
   if ("error" in auth) return auth.error
 
   // Parse multipart form data

@@ -1,9 +1,10 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { parseISO, formatDistanceToNow } from 'date-fns'
+import { parseISO, formatDistanceToNow, isPast, isToday } from 'date-fns'
 import { cs } from 'date-fns/locale'
-import { TreePine, Leaf, MapPin, CalendarDays } from 'lucide-react'
+import { TreePine, Leaf, CalendarDays, Clock, AlertTriangle } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { czechPlural } from '@/lib/czech-plural'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +15,14 @@ interface StatsData {
   lastPlantedAt: string | null
 }
 
+interface DueReminder {
+  id: string
+  nextDueAt: string
+  recordNumber: number
+  text: string
+  record?: { speciesLatin: string }
+}
+
 function MetricCard({
   icon: Icon,
   value,
@@ -21,6 +30,7 @@ function MetricCard({
   accentColor,
   iconBg,
   iconColor,
+  isLoading,
 }: {
   icon: typeof TreePine
   value: string | number
@@ -28,6 +38,7 @@ function MetricCard({
   accentColor: string
   iconBg: string
   iconColor: string
+  isLoading?: boolean
 }) {
   return (
     <div
@@ -55,9 +66,13 @@ function MetricCard({
 
         {/* Value and label */}
         <div className="min-w-0">
-          <div className="text-lg font-bold tabular-nums leading-tight truncate">
-            {value}
-          </div>
+          {isLoading ? (
+            <div className="h-6 w-12 bg-accent animate-pulse rounded" />
+          ) : (
+            <div className="text-lg font-bold tabular-nums leading-tight truncate">
+              {value}
+            </div>
+          )}
           <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
             {label}
           </div>
@@ -77,7 +92,7 @@ function formatLastPlanted(dateStr: string | null): string {
 }
 
 export function DashboardPanel() {
-  const { data } = useQuery<StatsData>({
+  const { data, isLoading: statsLoading } = useQuery<StatsData>({
     queryKey: ['records-stats-dashboard'],
     queryFn: async () => {
       const res = await fetch('/api/records/stats')
@@ -86,6 +101,56 @@ export function DashboardPanel() {
     },
     staleTime: 30_000,
   })
+
+  // Records this month
+  const { data: thisMonthData } = useQuery<{ count: number }>({
+    queryKey: ['records-this-month'],
+    queryFn: async () => {
+      const now = new Date()
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        .toISOString()
+        .split('T')[0]
+      const today = now.toISOString().split('T')[0]
+      const res = await fetch(`/api/records?limit=1&dateFrom=${startOfMonth}&dateTo=${today}`)
+      if (!res.ok) throw new Error('Failed')
+      const d = await res.json()
+      return { count: d.count as number }
+    },
+    staleTime: 30_000,
+  })
+
+  // Overdue reminders count
+  const { data: dueData } = useQuery<{ reminders: DueReminder[] }>({
+    queryKey: ['reminders-due-dashboard'],
+    queryFn: async () => {
+      const res = await fetch('/api/reminders/due?horizon=14')
+      if (!res.ok) throw new Error('Failed')
+      return res.json()
+    },
+    staleTime: 30_000,
+  })
+
+  const overdueCount = dueData?.reminders
+    ? dueData.reminders.filter((r) => isPast(parseISO(r.nextDueAt)) && !isToday(parseISO(r.nextDueAt))).length
+    : 0
+
+  if (!data && statsLoading) {
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-3 pt-2 pb-1">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-lg border bg-card py-3 px-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-8 rounded-full" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-6 w-12" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   if (!data) return null
 
@@ -100,23 +165,24 @@ export function DashboardPanel() {
         iconColor="text-green-600 dark:text-green-400"
       />
       <MetricCard
-        icon={Leaf}
-        value={data.speciesCount}
-        label={czechPlural(data.speciesCount, ['druh', 'druhy', 'druhů'])}
+        icon={CalendarDays}
+        value={thisMonthData?.count ?? 0}
+        label={czechPlural(thisMonthData?.count ?? 0, ['tento měsíc', 'tento měsíc', 'tento měsíc'])}
         accentColor="bg-emerald-500"
         iconBg="bg-emerald-50 dark:bg-emerald-950"
         iconColor="text-emerald-600 dark:text-emerald-400"
+        isLoading={thisMonthData === undefined}
       />
       <MetricCard
-        icon={MapPin}
-        value={data.localityCount}
-        label={czechPlural(data.localityCount, ['lokalita', 'lokality', 'lokalit'])}
-        accentColor="bg-teal-500"
-        iconBg="bg-teal-50 dark:bg-teal-950"
-        iconColor="text-teal-600 dark:text-teal-400"
+        icon={overdueCount > 0 ? AlertTriangle : Leaf}
+        value={overdueCount > 0 ? overdueCount : data.speciesCount}
+        label={overdueCount > 0 ? czechPlural(overdueCount, ['po termínu', 'po termínu', 'po termínu']) : czechPlural(data.speciesCount, ['druh', 'druhy', 'druhů'])}
+        accentColor={overdueCount > 0 ? 'bg-red-500' : 'bg-teal-500'}
+        iconBg={overdueCount > 0 ? 'bg-red-50 dark:bg-red-950' : 'bg-teal-50 dark:bg-teal-950'}
+        iconColor={overdueCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-teal-600 dark:text-teal-400'}
       />
       <MetricCard
-        icon={CalendarDays}
+        icon={Clock}
         value={formatLastPlanted(data.lastPlantedAt)}
         label="Poslední výsadba"
         accentColor="bg-amber-500"

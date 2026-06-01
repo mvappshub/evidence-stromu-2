@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuthStore } from '@/store/useAuthStore'
 import { useQuery } from '@tanstack/react-query'
 import { Database, ZoomIn } from 'lucide-react'
 import { format } from 'date-fns'
@@ -10,7 +10,7 @@ import { czechPlural } from '@/lib/czech-plural'
 import { useUiStore } from '@/store/useUiStore'
 
 export function StatusBar() {
-  const { data: session } = useSession()
+  const { user } = useAuthStore()
   const { data: countData, isError } = useQuery({
     queryKey: ['records-count-status'],
     queryFn: async () => {
@@ -65,11 +65,11 @@ export function StatusBar() {
       <span className="tabular-nums time-display">
         {format(new Date(), 'd. MMMM yyyy, H:mm', { locale: cs })}
       </span>
-      {session?.user?.email && (
+      {user?.email && (
         <>
           <div className="status-separator" />
           <span className="hidden sm:inline text-muted-foreground/80">
-            {session.user.email}
+            {user.email}
           </span>
         </>
       )}

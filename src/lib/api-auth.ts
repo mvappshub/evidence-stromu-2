@@ -1,11 +1,32 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { NextResponse } from "next/server"
+import { decode } from "next-auth/jwt"
+import { NextRequest, NextResponse } from "next/server"
 
-export async function requireAuth() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
+const SECRET = process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production"
+
+export async function requireAuth(req?: NextRequest) {
+  // Strategy 1: Try Bearer token from Authorization header
+  if (req) {
+    const authHeader = req.headers.get("authorization")
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7)
+      try {
+        const decoded = await decode({ token, secret: SECRET })
+        if (decoded?.sub) {
+          return { userId: decoded.sub as string }
+        }
+      } catch {
+        // Token invalid, fall through to cookie auth
+      }
+    }
   }
-  return { userId: (session.user as Record<string, unknown>).id as string }
+
+  // Strategy 2: Try NextAuth session cookie
+  const session = await getServerSession(authOptions)
+  if (session?.user) {
+    return { userId: (session.user as Record<string, unknown>).id as string }
+  }
+
+  return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
 }

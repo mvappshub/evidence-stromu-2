@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/api-auth'
 
-export async function GET() {
-  const auth = await requireAuth()
+export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request)
   if ('error' in auth) return auth.error
 
   try {

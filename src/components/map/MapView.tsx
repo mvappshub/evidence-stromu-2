@@ -149,6 +149,7 @@ export function MapView() {
 
   const selectedRecordNumber = useUiStore((s) => s.selectedRecordNumber)
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
+  const speciesFilter = useUiStore((s) => s.speciesFilter)
   const placeMode = usePlantStore((s) => s.placeMode)
   const activeSpecies = usePlantStore((s) => s.activeSpecies)
   const activeDate = usePlantStore((s) => s.activeDate)
@@ -166,11 +167,21 @@ export function MapView() {
   /* ---- Layer mode state ----------------------------------------- */
   const [layerMode, setLayerMode] = useState<LayerMode>('points')
 
+  /* ---- Mouse coordinate state ----------------------------------- */
+  const [cursorCoord, setCursorCoord] = useState<{ lat: number; lng: number } | null>(null)
+  const [mapBearing, setMapBearing] = useState(0)
+
   /* ---- Data fetching --------------------------------------------- */
+  const geojsonQueryParams = useMemo(() => {
+    const params = new URLSearchParams()
+    if (speciesFilter) params.set('species', speciesFilter)
+    return params.toString()
+  }, [speciesFilter])
+
   const { data: geoData } = useQuery<GeoJsonResponse>({
-    queryKey: ['records-geojson'],
+    queryKey: ['records-geojson', geojsonQueryParams],
     queryFn: async () => {
-      const res = await fetch('/api/records/geojson')
+      const res = await fetch(`/api/records/geojson?${geojsonQueryParams}`)
       if (!res.ok) throw new Error('Failed to fetch')
       return res.json()
     },
@@ -568,6 +579,28 @@ export function MapView() {
     map.getCanvas().style.cursor = placeMode ? 'crosshair' : ''
   }, [placeMode])
 
+  /* ---- Track mouse coordinates + bearing ------------------------- */
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const onMouseMove = (e: maplibregl.MapMouseEvent) => {
+      setCursorCoord({ lat: e.lngLat.lat, lng: e.lngLat.lng })
+    }
+    const onMouseOut = () => setCursorCoord(null)
+    const onRotate = () => setMapBearing(map.getBearing())
+
+    map.on('mousemove', onMouseMove)
+    map.on('mouseout', onMouseOut)
+    map.on('rotate', onRotate)
+
+    return () => {
+      map.off('mousemove', onMouseMove)
+      map.off('mouseout', onMouseOut)
+      map.off('rotate', onRotate)
+    }
+  }, [])
+
   /* ---- Fly to selected record ------------------------------------ */
   useEffect(() => {
     const map = mapRef.current
@@ -782,14 +815,41 @@ export function MapView() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  const isGeoLoading = !geoData
+
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
+
+      {/* Vignette overlay */}
+      <div className="absolute inset-0 map-vignette z-[1]" />
+
+      {/* Loading shimmer */}
+      {isGeoLoading && <div className="map-loading-shimmer" />}
+
+      {/* Compass rose */}
+      <div className="absolute top-3 left-3 z-10">
+        <div
+          className="compass-rose"
+          style={{ transform: `rotate(${-mapBearing}deg)` }}
+        >
+          N
+        </div>
+      </div>
+
       <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
         <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={handleStyleChange} />
         <HeatmapToggle mode={layerMode} onToggle={handleLayerModeToggle} />
       </div>
       <MapLegend layerMode={layerMode} />
+
+      {/* Coordinate display */}
+      {cursorCoord && (
+        <div className="absolute bottom-14 left-3 z-10 coord-display">
+          {cursorCoord.lat.toFixed(5)}, {cursorCoord.lng.toFixed(5)}
+        </div>
+      )}
+
       {/* Flash markers for tree placement visual feedback */}
       {flashMarkers.map((marker) => (
         <div
@@ -799,7 +859,7 @@ export function MapView() {
         />
       ))}
       {/* Empty state overlay for new users */}
-      {geoData?.features?.length === 0 && (
+      {geoData?.features?.length === 0 && !isGeoLoading && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm">
           <div className="text-center space-y-3 max-w-sm px-4">
             <div className="size-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">

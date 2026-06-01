@@ -26,6 +26,10 @@ import {
   FileJson,
   FileSpreadsheet,
   Upload,
+  CalendarDays,
+  StickyNote,
+  BellOff,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -78,6 +82,12 @@ export function RecordsTable() {
   const setDateFrom = useUiStore((s) => s.setDateFrom)
   const setDateTo = useUiStore((s) => s.setDateTo)
   const clearDateRange = useUiStore((s) => s.clearDateRange)
+  const speciesFilter = useUiStore((s) => s.speciesFilter)
+  const setSpeciesFilter = useUiStore((s) => s.setSpeciesFilter)
+  const hasNoteFilter = useUiStore((s) => s.hasNoteFilter)
+  const setHasNoteFilter = useUiStore((s) => s.setHasNoteFilter)
+  const noReminderFilter = useUiStore((s) => s.noReminderFilter)
+  const setNoReminderFilter = useUiStore((s) => s.setNoReminderFilter)
 
   // Local table state
   const [sorting, setSorting] = useState<SortingState>([
@@ -96,6 +106,8 @@ export function RecordsTable() {
     if (filterLocality) params.set('locality', filterLocality)
     if (dateFrom) params.set('dateFrom', dateFrom)
     if (dateTo) params.set('dateTo', dateTo)
+    if (hasNoteFilter) params.set('hasNote', 'true')
+    if (noReminderFilter) params.set('noReminder', 'true')
 
     const sortField = sorting[0]?.id ?? 'recordNumber'
     const order = sorting[0]?.desc ? 'desc' : 'asc'
@@ -105,7 +117,7 @@ export function RecordsTable() {
     params.set('offset', String(pagination.page * pagination.pageSize))
 
     return params.toString()
-  }, [searchQuery, filterSpecies, filterLocality, dateFrom, dateTo, sorting, pagination])
+  }, [searchQuery, filterSpecies, filterLocality, dateFrom, dateTo, hasNoteFilter, noReminderFilter, sorting, pagination])
 
   // Fetch records
   const { data, isLoading, isError } = useQuery<RecordsResponse>({
@@ -168,6 +180,7 @@ export function RecordsTable() {
               table.toggleAllPageRowsSelected(!!value)
             }
             aria-label="Vybrat vše"
+            className="checkbox-green"
           />
         ),
         cell: ({ row }) => (
@@ -176,6 +189,7 @@ export function RecordsTable() {
             onCheckedChange={(value) => row.toggleSelected(!!value)}
             onClick={(e) => e.stopPropagation()}
             aria-label={`Vybrat záznam ${row.original.recordNumber}`}
+            className="checkbox-green"
           />
         ),
         enableSorting: false,
@@ -327,8 +341,109 @@ export function RecordsTable() {
 
   const totalPages = Math.ceil((data?.count ?? 0) / pagination.pageSize)
 
+  // Quick filter preset helpers
+  const today = new Date()
+  const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
+  const thisYearStart = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0]
+  const last30DaysStart = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const todayStr = today.toISOString().split('T')[0]
+
+  const isPresetActive = (preset: string) => {
+    if (preset === 'thisMonth') return dateFrom === thisMonthStart && dateTo === todayStr
+    if (preset === 'thisYear') return dateFrom === thisYearStart && dateTo === todayStr
+    if (preset === 'last30') return dateFrom === last30DaysStart && dateTo === todayStr
+    if (preset === 'noReminder') return noReminderFilter
+    if (preset === 'hasNote') return hasNoteFilter
+    return false
+  }
+
+  const togglePreset = (preset: string) => {
+    const isActive = isPresetActive(preset)
+    if (preset === 'thisMonth') {
+      if (isActive) { clearDateRange() } else { setDateFrom(thisMonthStart); setDateTo(todayStr) }
+    }
+    if (preset === 'thisYear') {
+      if (isActive) { clearDateRange() } else { setDateFrom(thisYearStart); setDateTo(todayStr) }
+    }
+    if (preset === 'last30') {
+      if (isActive) { clearDateRange() } else { setDateFrom(last30DaysStart); setDateTo(todayStr) }
+    }
+    if (preset === 'noReminder') { setNoReminderFilter(!isActive) }
+    if (preset === 'hasNote') { setHasNoteFilter(!isActive) }
+    setPagination((p) => ({ ...p, page: 0 }))
+  }
+
   return (
     <div className="flex flex-col h-full">
+      {/* Quick filter presets */}
+      <div className="flex flex-wrap items-center gap-1.5 px-3 pt-2 pb-1">
+        <button
+          onClick={() => togglePreset('thisMonth')}
+          className={cn(
+            'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border',
+            isPresetActive('thisMonth')
+              ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/40 dark:text-green-400 dark:border-green-700'
+              : 'bg-background text-muted-foreground border-border hover:bg-green-50 hover:text-green-700 hover:border-green-200 dark:hover:bg-green-950/30 dark:hover:text-green-400'
+          )}
+        >
+          <CalendarDays className="size-3" />
+          Tento měsíc
+          {isPresetActive('thisMonth') && <X className="size-2.5 ml-0.5" />}
+        </button>
+        <button
+          onClick={() => togglePreset('thisYear')}
+          className={cn(
+            'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border',
+            isPresetActive('thisYear')
+              ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/40 dark:text-green-400 dark:border-green-700'
+              : 'bg-background text-muted-foreground border-border hover:bg-green-50 hover:text-green-700 hover:border-green-200 dark:hover:bg-green-950/30 dark:hover:text-green-400'
+          )}
+        >
+          <CalendarDays className="size-3" />
+          Tento rok
+          {isPresetActive('thisYear') && <X className="size-2.5 ml-0.5" />}
+        </button>
+        <button
+          onClick={() => togglePreset('last30')}
+          className={cn(
+            'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border',
+            isPresetActive('last30')
+              ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/40 dark:text-green-400 dark:border-green-700'
+              : 'bg-background text-muted-foreground border-border hover:bg-green-50 hover:text-green-700 hover:border-green-200 dark:hover:bg-green-950/30 dark:hover:text-green-400'
+          )}
+        >
+          <CalendarDays className="size-3" />
+          Poslední 30 dní
+          {isPresetActive('last30') && <X className="size-2.5 ml-0.5" />}
+        </button>
+        <button
+          onClick={() => togglePreset('noReminder')}
+          className={cn(
+            'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border',
+            isPresetActive('noReminder')
+              ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/40 dark:text-green-400 dark:border-green-700'
+              : 'bg-background text-muted-foreground border-border hover:bg-green-50 hover:text-green-700 hover:border-green-200 dark:hover:bg-green-950/30 dark:hover:text-green-400'
+          )}
+        >
+          <BellOff className="size-3" />
+          Bez připomínky
+          {isPresetActive('noReminder') && <X className="size-2.5 ml-0.5" />}
+        </button>
+        <button
+          onClick={() => togglePreset('hasNote')}
+          className={cn(
+            'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors border',
+            isPresetActive('hasNote')
+              ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/40 dark:text-green-400 dark:border-green-700'
+              : 'bg-background text-muted-foreground border-border hover:bg-green-50 hover:text-green-700 hover:border-green-200 dark:hover:bg-green-950/30 dark:hover:text-green-400'
+          )}
+        >
+          <StickyNote className="size-3" />
+          S poznámkou
+          {isPresetActive('hasNote') && <X className="size-2.5 ml-0.5" />}
+        </button>
+      </div>
+
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 px-3 py-2 filter-bar">
         <div className="relative flex-1 min-w-0 w-full sm:w-auto sm:min-w-[180px]">
@@ -524,7 +639,7 @@ export function RecordsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              table.getRowModel().rows.map((row) => {
+              table.getRowModel().rows.map((row, idx) => {
                 const isSelected =
                   row.original.recordNumber === selectedRecordNumber
                 return (
@@ -532,9 +647,10 @@ export function RecordsTable() {
                     key={row.id}
                     data-state={isSelected ? 'selected' : undefined}
                     className={cn(
-                      'cursor-pointer table-row-smooth hover:bg-green-50/50 dark:hover:bg-green-950/10',
+                      'cursor-pointer table-row-smooth row-animate hover:bg-green-50/50 dark:hover:bg-green-950/10 hover:border-l-2 hover:border-l-green-400 dark:hover:border-l-green-600',
                       isSelected && 'bg-green-50/60 dark:bg-green-950/20 border-l-2 border-l-green-500'
                     )}
+                    style={{ animationDelay: `${Math.min(idx, 10) * 30}ms` }}
                     onClick={() => {
                       setSelectedRecordNumber(row.original.recordNumber)
                       setEditorOpen(true)
@@ -588,7 +704,7 @@ export function RecordsTable() {
           <Button
             variant="outline"
             size="icon"
-            className="size-7"
+            className="size-7 hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             disabled={pagination.page === 0}
             onClick={() => setPagination((p) => ({ ...p, page: 0 }))}
           >
@@ -597,7 +713,7 @@ export function RecordsTable() {
           <Button
             variant="outline"
             size="icon"
-            className="size-7"
+            className="size-7 hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             disabled={pagination.page === 0}
             onClick={() =>
               setPagination((p) => ({ ...p, page: Math.max(0, p.page - 1) }))
@@ -605,13 +721,13 @@ export function RecordsTable() {
           >
             <ChevronLeft className="size-3.5" />
           </Button>
-          <span className="text-xs text-muted-foreground px-2 min-w-[80px] text-center">
+          <span className="text-xs text-muted-foreground px-2 min-w-[80px] text-center bg-green-50/50 dark:bg-green-950/20 rounded py-0.5 tabular-nums font-medium">
             {pagination.page + 1} / {totalPages || 1}
           </span>
           <Button
             variant="outline"
             size="icon"
-            className="size-7"
+            className="size-7 hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             disabled={pagination.page >= totalPages - 1}
             onClick={() =>
               setPagination((p) => ({ ...p, page: p.page + 1 }))
@@ -622,7 +738,7 @@ export function RecordsTable() {
           <Button
             variant="outline"
             size="icon"
-            className="size-7"
+            className="size-7 hover:border-green-300 dark:hover:border-green-700 hover:text-green-600 dark:hover:text-green-400 transition-colors"
             disabled={pagination.page >= totalPages - 1}
             onClick={() =>
               setPagination((p) => ({ ...p, page: totalPages - 1 }))

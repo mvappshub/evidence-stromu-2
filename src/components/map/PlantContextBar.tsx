@@ -52,12 +52,15 @@ export function PlantContextBar() {
     <div className="absolute bottom-4 left-4 right-4 z-10 max-w-3xl mx-auto">
       <div
         className={cn(
-          'rounded-2xl border shadow-xl px-4 py-3',
-          'bg-gradient-to-r from-green-50/95 via-background/95 to-green-50/80 backdrop-blur-lg',
+          'rounded-2xl border px-4 py-3',
+          'bg-gradient-to-r from-green-50/95 via-background/95 to-green-50/80 backdrop-blur-xl',
           'dark:from-green-950/30 dark:via-background/95 dark:to-green-950/20',
           'border-green-200/60 dark:border-green-900/40',
           'flex flex-col gap-2',
-          'hover:shadow-2xl transition-shadow duration-300'
+          'transition-all duration-300',
+          placeMode
+            ? 'shadow-2xl shadow-green-600/20 border-green-400/70 dark:border-green-700/50'
+            : 'shadow-xl hover:shadow-2xl'
         )}
       >
         {/* Main controls row */}
@@ -71,7 +74,7 @@ export function PlantContextBar() {
               onFocus={() => setSpeciesFocused(true)}
               onBlur={() => setTimeout(() => setSpeciesFocused(false), 200)}
               placeholder="Druh (latinsky)"
-              className="h-9 pl-7 text-xs border-green-200 dark:border-green-900/50 focus-visible:ring-green-500/40 focus-visible:border-green-400 transition-shadow duration-200"
+              className="h-9 pl-7 text-xs border-green-200 dark:border-green-900/50 focus-visible:ring-green-500/50 focus-visible:border-green-500 transition-all duration-200"
             />
             {speciesFocused && recentSpecies.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
@@ -126,7 +129,7 @@ export function PlantContextBar() {
               value={activeLocality}
               onChange={(e) => setActiveLocality(e.target.value)}
               placeholder="Lokalita"
-              className="h-9 pl-7 text-xs border-green-200 dark:border-green-900/50 focus-visible:ring-green-500/40 focus-visible:border-green-400 transition-shadow duration-200"
+              className="h-9 pl-7 text-xs border-green-200 dark:border-green-900/50 focus-visible:ring-green-500/50 focus-visible:border-green-500 transition-all duration-200"
             />
           </div>
 
@@ -138,7 +141,7 @@ export function PlantContextBar() {
                 className={cn(
                   'h-9 gap-1.5 text-xs font-medium transition-all duration-200',
                   placeMode
-                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-600/25'
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/30 place-mode-active-anim'
                     : 'bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50 dark:hover:bg-green-900/40'
                 )}
                 onClick={togglePlaceMode}

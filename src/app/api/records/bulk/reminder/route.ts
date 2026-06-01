@@ -81,6 +81,17 @@ export async function POST(request: NextRequest) {
 
     const result = await db.reminder.createMany({ data: remindersData })
 
+    // Log activity
+    await db.activityLog.create({
+      data: {
+        action: "create",
+        entityType: "reminder",
+        entityId: ownedNumbers.join(","),
+        details: JSON.stringify({ recordNumbers: ownedNumbers, bulkAction: "reminder", text: text.slice(0, 100), mode, count: result.count }),
+        userId: auth.userId,
+      },
+    })
+
     return NextResponse.json({
       message: `Created ${result.count} reminder(s)`,
       createdCount: result.count,

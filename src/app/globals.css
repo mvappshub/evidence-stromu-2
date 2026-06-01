@@ -491,3 +491,187 @@ html {
 .dark .status-separator {
   background: oklch(0.4 0 0 / 0.3);
 }
+
+/* ── Green text selection ── */
+::selection {
+  background-color: oklch(0.7 0.18 145 / 0.25);
+  color: inherit;
+}
+.dark ::selection {
+  background-color: oklch(0.5 0.15 145 / 0.35);
+}
+
+/* ── Staggered animation delay utilities ── */
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 50ms; }
+.stagger-3 { animation-delay: 100ms; }
+.stagger-4 { animation-delay: 150ms; }
+.stagger-5 { animation-delay: 200ms; }
+
+/* ── Row fade-in entrance animation ── */
+@keyframes row-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.row-animate {
+  animation: row-fade-in 0.25s ease-out both;
+}
+
+/* ── Subtle diagonal background pattern ── */
+.bg-pattern {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 10px,
+    oklch(0.7 0.02 145 / 0.03) 10px,
+    oklch(0.7 0.02 145 / 0.03) 11px
+  );
+}
+.dark .bg-pattern {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 10px,
+    oklch(0.5 0.02 145 / 0.04) 10px,
+    oklch(0.5 0.02 145 / 0.04) 11px
+  );
+}
+
+/* ── Connection status pulse animation ── */
+@keyframes status-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.65 0.2 145 / 0.5); }
+  50% { box-shadow: 0 0 0 4px oklch(0.65 0.2 145 / 0); }
+}
+.status-dot-connected {
+  animation: status-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes status-pulse-error {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.6 0.2 25 / 0.5); }
+  50% { box-shadow: 0 0 0 4px oklch(0.6 0.2 25 / 0); }
+}
+.status-dot-disconnected {
+  animation: status-pulse-error 1.5s ease-in-out infinite;
+}
+
+/* ── Map vignette overlay ── */
+.map-vignette {
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 60%, oklch(0 0 0 / 0.08) 100%);
+}
+.dark .map-vignette {
+  background:
+    radial-gradient(ellipse at center, transparent 55%, oklch(0 0 0 / 0.15) 100%);
+}
+
+/* ── Compass rose (CSS) ── */
+.compass-rose {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: oklch(1 0 0 / 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid oklch(0.8 0 0 / 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: oklch(0.35 0.15 145);
+  box-shadow: 0 1px 4px oklch(0 0 0 / 0.1);
+  transition: transform 0.3s ease;
+  user-select: none;
+}
+.dark .compass-rose {
+  background: oklch(0.2 0 0 / 0.85);
+  border-color: oklch(0.4 0 0 / 0.3);
+  color: oklch(0.75 0.12 145);
+}
+
+/* ── Map loading shimmer ── */
+@keyframes map-shimmer {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.3; }
+}
+.map-loading-shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(
+    135deg,
+    transparent 30%,
+    oklch(0.65 0.12 145 / 0.08) 50%,
+    transparent 70%
+  );
+  background-size: 300% 300%;
+  animation: map-shimmer 1.8s ease-in-out infinite, gradient-shift 3s ease infinite;
+}
+
+/* ── Coordinate display overlay ── */
+.coord-display {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: oklch(1 0 0 / 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid oklch(0.85 0 0 / 0.4);
+  color: oklch(0.4 0 0);
+  tabular-nums: true;
+}
+.dark .coord-display {
+  background: oklch(0.2 0 0 / 0.8);
+  border-color: oklch(0.35 0 0 / 0.4);
+  color: oklch(0.75 0 0);
+}
+
+/* ── Green checkbox accent ── */
+.checkbox-green[data-state="checked"] {
+  background-color: oklch(0.55 0.18 145);
+  border-color: oklch(0.55 0.18 145);
+}
+
+/* ── Toolbar gradient border bottom ── */
+.toolbar-border-gradient {
+  border-image: linear-gradient(to right, oklch(0.6 0.18 145 / 0.4), oklch(0.6 0.18 145 / 0.1), transparent) 1;
+}
+
+/* ── Place mode slide animation ── */
+@keyframes place-mode-enter {
+  from { transform: translateY(4px); opacity: 0.7; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.place-mode-active-anim {
+  animation: place-mode-enter 0.2s ease-out;
+}
+
+/* ── Count badge pulse ── */
+@keyframes count-badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+.count-badge-pulse {
+  animation: count-badge-pulse 3s ease-in-out infinite;
+}
+
+/* ── Sort transition animation ── */
+@keyframes sort-flash {
+  0% { background-color: oklch(0.7 0.12 145 / 0.15); }
+  100% { background-color: transparent; }
+}
+.sort-flash {
+  animation: sort-flash 0.5s ease-out;
+}
+
+/* ── Time display gradient ── */
+.time-display {
+  background: linear-gradient(90deg, oklch(0.97 0.005 145 / 0.4), oklch(0.97 0.003 145 / 0.2));
+  padding: 1px 8px;
+  border-radius: 4px;
+}
+.dark .time-display {
+  background: linear-gradient(90deg, oklch(0.22 0.008 145 / 0.3), oklch(0.22 0.005 145 / 0.15));
+}

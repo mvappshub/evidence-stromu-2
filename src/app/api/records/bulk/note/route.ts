@@ -45,6 +45,17 @@ export async function POST(request: NextRequest) {
       data: { note },
     })
 
+    // Log activity
+    await db.activityLog.create({
+      data: {
+        action: "update",
+        entityType: "record",
+        entityId: ownedNumbers.join(","),
+        details: JSON.stringify({ recordNumbers: ownedNumbers, bulkAction: "note", note: note.slice(0, 100) }),
+        userId: auth.userId,
+      },
+    })
+
     return NextResponse.json({
       message: `Note added to ${result.count} record(s)`,
       updatedCount: result.count,

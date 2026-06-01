@@ -9,6 +9,9 @@ interface UiState {
   filterLocality: string
   dateFrom: string | null
   dateTo: string | null
+  speciesFilter: string | null
+  hasNoteFilter: boolean
+  noReminderFilter: boolean
   setViewMode: (mode: ViewMode) => void
   setSelectedRecordNumber: (n: number | null) => void
   setSearchQuery: (q: string) => void
@@ -17,6 +20,9 @@ interface UiState {
   setDateFrom: (d: string | null) => void
   setDateTo: (d: string | null) => void
   clearDateRange: () => void
+  setSpeciesFilter: (s: string | null) => void
+  setHasNoteFilter: (v: boolean) => void
+  setNoReminderFilter: (v: boolean) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -27,6 +33,9 @@ export const useUiStore = create<UiState>((set) => ({
   filterLocality: '',
   dateFrom: null,
   dateTo: null,
+  speciesFilter: null,
+  hasNoteFilter: false,
+  noReminderFilter: false,
   setViewMode: (mode) => set({ viewMode: mode }),
   setSelectedRecordNumber: (n) => set({ selectedRecordNumber: n }),
   setSearchQuery: (q) => set({ searchQuery: q }),
@@ -35,4 +44,7 @@ export const useUiStore = create<UiState>((set) => ({
   setDateFrom: (d) => set({ dateFrom: d }),
   setDateTo: (d) => set({ dateTo: d }),
   clearDateRange: () => set({ dateFrom: null, dateTo: null }),
+  setSpeciesFilter: (s) => set({ speciesFilter: s }),
+  setHasNoteFilter: (v) => set({ hasNoteFilter: v }),
+  setNoReminderFilter: (v) => set({ noReminderFilter: v }),
 }))

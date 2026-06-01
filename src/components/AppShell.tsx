@@ -19,16 +19,17 @@ import { useUiStore } from '@/store/useUiStore'
 import { MaintenanceBell } from '@/components/MaintenanceBell'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
 import { StatisticsPanel } from '@/components/StatisticsPanel'
+import { SpeciesDetailPanel } from '@/components/SpeciesDetailPanel'
 import { ActivityLog } from '@/components/ActivityLog'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
 import { czechPlural } from '@/lib/czech-plural'
 import type { ViewMode } from '@/lib/types'
 
-const viewModes: { mode: ViewMode; icon: typeof Map; label: string }[] = [
-  { mode: 'map', icon: Map, label: 'Mapa' },
-  { mode: 'list', icon: List, label: 'Seznam' },
-  { mode: 'both', icon: Columns2, label: 'Mapa + Seznam' },
+const viewModes: { mode: ViewMode; icon: typeof Map; label: string; shortcut: string }[] = [
+  { mode: 'map', icon: Map, label: 'Mapa', shortcut: 'M' },
+  { mode: 'list', icon: List, label: 'Seznam', shortcut: 'L' },
+  { mode: 'both', icon: Columns2, label: 'Mapa + Seznam', shortcut: 'B' },
 ]
 
 export function AppShell() {
@@ -49,7 +50,7 @@ export function AppShell() {
   })
 
   return (
-    <div className="h-11 border-b flex items-center px-2.5 gap-1.5 shrink-0 flex-wrap overflow-hidden z-20 bg-gradient-to-r from-green-50/80 via-background to-green-50/40 dark:from-green-950/20 dark:via-background dark:to-green-950/10 backdrop-blur-md shadow-sm">
+    <div className="h-11 border-b flex items-center px-2.5 gap-1.5 shrink-0 flex-wrap overflow-hidden z-20 bg-gradient-to-r from-green-50/80 via-background to-green-50/40 dark:from-green-950/20 dark:via-background dark:to-green-950/10 backdrop-blur-md shadow-sm toolbar-border-gradient">
       {/* Logo icon + app name */}
       <div className="flex items-center gap-2 mr-1 shrink-0">
         <div className="size-7 rounded-lg bg-green-600 flex items-center justify-center shadow-sm">
@@ -65,17 +66,17 @@ export function AppShell() {
 
       {/* View mode toggle */}
       <div className="flex items-center gap-0.5 bg-muted/40 rounded-md p-0.5">
-        {viewModes.map(({ mode, icon: Icon, label }) => (
+        {viewModes.map(({ mode, icon: Icon, label, shortcut }) => (
           <Tooltip key={mode}>
             <TooltipTrigger asChild>
               <Button
                 variant={viewMode === mode ? 'default' : 'ghost'}
                 size="icon"
                 className={cn(
-                  'size-7 transition-all duration-150',
+                  'size-7 transition-all duration-200 hover:scale-105 active:scale-95',
                   viewMode === mode
                     ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm view-mode-active'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-green-300/50 dark:hover:border-green-700/50'
                 )}
                 onClick={() => setViewMode(mode)}
               >
@@ -83,14 +84,14 @@ export function AppShell() {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">
-              {label}
+              {label} <kbd className="ml-1 px-1 py-0.5 rounded border bg-muted text-[10px] font-mono">{shortcut}</kbd>
             </TooltipContent>
           </Tooltip>
         ))}
       </div>
 
       {countData !== undefined && (
-        <span className="inline-flex items-center gap-1 text-[10px] font-medium ml-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 tabular-nums">
+        <span className="inline-flex items-center gap-1 text-[10px] font-medium ml-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 tabular-nums count-badge-pulse">
           <span className="size-1.5 rounded-full bg-green-500" />
           {czechPlural(countData, ['strom', 'stromy', 'stromů'])}
         </span>
@@ -103,6 +104,9 @@ export function AppShell() {
 
       {/* Statistics panel */}
       <StatisticsPanel />
+
+      {/* Species detail panel */}
+      <SpeciesDetailPanel />
 
       {/* Activity log */}
       <ActivityLog />

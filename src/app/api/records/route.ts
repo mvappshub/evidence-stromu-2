@@ -21,6 +21,8 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get("search")
   const dateFrom = searchParams.get("dateFrom")
   const dateTo = searchParams.get("dateTo")
+  const hasNote = searchParams.get("hasNote")
+  const noReminder = searchParams.get("noReminder")
   const sort = searchParams.get("sort") || "createdAt"
   const order = searchParams.get("order") || "desc"
   const limit = parseInt(searchParams.get("limit") || "50", 10)
@@ -50,6 +52,16 @@ export async function GET(request: NextRequest) {
     if (dateFrom) plantedAtFilter.gte = new Date(dateFrom)
     if (dateTo) plantedAtFilter.lte = new Date(dateTo)
     where.plantedAt = plantedAtFilter
+  }
+
+  // Has note filter
+  if (hasNote === "true") {
+    where.note = { not: null }
+  }
+
+  // No reminder filter
+  if (noReminder === "true") {
+    where.reminders = { none: {} }
   }
 
   const allowedSortFields = ["createdAt", "plantedAt", "speciesLatin", "recordNumber"]

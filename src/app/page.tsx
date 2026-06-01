@@ -62,7 +62,7 @@ function WorkArea() {
 
 function AppContent() {
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-pattern page-enter">
       <AppShell />
       <WorkArea />
       <StatusBar />

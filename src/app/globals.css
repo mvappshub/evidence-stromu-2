@@ -404,17 +404,45 @@ html {
 
 /* Print-friendly styles */
 @media print {
+  /* Hide all UI chrome */
   .glass-bar,
-  .no-print {
+  .no-print,
+  [class*="AppShell"],
+  [class*="StatusBar"],
+  [class*="PlantContextBar"],
+  [class*="MaintenanceBell"],
+  [class*="KeyboardShortcuts"],
+  [class*="StatisticsPanel"],
+  [class*="SpeciesDetailPanel"],
+  [class*="ActivityLog"],
+  [class*="ImportDialog"],
+  [class*="BulkActionBar"],
+  [class*="filter-bar"],
+  [class*="maplibregl-map"],
+  [class*="MapView"],
+  [role="toolbar"],
+  nav,
+  header,
+  footer,
+  .resizable-handle,
+  button[variant="ghost"],
+  .pagination {
     display: none !important;
   }
+
   body {
     background: white !important;
     color: black !important;
+    font-size: 11px;
   }
-  .maplibregl-map {
+
+  /* Map should be hidden */
+  .maplibregl-map,
+  [class*="map-container"] {
     display: none !important;
   }
+
+  /* Table styling for print */
   table {
     border-collapse: collapse;
     width: 100%;
@@ -428,6 +456,18 @@ html {
     background: #f5f5f5 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  /* Remove shadows and effects */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Ensure table fills width */
+  [class*="RecordsTable"] {
+    width: 100%;
+    overflow: visible !important;
   }
 }
 
@@ -674,4 +714,329 @@ html {
 }
 .dark .time-display {
   background: linear-gradient(90deg, oklch(0.22 0.008 145 / 0.3), oklch(0.22 0.005 145 / 0.15));
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ROUND 6 — New Animations & Utility Classes
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Shimmer keyframe (logo icon shine) ── */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.logo-shimmer {
+  background: linear-gradient(
+    110deg,
+    oklch(0.55 0.2 145) 0%,
+    oklch(0.55 0.2 145) 40%,
+    oklch(0.85 0.12 145) 50%,
+    oklch(0.55 0.2 145) 60%,
+    oklch(0.55 0.2 145) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* ── Breathing pulse keyframe (place mode button) ── */
+@keyframes breathing-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 oklch(0.55 0.2 145 / 0.3); }
+  50% { transform: scale(1.04); box-shadow: 0 0 12px 2px oklch(0.55 0.2 145 / 0.2); }
+}
+.breathing-pulse {
+  animation: breathing-pulse 2.5s ease-in-out infinite;
+}
+
+/* ── Slide-in chip keyframe ── */
+@keyframes slide-in-chip {
+  from { opacity: 0; transform: translateX(-8px) scale(0.9); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+.chip-enter {
+  animation: slide-in-chip 0.25s ease-out both;
+}
+
+/* ── Border glow keyframe (dialog save glow) ── */
+@keyframes border-glow {
+  0% { box-shadow: 0 0 0 0 oklch(0.55 0.2 145 / 0); border-color: inherit; }
+  30% { box-shadow: 0 0 16px 4px oklch(0.55 0.2 145 / 0.3); border-color: oklch(0.55 0.2 145 / 0.5); }
+  100% { box-shadow: 0 0 0 0 oklch(0.55 0.2 145 / 0); border-color: inherit; }
+}
+.border-glow-active {
+  animation: border-glow 1.2s ease-out;
+}
+
+/* ── Dash animation keyframe (photo drag-over) ── */
+@keyframes dash-animation {
+  to { stroke-dashoffset: -20; }
+}
+.dash-border-animated {
+  border-style: dashed;
+  border-color: oklch(0.55 0.2 145 / 0.6);
+  background-image: repeating-linear-gradient(
+    90deg,
+    oklch(0.55 0.2 145 / 0.08) 0px,
+    oklch(0.55 0.2 145 / 0.08) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  background-size: 200% 100%;
+  animation: dash-slide 0.8s linear infinite;
+}
+@keyframes dash-slide {
+  from { background-position: 0% 0; }
+  to { background-position: 100% 0; }
+}
+
+/* ── Gradient border animated (toolbar bottom) ── */
+@keyframes gradient-border-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.gradient-border-animated {
+  position: relative;
+}
+.gradient-border-animated::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    oklch(0.6 0.2 145 / 0.1),
+    oklch(0.6 0.2 145 / 0.6),
+    oklch(0.5 0.15 160 / 0.6),
+    oklch(0.6 0.2 145 / 0.6),
+    oklch(0.6 0.2 145 / 0.1)
+  );
+  background-size: 300% 100%;
+  animation: gradient-border-shift 8s ease infinite;
+}
+
+/* ── Badge glow class ── */
+.badge-glow {
+  box-shadow: 0 0 6px 1px oklch(0.55 0.2 145 / 0.25);
+}
+.dark .badge-glow {
+  box-shadow: 0 0 6px 1px oklch(0.55 0.2 145 / 0.2);
+}
+
+/* ── Scale-in animation class ── */
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* ── Tooltip bounce animation ── */
+@keyframes tooltip-bounce {
+  0% { opacity: 0; transform: translateY(4px) scale(0.96); }
+  60% { transform: translateY(-2px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.tooltip-bounce {
+  animation: tooltip-bounce 0.25s ease-out;
+}
+
+/* ── Species frequency dot ── */
+.species-freq-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Pagination pill indicator ── */
+.pagination-pill-active {
+  background: oklch(0.55 0.18 145);
+  color: white;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-weight: 600;
+  font-size: 11px;
+  min-width: 36px;
+  text-align: center;
+}
+
+/* ── Compass rose hover rotation ── */
+.compass-rose:hover {
+  transform: rotate(calc(var(--compass-rotate, 0) * 1deg)) scale(1.1) !important;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Cluster expansion bounce ── */
+@keyframes cluster-bounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.15); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* ── Map style switcher fade-in ── */
+@keyframes fade-in-panel {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.style-switcher-fade-in {
+  animation: fade-in-panel 0.2s ease-out;
+}
+
+/* ── Coordinate counter animation ── */
+@keyframes coord-flash {
+  0% { color: oklch(0.55 0.2 145); }
+  100% { color: inherit; }
+}
+.coord-flash {
+  animation: coord-flash 0.4s ease-out;
+}
+
+/* ── Place mode bar shimmer ── */
+@keyframes bar-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.bar-shimmer-active {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.65 0.15 145 / 0.08) 25%,
+    oklch(0.65 0.15 145 / 0.15) 50%,
+    oklch(0.65 0.15 145 / 0.08) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: bar-shimmer 2.5s ease-in-out infinite;
+}
+
+/* ── Calendar icon wobble on hover ── */
+@keyframes calendar-wobble {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+  75% { transform: rotate(-4deg); }
+  100% { transform: rotate(0deg); }
+}
+.calendar-icon-hover:hover svg:first-child,
+.calendar-icon-hover:hover .lucide-calendar-days {
+  animation: calendar-wobble 0.4s ease-in-out;
+}
+
+/* ── Dialog tab transition ── */
+.dialog-tab-transition {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* ── Photo drag-over highlight ── */
+.photo-drag-over {
+  border-color: oklch(0.55 0.2 145) !important;
+  background-color: oklch(0.95 0.03 145 / 0.3) !important;
+}
+.dark .photo-drag-over {
+  border-color: oklch(0.55 0.2 145) !important;
+  background-color: oklch(0.2 0.03 145 / 0.3) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   prefers-reduced-motion: reduce
+   ══════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .logo-shimmer,
+  .breathing-pulse,
+  .badge-glow,
+  .bar-shimmer-active,
+  .count-badge-pulse,
+  .place-mode-active-anim,
+  .status-dot-connected,
+  .status-dot-disconnected,
+  .skeleton-green {
+    animation: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Enhanced @media print rules
+   ══════════════════════════════════════════════════════════════════ */
+@media print {
+  /* Hide non-essential UI */
+  .glass-bar,
+  .no-print,
+  [data-print-hide],
+  nav,
+  .compass-rose,
+  .map-control-btn,
+  .maplibregl-control-container,
+  .coord-display,
+  .map-vignette,
+  .tree-flash-marker {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11px;
+  }
+
+  /* Hide map entirely */
+  .maplibregl-map,
+  .map-container {
+    display: none !important;
+  }
+
+  /* Hide AppShell, StatusBar, PlantContextBar */
+  .h-11.border-b,
+  .h-7.border-t,
+  .absolute.bottom-4 {
+    display: none !important;
+  }
+
+  /* Show only table content */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  th {
+    background: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Page header with date */
+  @page {
+    margin: 1.5cm;
+  }
+  body::before {
+    content: 'Evidence stromů — vytištěno ' attr(data-print-date);
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #22c55e;
+    color: #166534;
+  }
+
+  /* Remove animations/shadows for print */
+  * {
+    animation: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
 }

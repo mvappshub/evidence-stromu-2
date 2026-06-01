@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import Papa from 'papaparse'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Upload,
   FileSpreadsheet,
@@ -53,6 +53,7 @@ const HEADER_MAP: Record<string, FieldKey> = {
   "species": "speciesLatin",
   "datum výsadby": "plantedAt",
   "datum_vysadby": "plantedAt",
+  "datum": "plantedAt",
   "date": "plantedAt",
   "zem. šířka": "lat",
   "zem_sirka": "lat",
@@ -83,6 +84,7 @@ interface ImportDialogProps {
 export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortRef = useRef(false)
 
   // State
   const [step, setStep] = useState<Step>('upload')
@@ -103,6 +105,8 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
     errors: string[]
   } | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 })
+  const [importing, setImporting] = useState(false)
 
   // ─── File handling ──────────────────────────────────────────────────────
 
@@ -186,73 +190,103 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
     if (f) processFile(f)
   }, [processFile])
 
-  // ─── Import mutation ───────────────────────────────────────────────────
+  // ─── Import records one-by-one with progress ──────────────────────────
 
-  const importMutation = useMutation({
-    mutationFn: async () => {
-      // Build the CSV with mapped columns from the parsed data
-      const mappedRows: Record<string, string>[] = []
-      for (const row of rawData) {
-        const mappedRow: Record<string, string> = {}
-        for (const field of FIELDS) {
-          const csvCol = mapping[field.key]
-          mappedRow[field.key] = csvCol ? (row[csvCol]?.trim() ?? '') : ''
-        }
-        mappedRows.push(mappedRow)
+  const runImport = useCallback(async () => {
+    // Build mapped rows
+    const mappedRows: Record<string, string>[] = []
+    for (const row of rawData) {
+      const mappedRow: Record<string, string> = {}
+      for (const field of FIELDS) {
+        const csvCol = mapping[field.key]
+        mappedRow[field.key] = csvCol ? (row[csvCol]?.trim() ?? '') : ''
+      }
+      mappedRows.push(mappedRow)
+    }
+
+    let imported = 0
+    let skipped = 0
+    const errors: string[] = []
+    abortRef.current = false
+
+    setImporting(true)
+    setImportProgress({ current: 0, total: mappedRows.length })
+    setStep('importing')
+
+    for (let i = 0; i < mappedRows.length; i++) {
+      if (abortRef.current) break
+
+      const r = mappedRows[i]
+
+      // Validate required fields client-side
+      if (!r.speciesLatin) {
+        errors.push(`Řádek ${i + 2}: Chybí druh`)
+        skipped++
+        setImportProgress({ current: i + 1, total: mappedRows.length })
+        continue
+      }
+      if (!r.plantedAt) {
+        errors.push(`Řádek ${i + 2}: Chybí datum výsadby`)
+        skipped++
+        setImportProgress({ current: i + 1, total: mappedRows.length })
+        continue
       }
 
-      // Create a new CSV with standard headers
-      const csvHeaders = ['Druh', 'Datum výsadby', 'Zem. šířka', 'Zem. délka', 'Lokalita', 'Poznámka']
-      const csvRows = mappedRows.map((r) =>
-        [
-          r.speciesLatin,
-          r.plantedAt,
-          r.lat,
-          r.lng,
-          r.locality,
-          r.note,
-        ].map((v) => {
-          if (v.includes(';') || v.includes('"') || v.includes('\n')) {
-            return `"${v.replace(/"/g, '""')}"`
-          }
-          return v
-        }).join(';')
-      )
+      const lat = parseFloat(r.lat.replace(',', '.'))
+      const lng = parseFloat(r.lng.replace(',', '.'))
 
-      const csv = '\uFEFF' + [csvHeaders.join(';'), ...csvRows].join('\r\n')
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-      const formData = new FormData()
-      formData.append('file', blob, 'import.csv')
-
-      const res = await fetch('/api/records/import', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Chyba při importu')
+      if (isNaN(lat) || isNaN(lng)) {
+        errors.push(`Řádek ${i + 2}: Neplatné souřadnice`)
+        skipped++
+        setImportProgress({ current: i + 1, total: mappedRows.length })
+        continue
       }
 
-      return res.json() as Promise<{ imported: number; skipped: number; errors: string[] }>
-    },
-    onSuccess: (data) => {
-      setImportResult(data)
-      setStep('results')
-      queryClient.invalidateQueries({ queryKey: ['records'] })
-      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
-      queryClient.invalidateQueries({ queryKey: ['records-filters'] })
-      if (data.imported > 0) {
-        toast.success('Import dokončen', {
-          description: `Importováno ${data.imported} záznamů`,
+      try {
+        const res = await fetch('/api/records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            speciesLatin: r.speciesLatin,
+            plantedAt: r.plantedAt,
+            lat,
+            lng,
+            locality: r.locality || undefined,
+            note: r.note || undefined,
+          }),
         })
+
+        if (res.ok) {
+          imported++
+        } else {
+          const errData = await res.json().catch(() => ({}))
+          errors.push(`Řádek ${i + 2}: ${errData.error || 'Chyba při ukládání'}`)
+          skipped++
+        }
+      } catch {
+        errors.push(`Řádek ${i + 2}: Chyba sítě`)
+        skipped++
       }
-    },
-    onError: (err) => {
-      toast.error('Chyba při importu', { description: err.message })
-      setStep('mapping')
-    },
-  })
+
+      setImportProgress({ current: i + 1, total: mappedRows.length })
+    }
+
+    setImporting(false)
+    setImportResult({ imported, skipped, errors: errors.slice(0, 100) })
+    setStep('results')
+
+    // Invalidate queries
+    queryClient.invalidateQueries({ queryKey: ['records'] })
+    queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+    queryClient.invalidateQueries({ queryKey: ['records-filters'] })
+    queryClient.invalidateQueries({ queryKey: ['records-count'] })
+
+    if (imported > 0) {
+      toast.success('Import dokončen', {
+        description: `Importováno ${imported} z ${mappedRows.length} záznamů`,
+      })
+    }
+  }, [rawData, mapping, queryClient])
 
   // ─── Mapping validation ────────────────────────────────────────────────
 
@@ -263,6 +297,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   // ─── Reset ──────────────────────────────────────────────────────────────
 
   const reset = useCallback(() => {
+    abortRef.current = true
     setStep('upload')
     setFile(null)
     setRawHeaders([])
@@ -276,8 +311,9 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
       note: '',
     })
     setImportResult(null)
-    importMutation.reset()
-  }, [importMutation])
+    setImporting(false)
+    setImportProgress({ current: 0, total: 0 })
+  }, [])
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     if (!nextOpen) reset()
@@ -500,11 +536,8 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
               <Button
                 size="sm"
                 className="gap-1"
-                disabled={!requiredFieldsMapped}
-                onClick={() => {
-                  setStep('importing')
-                  importMutation.mutate()
-                }}
+                disabled={!requiredFieldsMapped || importing}
+                onClick={runImport}
               >
                 <Upload className="size-3.5" />
                 Importovat
@@ -520,9 +553,12 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
               <Loader2 className="size-5 animate-spin text-green-600" />
               <span className="text-sm font-medium">Probíhá import…</span>
             </div>
-            <Progress value={45} className="h-2" />
+            <Progress
+              value={importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0}
+              className="h-2"
+            />
             <p className="text-xs text-muted-foreground text-center">
-              Importuje se {rawData.length} {rawData.length === 1 ? 'záznam' : rawData.length < 5 ? 'záznamy' : 'záznamů'}
+              {importProgress.current}/{importProgress.total} záznamů
             </p>
           </div>
         )}

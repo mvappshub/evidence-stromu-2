@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
+import { cn } from '@/lib/utils'
 import { ReminderEditor } from '@/components/editors/ReminderEditor'
 import type { Reminder } from '@/lib/types'
 
@@ -63,12 +64,14 @@ interface BulkActionBarProps {
   selectedRecordNumbers: number[]
   onClearSelection: () => void
   existingReminders?: Reminder[]
+  className?: string
 }
 
 export function BulkActionBar({
   selectedRecordNumbers,
   onClearSelection,
   existingReminders = [],
+  className,
 }: BulkActionBarProps) {
   const queryClient = useQueryClient()
   const [noteDialogOpen, setNoteDialogOpen] = useState(false)
@@ -171,7 +174,7 @@ export function BulkActionBar({
 
   return (
     <>
-      <div className="sticky bottom-0 left-0 right-0 z-10 flex items-center gap-3 rounded-lg border bg-background/95 backdrop-blur-sm px-4 py-2 shadow-lg">
+      <div className={cn("sticky bottom-0 left-0 right-0 z-10 flex items-center gap-3 rounded-lg border bg-background/95 backdrop-blur-sm px-4 py-2 shadow-lg", className)}>
         <span className="text-sm font-medium">
           Vybráno: {selectedRecordNumbers.length}
         </span>

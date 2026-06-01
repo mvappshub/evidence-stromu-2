@@ -74,9 +74,10 @@ export function getMapStyle(key: MapStyleKey) {
 interface MapStyleSwitcherProps {
   currentStyle: MapStyleKey
   onStyleChange: (style: MapStyleKey) => void
+  className?: string
 }
 
-export function MapStyleSwitcher({ currentStyle, onStyleChange }: MapStyleSwitcherProps) {
+export function MapStyleSwitcher({ currentStyle, onStyleChange, className }: MapStyleSwitcherProps) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -91,7 +92,7 @@ export function MapStyleSwitcher({ currentStyle, onStyleChange }: MapStyleSwitch
           <Layers className="size-3.5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-48 p-1">
+      <PopoverContent align="end" className={cn("w-48 p-1 style-switcher-fade-in", className)}>
         {MAP_STYLES.map((style) => (
           <button
             key={style.key}

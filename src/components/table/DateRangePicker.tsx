@@ -105,11 +105,11 @@ export function DateRangePicker({
             variant="outline"
             size="sm"
             className={cn(
-              'h-8 gap-1.5 text-xs',
+              'h-8 gap-1.5 text-xs calendar-icon-hover group',
               hasRange && 'border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950/30 dark:text-green-400'
             )}
           >
-            <CalendarDays className="size-3.5" />
+            <CalendarDays className="size-3.5 transition-transform" />
             <span className="hidden sm:inline">Období</span>
             {hasRange && (
               <span className="text-[10px] font-medium">

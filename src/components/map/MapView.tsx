@@ -831,21 +831,21 @@ export function MapView() {
       <div className="absolute top-3 left-3 z-10">
         <div
           className="compass-rose"
-          style={{ transform: `rotate(${-mapBearing}deg)` }}
+          style={{ transform: `rotate(${-mapBearing}deg)`, ['--compass-rotate' as string]: String(-mapBearing) }}
         >
           N
         </div>
       </div>
 
       <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
-        <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={handleStyleChange} />
+        <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={handleStyleChange} className="style-switcher-fade-in" />
         <HeatmapToggle mode={layerMode} onToggle={handleLayerModeToggle} />
       </div>
       <MapLegend layerMode={layerMode} />
 
       {/* Coordinate display */}
       {cursorCoord && (
-        <div className="absolute bottom-14 left-3 z-10 coord-display">
+        <div className="absolute bottom-14 left-3 z-10 coord-display coord-flash" key={`${cursorCoord.lat.toFixed(3)},${cursorCoord.lng.toFixed(3)}`}>
           {cursorCoord.lat.toFixed(5)}, {cursorCoord.lng.toFixed(5)}
         </div>
       )}

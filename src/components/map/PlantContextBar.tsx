@@ -59,7 +59,7 @@ export function PlantContextBar() {
           'flex flex-col gap-2',
           'transition-all duration-300',
           placeMode
-            ? 'shadow-2xl shadow-green-600/20 border-green-400/70 dark:border-green-700/50'
+            ? 'shadow-2xl shadow-green-600/20 border-green-400/70 dark:border-green-700/50 bar-shimmer-active'
             : 'shadow-xl hover:shadow-2xl'
         )}
       >
@@ -141,7 +141,7 @@ export function PlantContextBar() {
                 className={cn(
                   'h-9 gap-1.5 text-xs font-medium transition-all duration-200',
                   placeMode
-                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/30 place-mode-active-anim'
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/30 place-mode-active-anim breathing-pulse'
                     : 'bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50 dark:hover:bg-green-900/40'
                 )}
                 onClick={togglePlaceMode}
@@ -172,10 +172,11 @@ export function PlantContextBar() {
         {/* Recent species chips */}
         {recentSpecies.length > 0 && (
           <div className="flex items-center gap-1 flex-wrap">
-            {recentSpecies.filter(s => s !== activeSpecies).slice(0, 5).map((species) => (
+            {recentSpecies.filter(s => s !== activeSpecies).slice(0, 5).map((species, idx) => (
               <button
                 key={species}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 dark:text-green-400 dark:hover:bg-green-900/40 transition-all duration-150 italic cursor-pointer border border-green-100 dark:border-green-900/30 chip-hover"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 dark:text-green-400 dark:hover:bg-green-900/40 transition-all duration-150 italic cursor-pointer border border-green-100 dark:border-green-900/30 chip-hover chip-enter hover:scale-110"
+                style={{ animationDelay: `${idx * 50}ms` }}
                 onClick={() => setActiveSpecies(species)}
               >
                 {species}

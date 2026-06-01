@@ -62,6 +62,7 @@ import { BulkActionBar } from '@/components/table/BulkActionBar'
 import { RecordEditor } from '@/components/editors/RecordEditor'
 import { DateRangePicker } from '@/components/table/DateRangePicker'
 import { ImportDialog } from '@/components/ImportDialog'
+import { PrintView } from '@/components/PrintView'
 import { useUiStore } from '@/store/useUiStore'
 import type { TreeRecord, RecordsResponse } from '@/lib/types'
 
@@ -150,6 +151,17 @@ export function RecordsTable() {
 
   const speciesOptions = filterData?.species ?? []
   const localityOptions = filterData?.localities ?? []
+
+  // Species frequency map for dot indicator
+  const speciesFrequencyMap = useMemo(() => {
+    if (!data?.records) return {}
+    const freq: Record<string, number> = {}
+    data.records.forEach((r) => {
+      freq[r.speciesLatin] = (freq[r.speciesLatin] ?? 0) + 1
+    })
+    return freq
+  }, [data])
+  const maxSpeciesFreq = Math.max(1, ...Object.values(speciesFrequencyMap))
 
   // Selected record for editor
   const editingRecord = useMemo(() => {
@@ -252,11 +264,22 @@ export function RecordsTable() {
             <ArrowUpDown className="size-3" />
           </Button>
         ),
-        cell: ({ row }) => (
-          <span className="text-sm italic">
-            {row.original.speciesLatin}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const freq = speciesFrequencyMap[row.original.speciesLatin] ?? 0
+          const intensity = maxSpeciesFreq > 0 ? freq / maxSpeciesFreq : 0
+          return (
+            <span className="text-sm italic inline-flex items-center">
+              {row.original.speciesLatin}
+              <span
+                className="species-freq-dot"
+                style={{
+                  backgroundColor: `oklch(${0.4 + intensity * 0.3} ${0.1 + intensity * 0.12} 145 / ${0.3 + intensity * 0.7})`,
+                }}
+                title={`${freq}× v tabulce`}
+              />
+            </span>
+          )
+        },
       },
       {
         accessorKey: 'locality',
@@ -577,6 +600,14 @@ export function RecordsTable() {
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">Exportovat GeoJSON</TooltipContent>
           </Tooltip>
+          <PrintView
+            searchQuery={searchQuery}
+            filterSpecies={filterSpecies}
+            filterLocality={filterLocality}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            recordCount={data?.count ?? 0}
+          />
         </div>
       </div>
 
@@ -647,8 +678,8 @@ export function RecordsTable() {
                     key={row.id}
                     data-state={isSelected ? 'selected' : undefined}
                     className={cn(
-                      'cursor-pointer table-row-smooth row-animate hover:bg-green-50/50 dark:hover:bg-green-950/10 hover:border-l-2 hover:border-l-green-400 dark:hover:border-l-green-600',
-                      isSelected && 'bg-green-50/60 dark:bg-green-950/20 border-l-2 border-l-green-500'
+                      'cursor-pointer table-row-smooth row-animate hover:bg-green-50/50 dark:hover:bg-green-950/10 hover:border-l-[3px] hover:border-l-green-400 dark:hover:border-l-green-600',
+                      isSelected && 'bg-green-50/60 dark:bg-green-950/20 border-l-[3px] border-l-green-500'
                     )}
                     style={{ animationDelay: `${Math.min(idx, 10) * 30}ms` }}
                     onClick={() => {
@@ -721,7 +752,7 @@ export function RecordsTable() {
           >
             <ChevronLeft className="size-3.5" />
           </Button>
-          <span className="text-xs text-muted-foreground px-2 min-w-[80px] text-center bg-green-50/50 dark:bg-green-950/20 rounded py-0.5 tabular-nums font-medium">
+          <span className="pagination-pill-active tabular-nums">
             {pagination.page + 1} / {totalPages || 1}
           </span>
           <Button
@@ -753,6 +784,7 @@ export function RecordsTable() {
       <BulkActionBar
         selectedRecordNumbers={selectedRecordNumbers}
         onClearSelection={() => setRowSelection({})}
+        className="scale-in"
       />
 
       {/* Record editor dialog */}

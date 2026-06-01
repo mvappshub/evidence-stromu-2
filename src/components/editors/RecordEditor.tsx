@@ -18,6 +18,7 @@ import {
   Camera,
   Copy,
   Check,
+  CopyPlus,
 } from 'lucide-react'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -103,6 +104,8 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [photoPath, setPhotoPath] = useState<string | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [savingGlow, setSavingGlow] = useState(false)
 
   const form = useForm<RecordEditValues>({
     resolver: zodResolver(recordEditSchema),
@@ -148,6 +151,8 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
       queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+      setSavingGlow(true)
+      setTimeout(() => setSavingGlow(false), 1200)
       onOpenChange(false)
       if (record) {
         toast.success('Záznam uložen', { description: `Záznam #${record.recordNumber} aktualizován` })
@@ -155,6 +160,39 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
     },
     onError: () => {
       toast.error('Chyba při ukládání')
+    },
+  })
+
+  const duplicateMutation = useMutation({
+    mutationFn: async () => {
+      if (!record) throw new Error('No record')
+      const offset = 0.0001
+      const res = await fetch('/api/records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          speciesLatin: record.speciesLatin,
+          plantedAt: record.plantedAt.slice(0, 10),
+          lat: record.lat + offset,
+          lng: record.lng + offset,
+          locality: record.locality,
+          note: record.note,
+        }),
+      })
+      if (!res.ok) throw new Error('Chyba při kopírování záznamu')
+      return res.json()
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['records'] })
+      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+      onOpenChange(false)
+      const newRecordNumber = data?.record?.recordNumber
+      toast.success('Záznam zkopírován', {
+        description: newRecordNumber ? `Nový záznam #${newRecordNumber}` : undefined,
+      })
+    },
+    onError: () => {
+      toast.error('Chyba při kopírování')
     },
   })
 
@@ -211,7 +249,7 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto dialog-accent-top">
+      <DialogContent className={cn('sm:max-w-lg max-h-[90vh] overflow-y-auto dialog-accent-top', savingGlow && 'border-glow-active')}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <TreePine className="size-4 text-green-600" />
@@ -419,18 +457,41 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
                 </div>
               </div>
             ) : (
-              <label className="cursor-pointer">
+              <label className="cursor-pointer"
+                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={async (e) => {
+                  e.preventDefault()
+                  setIsDragOver(false)
+                  const file = e.dataTransfer.files?.[0]
+                  if (!file) return
+                  setUploading(true)
+                  try {
+                    const formData = new FormData()
+                    formData.append('photo', file)
+                    const res = await fetch('/api/upload', { method: 'POST', body: formData })
+                    if (!res.ok) throw new Error('Upload failed')
+                    const data = await res.json()
+                    setPhotoPath(data.path)
+                  } catch (err) {
+                    console.error('Photo drag-drop error:', err)
+                  } finally {
+                    setUploading(false)
+                  }
+                }}
+              >
                 <div className={cn(
-                  "flex items-center gap-3 rounded-lg border-2 border-dashed p-4 transition-colors",
+                  "flex items-center gap-3 rounded-lg border-2 border-dashed p-4 transition-all duration-200",
                   "border-muted-foreground/25 hover:border-green-400/50 hover:bg-green-50/50 dark:hover:bg-green-950/10",
-                  "cursor-pointer"
+                  "cursor-pointer",
+                  isDragOver && "dash-border-animated photo-drag-over"
                 )}>
                   <div className="size-10 rounded-full bg-muted flex items-center justify-center">
                     <Upload className="size-4 text-muted-foreground" />
                   </div>
                   <div>
                     <p className="text-sm font-medium">Nahrát fotografii</p>
-                    <p className="text-xs text-muted-foreground">Klikněte pro výběr souboru</p>
+                    <p className="text-xs text-muted-foreground">Klikněte pro výběr nebo přetáhněte soubor</p>
                   </div>
                 </div>
                 <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
@@ -439,18 +500,30 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  className="gap-1.5 mr-auto"
-                >
-                  <Trash2 className="size-3.5" />
-                  Smazat záznam
-                </Button>
-              </AlertDialogTrigger>
+            <div className="flex items-center gap-1.5 mr-auto">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={duplicateMutation.isPending}
+                onClick={() => duplicateMutation.mutate()}
+              >
+                {duplicateMutation.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <CopyPlus className="size-3.5" />}
+                Kopírovat
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Smazat záznam
+                  </Button>
+                </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Smazat záznam?</AlertDialogTitle>
@@ -469,6 +542,7 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            </div>
 
             <Button
               type="button"

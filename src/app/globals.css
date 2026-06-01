@@ -120,3 +120,62 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.7 0 0);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0 0);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(0.4 0 0);
+}
+
+/* MapLibre overrides for professional look */
+.maplibregl-map {
+  font-family: var(--font-sans), sans-serif;
+}
+.maplibregl-ctrl-scale {
+  font-size: 10px !important;
+  border-color: var(--border) !important;
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
+.maplibregl-popup-content {
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px oklch(0 0 0 / 10%);
+}
+
+/* Smooth transitions */
+.transition-view {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Selected row highlight animation */
+@keyframes highlight-pulse {
+  0%, 100% { background-color: oklch(0.6 0.2 145 / 0.08); }
+  50% { background-color: oklch(0.6 0.2 145 / 0.15); }
+}
+.row-highlight {
+  animation: highlight-pulse 2s ease-in-out 2;
+}
+
+/* Place mode indicator */
+@keyframes place-mode-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.6 0.2 145 / 0.4); }
+  50% { box-shadow: 0 0 0 6px oklch(0.6 0.2 145 / 0); }
+}
+.place-mode-active {
+  animation: place-mode-pulse 2s infinite;
+}

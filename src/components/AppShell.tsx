@@ -1,6 +1,7 @@
 'use client'
 
 import { useSession, signOut } from 'next-auth/react'
+import { useQuery } from '@tanstack/react-query'
 import { TreePine, Map, List, Columns2, Moon, Sun, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +18,7 @@ import {
 import { useUiStore } from '@/store/useUiStore'
 import { MaintenanceBell } from '@/components/MaintenanceBell'
 import { useTheme } from 'next-themes'
+import { cn } from '@/lib/utils'
 import type { ViewMode } from '@/lib/types'
 
 const viewModes: { mode: ViewMode; icon: typeof Map; label: string }[] = [
@@ -31,12 +33,23 @@ export function AppShell() {
   const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
 
+  const { data: countData } = useQuery({
+    queryKey: ['records-count'],
+    queryFn: async () => {
+      const res = await fetch('/api/records?limit=1')
+      if (!res.ok) throw new Error('Failed')
+      const data = await res.json()
+      return data.count as number
+    },
+    staleTime: 30_000,
+  })
+
   return (
     <div className="h-10 border-b bg-background/95 backdrop-blur-sm flex items-center px-2 gap-1 shrink-0">
       {/* Logo icon only */}
       <TreePine className="size-5 text-green-600 shrink-0 mx-1" />
 
-      <div className="w-px h-5 bg-border mx-1" />
+      <div className="w-px h-5 bg-border/60 mx-1" />
 
       {/* View mode toggle */}
       <div className="flex items-center gap-0.5">
@@ -44,9 +57,12 @@ export function AppShell() {
           <Tooltip key={mode}>
             <TooltipTrigger asChild>
               <Button
-                variant={viewMode === mode ? 'secondary' : 'ghost'}
+                variant={viewMode === mode ? 'default' : 'ghost'}
                 size="icon"
-                className="size-7"
+                className={cn(
+                  'size-7 transition-colors',
+                  viewMode === mode && 'bg-green-600 hover:bg-green-700 text-white'
+                )}
                 onClick={() => setViewMode(mode)}
               >
                 <Icon className="size-3.5" />
@@ -59,6 +75,12 @@ export function AppShell() {
         ))}
       </div>
 
+      {countData !== undefined && (
+        <span className="text-[10px] text-muted-foreground ml-1 tabular-nums">
+          {countData} stromů
+        </span>
+      )}
+
       <div className="flex-1" />
 
       {/* Maintenance bell */}
@@ -67,9 +89,12 @@ export function AppShell() {
       {/* User menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="size-7">
+          <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-1.5">
             <span className="size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium">
               {session?.user?.name?.[0]?.toUpperCase() ?? session?.user?.email?.[0]?.toUpperCase() ?? '?'}
+            </span>
+            <span className="text-xs text-muted-foreground hidden sm:block max-w-[100px] truncate">
+              {session?.user?.name || session?.user?.email?.split('@')[0]}
             </span>
           </Button>
         </DropdownMenuTrigger>

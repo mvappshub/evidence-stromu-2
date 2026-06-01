@@ -1,12 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import Supercluster from 'supercluster'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { format } from 'date-fns'
 import { useUiStore } from '@/store/useUiStore'
 import { usePlantStore } from '@/store/usePlantStore'
+import { MapStyleSwitcher, getMapStyle } from './MapStyleSwitcher'
+import type { MapStyleKey } from './MapStyleSwitcher'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -56,6 +59,26 @@ const MAP_ZOOM = 7
 const CLUSTER_RADIUS = 60
 const CLUSTER_MAX_ZOOM = 17
 
+const MAP_STYLE = {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    {
+      id: 'osm',
+      type: 'raster',
+      source: 'osm',
+    },
+  ],
+} as maplibregl.StyleSpecification
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -66,6 +89,8 @@ export function MapView() {
   const superclusterRef = useRef<Supercluster | null>(null)
   const isMapReady = useRef(false)
   const updateMapSourceRef = useRef<(map: maplibregl.Map) => void>(() => {})
+  const popupRef = useRef<maplibregl.Popup | null>(null)
+  const hasFittedBounds = useRef(false)
 
   const selectedRecordNumber = useUiStore((s) => s.selectedRecordNumber)
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
@@ -77,6 +102,11 @@ export function MapView() {
   const lastInsertedRecordNumber = usePlantStore((s) => s.lastInsertedRecordNumber)
   const addToRecentSpecies = usePlantStore((s) => s.addToRecentSpecies)
   const queryClient = useQueryClient()
+
+  const placeModeRef = useRef(placeMode)
+
+  // Keep placeMode ref updated
+  useEffect(() => { placeModeRef.current = placeMode }, [placeMode])
 
   /* ---- Data fetching --------------------------------------------- */
   const { data: geoData } = useQuery<GeoJsonResponse>({
@@ -206,7 +236,7 @@ export function MapView() {
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'https://demotiles.maplibre.org/style.json',
+      style: MAP_STYLE,
       center: MAP_CENTER,
       zoom: MAP_ZOOM,
       attributionControl: false,
@@ -235,27 +265,28 @@ export function MapView() {
           'circle-color': [
             'step',
             ['get', 'point_count'],
-            '#4ade80',
+            '#86efac',
             10,
-            '#22c55e',
+            '#4ade80',
             50,
-            '#16a34a',
+            '#22c55e',
             200,
-            '#15803d',
+            '#16a34a',
           ],
           'circle-radius': [
             'step',
             ['get', 'point_count'],
-            18,
+            16,
             10,
-            24,
+            22,
             50,
-            30,
+            28,
             200,
-            36,
+            34,
           ],
-          'circle-stroke-width': 2,
+          'circle-stroke-width': 3,
           'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.9,
         },
       })
 
@@ -283,7 +314,7 @@ export function MapView() {
         filter: ['!=', ['get', 'cluster'], true],
         paint: {
           'circle-color': '#22c55e',
-          'circle-radius': 6,
+          'circle-radius': 5,
           'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
         },
@@ -297,10 +328,42 @@ export function MapView() {
         filter: ['==', ['get', 'selected'], true],
         paint: {
           'circle-color': '#22c55e',
-          'circle-radius': 8,
-          'circle-stroke-width': 4,
+          'circle-radius': 7,
+          'circle-stroke-width': 3,
           'circle-stroke-color': '#eab308',
         },
+      })
+
+      // Hover popup on individual tree points
+      map.on('mousemove', 'trees-layer', (e) => {
+        if (e.features && e.features.length > 0) {
+          const feat = e.features[0]
+          const props = feat.properties!
+          map.getCanvas().style.cursor = placeModeRef.current ? 'crosshair' : 'pointer'
+
+          const coordinates = (feat.geometry as any).coordinates.slice()
+          const date = props.plantedAt ? format(new Date(props.plantedAt), 'd.M.yyyy') : ''
+          const locality = props.locality ? `<br/>📍 ${props.locality}` : ''
+
+          if (popupRef.current) popupRef.current.remove()
+          popupRef.current = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            offset: 10,
+            className: 'tree-popup',
+          })
+            .setLngLat(coordinates)
+            .setHTML(`<div style="font-size:12px"><em>${props.speciesLatin}</em><br/>📅 ${date}${locality}</div>`)
+            .addTo(map)
+        }
+      })
+
+      map.on('mouseleave', 'trees-layer', () => {
+        map.getCanvas().style.cursor = placeModeRef.current ? 'crosshair' : ''
+        if (popupRef.current) {
+          popupRef.current.remove()
+          popupRef.current = null
+        }
       })
 
       // Update on move/zoom using ref to avoid stale closures
@@ -319,6 +382,20 @@ export function MapView() {
       isMapReady.current = false
     }
   }, [])
+
+  /* ---- Fit bounds on first data load ----------------------------- */
+  useEffect(() => {
+    if (hasFittedBounds.current) return
+    const map = mapRef.current
+    if (!map || !isMapReady.current || !geoData?.features?.length) return
+
+    hasFittedBounds.current = true
+    const bounds = new maplibregl.LngLatBounds()
+    geoData.features.forEach(f => {
+      bounds.extend(f.geometry.coordinates as [number, number])
+    })
+    map.fitBounds(bounds, { padding: 50, maxZoom: 14, duration: 1000 })
+  }, [geoData])
 
   /* ---- Update source when data or selection changes -------------- */
   useEffect(() => {
@@ -436,6 +513,74 @@ export function MapView() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [lastInsertedRecordNumber, setLastInsertedRecordNumber, queryClient])
 
+  /* ---- Map style ----------------------------------------------- */
+  const [mapStyle, setMapStyle] = useState<MapStyleKey>('osm')
+
+  const handleStyleChange = useCallback((style: MapStyleKey) => {
+    setMapStyle(style)
+    const map = mapRef.current
+    if (map) {
+      map.setStyle(getMapStyle(style) as maplibregl.StyleSpecification)
+      // Need to re-add sources/layers after style change
+      map.once('style.load', () => {
+        if (!map.getSource('trees-source')) {
+          map.addSource('trees-source', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] },
+          })
+          // Re-add layers
+          map.addLayer({
+            id: 'clusters-layer', type: 'circle', source: 'trees-source',
+            filter: ['==', ['get', 'cluster'], true],
+            paint: {
+              'circle-color': ['step', ['get', 'point_count'], '#86efac', 10, '#4ade80', 50, '#22c55e', 200, '#16a34a'],
+              'circle-radius': ['step', ['get', 'point_count'], 16, 10, 22, 50, 28, 200, 34],
+              'circle-stroke-width': 3, 'circle-stroke-color': '#ffffff', 'circle-opacity': 0.9,
+            },
+          })
+          map.addLayer({
+            id: 'cluster-count-layer', type: 'symbol', source: 'trees-source',
+            filter: ['==', ['get', 'cluster'], true],
+            layout: { 'text-field': ['get', 'point_count'], 'text-font': ['Open Sans Bold'], 'text-size': 12 },
+            paint: { 'text-color': '#ffffff' },
+          })
+          map.addLayer({
+            id: 'trees-layer', type: 'circle', source: 'trees-source',
+            filter: ['!=', ['get', 'cluster'], true],
+            paint: { 'circle-color': '#22c55e', 'circle-radius': 5, 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' },
+          })
+          map.addLayer({
+            id: 'selected-tree-layer', type: 'circle', source: 'trees-source',
+            filter: ['==', ['get', 'selected'], true],
+            paint: { 'circle-color': '#22c55e', 'circle-radius': 7, 'circle-stroke-width': 3, 'circle-stroke-color': '#eab308' },
+          })
+          // Re-add hover handlers
+          map.on('mousemove', 'trees-layer', (e) => {
+            if (e.features && e.features.length > 0) {
+              const feat = e.features[0]
+              const props = feat.properties!
+              map.getCanvas().style.cursor = placeModeRef.current ? 'crosshair' : 'pointer'
+              const coordinates = (feat.geometry as any).coordinates.slice()
+              const date = props.plantedAt ? format(new Date(props.plantedAt), 'd.M.yyyy') : ''
+              const locality = props.locality ? `<br/>📍 ${props.locality}` : ''
+              if (popupRef.current) popupRef.current.remove()
+              popupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10, className: 'tree-popup' })
+                .setLngLat(coordinates)
+                .setHTML(`<div style="font-size:12px"><em>${props.speciesLatin}</em><br/>📅 ${date}${locality}</div>`)
+                .addTo(map)
+            }
+          })
+          map.on('mouseleave', 'trees-layer', () => {
+            map.getCanvas().style.cursor = placeModeRef.current ? 'crosshair' : ''
+            if (popupRef.current) { popupRef.current.remove(); popupRef.current = null }
+          })
+          // Trigger data update
+          updateMapSourceRef.current(map)
+        }
+      })
+    }
+  }, [])
+
   /* ---- Resize handler -------------------------------------------- */
   useEffect(() => {
     const handleResize = () => {
@@ -445,5 +590,12 @@ export function MapView() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  return <div ref={mapContainer} className="w-full h-full" />
+  return (
+    <div className="relative w-full h-full">
+      <div ref={mapContainer} className="w-full h-full" />
+      <div className="absolute top-3 right-12 z-10">
+        <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={handleStyleChange} />
+      </div>
+    </div>
+  )
 }

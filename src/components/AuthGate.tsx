@@ -111,15 +111,18 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <TreePine className="h-6 w-6 text-green-600" />
-            <CardTitle className="text-xl">Evidenční systém výsadby</CardTitle>
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-green-50 via-background to-emerald-50 dark:from-background dark:via-background dark:to-green-950/20">
+      <Card className="w-full max-w-sm shadow-xl border-green-200/50 dark:border-green-900/30">
+        <CardHeader className="text-center space-y-2 pb-2">
+          <div className="flex items-center justify-center gap-2.5 mb-1">
+            <div className="size-10 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+              <TreePine className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
           </div>
+          <CardTitle className="text-xl tracking-tight">Evidenční systém výsadby</CardTitle>
+          <p className="text-xs text-muted-foreground">Evidence výsadby a údržby stromů</p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-2">
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Přihlášení</TabsTrigger>

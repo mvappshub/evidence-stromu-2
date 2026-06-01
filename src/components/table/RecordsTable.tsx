@@ -22,6 +22,7 @@ import {
   Search,
   TreePine,
   Loader2,
+  MapPin,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,6 +48,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { CoordCell } from '@/components/table/CoordCell'
 import { ReminderCell } from '@/components/table/ReminderCell'
 import { BulkActionBar } from '@/components/table/BulkActionBar'
@@ -234,6 +236,28 @@ export function RecordsTable() {
         ),
       },
       {
+        accessorKey: 'locality',
+        header: 'Lokalita',
+        cell: ({ row }) => {
+          const locality = row.original.locality
+          if (!locality) return <span className="text-muted-foreground text-xs">—</span>
+          if (locality.length > 20) {
+            return (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs cursor-default truncate max-w-[120px] inline-block align-bottom">{locality.slice(0, 20)}…</span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p className="text-xs">{locality}</p>
+                </TooltipContent>
+              </Tooltip>
+            )
+          }
+          return <span className="text-xs">{locality}</span>
+        },
+        size: 120,
+      },
+      {
         id: 'coords',
         header: 'Souřadnice',
         cell: ({ row }) => <CoordCell recordNumber={row.original.recordNumber} />,
@@ -297,7 +321,7 @@ export function RecordsTable() {
   return (
     <div className="flex flex-col h-full">
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 p-2 border-b bg-background/95">
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b bg-muted/30">
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
@@ -351,8 +375,9 @@ export function RecordsTable() {
           </SelectContent>
         </Select>
 
-        <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">
-          Celkem: {data?.count ?? '…'} záznamů
+        <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap flex items-center gap-1">
+          <TreePine className="size-3 text-green-600" />
+          {data?.count ?? '…'} záznamů
         </span>
       </div>
 
@@ -406,12 +431,14 @@ export function RecordsTable() {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <TreePine className="size-8" />
-                    <p className="text-sm">Žádné záznamy k zobrazení</p>
-                    <p className="text-xs">
-                      Přidejte nový záznam kliknutím na mapu
-                    </p>
+                  <div className="flex flex-col items-center gap-3 py-8 text-muted-foreground">
+                    <div className="size-16 rounded-full bg-green-50 dark:bg-green-950/20 flex items-center justify-center">
+                      <TreePine className="size-8 text-green-400" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium">Žádné záznamy k zobrazení</p>
+                      <p className="text-xs mt-1">Přidejte nový záznam kliknutím na mapu v režimu vkládání</p>
+                    </div>
                   </div>
                 </TableCell>
               </TableRow>
@@ -423,12 +450,14 @@ export function RecordsTable() {
                   <TableRow
                     key={row.id}
                     data-state={isSelected ? 'selected' : undefined}
-                    className={isSelected ? 'bg-primary/5' : ''}
+                    className={cn(
+                      'cursor-pointer transition-colors hover:bg-green-50/50 dark:hover:bg-green-950/10',
+                      isSelected && 'bg-green-50 dark:bg-green-950/20'
+                    )}
                     onClick={() => {
                       setSelectedRecordNumber(row.original.recordNumber)
                       setEditorOpen(true)
                     }}
-                    style={{ cursor: 'pointer' }}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id} className="text-xs">

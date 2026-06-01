@@ -269,3 +269,225 @@ input:focus-visible, textarea:focus-visible {
 .interactive-transition:hover {
   transform: translateY(-1px);
 }
+
+/* Smooth page transition */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: page-enter 0.25s ease-out;
+}
+
+/* Green shimmer skeleton animation */
+@keyframes green-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-green {
+  background: linear-gradient(
+    90deg,
+    oklch(0.95 0.01 145 / 0.4) 25%,
+    oklch(0.92 0.03 145 / 0.6) 50%,
+    oklch(0.95 0.01 145 / 0.4) 75%
+  );
+  background-size: 200% 100%;
+  animation: green-shimmer 1.5s ease-in-out infinite;
+}
+.dark .skeleton-green {
+  background: linear-gradient(
+    90deg,
+    oklch(0.22 0.01 145 / 0.4) 25%,
+    oklch(0.25 0.03 145 / 0.6) 50%,
+    oklch(0.22 0.01 145 / 0.4) 75%
+  );
+  background-size: 200% 100%;
+  animation: green-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Hover-lift effect for cards and buttons */
+.hover-lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.1), 0 2px 4px oklch(0 0 0 / 0.06);
+}
+.dark .hover-lift:hover {
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.3), 0 2px 4px oklch(0 0 0 / 0.2);
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better table header styling */
+.table-header-enhanced th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: oklch(0.45 0.02 145 / 0.8);
+  background: oklch(0.97 0.005 145 / 0.6);
+}
+.dark .table-header-enhanced th {
+  color: oklch(0.7 0.02 145 / 0.8);
+  background: oklch(0.18 0.005 145 / 0.3);
+}
+
+/* Smooth table row transitions */
+.table-row-smooth {
+  transition: background-color 0.1s ease, border-color 0.1s ease, transform 0.08s ease;
+}
+
+/* Map control button polish */
+.map-control-btn {
+  transition: all 0.15s ease;
+  border-radius: 8px;
+}
+.map-control-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px oklch(0 0 0 / 0.12);
+}
+
+/* Popover card styling */
+.popover-card {
+  border-radius: 12px;
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.12), 0 2px 8px oklch(0 0 0 / 0.06);
+}
+.dark .popover-card {
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.4), 0 2px 8px oklch(0 0 0 / 0.2);
+}
+
+/* Badge chip styling */
+.badge-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+  transition: all 0.15s ease;
+}
+.badge-chip:hover {
+  filter: brightness(0.95);
+}
+
+/* Input field polish */
+.input-polish {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input-polish:focus {
+  border-color: oklch(0.6 0.2 145);
+  box-shadow: 0 0 0 3px oklch(0.6 0.2 145 / 0.15);
+}
+
+/* Subtle texture for filter bars */
+.filter-bar {
+  background: linear-gradient(180deg, oklch(0.98 0.003 145 / 0.5), oklch(0.97 0.002 145 / 0.3));
+  border-bottom: 1px solid oklch(0.92 0.005 145 / 0.6);
+}
+.dark .filter-bar {
+  background: linear-gradient(180deg, oklch(0.18 0.005 145 / 0.3), oklch(0.15 0.003 145 / 0.2));
+  border-bottom: 1px solid oklch(0.3 0.005 145 / 0.4);
+}
+
+/* Better focus-visible states with green accent */
+*:focus-visible {
+  outline: 2px solid oklch(0.6 0.2 145 / 0.6);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Print-friendly styles */
+@media print {
+  .glass-bar,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .maplibregl-map {
+    display: none !important;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  th {
+    background: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Green accent strip for dialogs */
+.dialog-accent-top {
+  position: relative;
+}
+.dialog-accent-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, oklch(0.6 0.2 145), oklch(0.5 0.15 160), oklch(0.6 0.2 145));
+  border-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Animated gradient background */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animated-gradient-bg {
+  background-size: 300% 300%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+/* View mode active left accent */
+.view-mode-active {
+  position: relative;
+}
+.view-mode-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 1px;
+  background: oklch(0.6 0.2 145);
+}
+
+/* Green chip hover animation */
+.chip-hover {
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.chip-hover:hover {
+  transform: scale(1.05);
+}
+
+/* Subtle separator for status bar */
+.status-separator {
+  width: 1px;
+  height: 10px;
+  background: oklch(0.7 0 0 / 0.3);
+}
+.dark .status-separator {
+  background: oklch(0.4 0 0 / 0.3);
+}

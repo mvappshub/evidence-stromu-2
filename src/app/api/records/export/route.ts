@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
   const species = searchParams.get("species")
   const locality = searchParams.get("locality")
   const search = searchParams.get("search")
+  const dateFrom = searchParams.get("dateFrom")
+  const dateTo = searchParams.get("dateTo")
 
   // Build the same filter as the records GET endpoint
   const where: Record<string, unknown> = {
@@ -29,6 +31,14 @@ export async function GET(request: NextRequest) {
       { locality: { contains: search } },
       { note: { contains: search } },
     ]
+  }
+
+  // Date range filter on plantedAt
+  if (dateFrom || dateTo) {
+    const plantedAtFilter: Record<string, unknown> = {}
+    if (dateFrom) plantedAtFilter.gte = new Date(dateFrom)
+    if (dateTo) plantedAtFilter.lte = new Date(dateTo)
+    where.plantedAt = plantedAtFilter
   }
 
   const records = await db.treeRecord.findMany({

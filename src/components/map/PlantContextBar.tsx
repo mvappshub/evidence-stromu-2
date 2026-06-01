@@ -3,6 +3,11 @@
 import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { TreePine, Undo2, Crosshair, MapPin, CalendarDays } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { usePlantStore } from '@/store/usePlantStore'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -44,12 +49,15 @@ export function PlantContextBar() {
   }
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-10">
+    <div className="absolute bottom-4 left-4 right-4 z-10 max-w-3xl mx-auto">
       <div
         className={cn(
-          'rounded-xl border shadow-lg elevation-2 px-3 py-2.5',
-          'bg-background/80 backdrop-blur-md',
-          'flex flex-col gap-2'
+          'rounded-2xl border shadow-xl px-4 py-3',
+          'bg-gradient-to-r from-green-50/95 via-background/95 to-green-50/80 backdrop-blur-lg',
+          'dark:from-green-950/30 dark:via-background/95 dark:to-green-950/20',
+          'border-green-200/60 dark:border-green-900/40',
+          'flex flex-col gap-2',
+          'hover:shadow-2xl transition-shadow duration-300'
         )}
       >
         {/* Main controls row */}
@@ -63,7 +71,7 @@ export function PlantContextBar() {
               onFocus={() => setSpeciesFocused(true)}
               onBlur={() => setTimeout(() => setSpeciesFocused(false), 200)}
               placeholder="Druh (latinsky)"
-              className="h-8 pl-7 text-xs border-green-200 dark:border-green-900/50 focus-visible:ring-green-500/30"
+              className="h-9 pl-7 text-xs border-green-200 dark:border-green-900/50 focus-visible:ring-green-500/40 focus-visible:border-green-400 transition-shadow duration-200"
             />
             {speciesFocused && recentSpecies.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
@@ -93,7 +101,7 @@ export function PlantContextBar() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 text-xs font-normal min-w-[120px]"
+                className="h-9 gap-1.5 text-xs font-normal min-w-[120px]"
               >
                 <CalendarDays className="size-3.5 text-green-600" />
                 {activeDate
@@ -113,36 +121,43 @@ export function PlantContextBar() {
 
           {/* Locality input — hidden on very small screens */}
           <div className="relative flex-1 min-w-[100px] hidden sm:block">
-            <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+            <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-green-600/70 pointer-events-none" />
             <Input
               value={activeLocality}
               onChange={(e) => setActiveLocality(e.target.value)}
               placeholder="Lokalita"
-              className="h-8 pl-7 text-xs"
+              className="h-9 pl-7 text-xs border-green-200 dark:border-green-900/50 focus-visible:ring-green-500/40 focus-visible:border-green-400 transition-shadow duration-200"
             />
           </div>
 
           {/* Place mode toggle */}
-          <Button
-            size="sm"
-            className={cn(
-              'h-8 gap-1.5 text-xs font-medium transition-all duration-200',
-              placeMode
-                ? 'bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-600/25'
-                : 'bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50 dark:hover:bg-green-900/40'
-            )}
-            onClick={togglePlaceMode}
-          >
-            <Crosshair className="size-3.5" />
-            {placeMode ? 'Vkládání' : 'Vkládat'}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                className={cn(
+                  'h-9 gap-1.5 text-xs font-medium transition-all duration-200',
+                  placeMode
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-600/25'
+                    : 'bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50 dark:hover:bg-green-900/40'
+                )}
+                onClick={togglePlaceMode}
+              >
+                <Crosshair className="size-3.5" />
+                {placeMode ? 'Vkládání' : 'Vkládat'}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              Režim vkládání <kbd className="ml-1 px-1 py-0.5 rounded border bg-muted text-[10px] font-mono">P</kbd>
+            </TooltipContent>
+          </Tooltip>
 
           {/* Undo button */}
           {lastInsertedRecordNumber != null && (
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 text-xs"
+              className="h-9 gap-1.5 text-xs"
               onClick={handleUndo}
             >
               <Undo2 className="size-3.5" />
@@ -157,7 +172,7 @@ export function PlantContextBar() {
             {recentSpecies.filter(s => s !== activeSpecies).slice(0, 5).map((species) => (
               <button
                 key={species}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 dark:text-green-400 dark:hover:bg-green-900/40 transition-colors italic cursor-pointer border border-green-100 dark:border-green-900/30"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/30 dark:text-green-400 dark:hover:bg-green-900/40 transition-all duration-150 italic cursor-pointer border border-green-100 dark:border-green-900/30 chip-hover"
                 onClick={() => setActiveSpecies(species)}
               >
                 {species}

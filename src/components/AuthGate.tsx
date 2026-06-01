@@ -131,7 +131,7 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-green-50 via-background to-emerald-50 dark:from-green-950/30 dark:via-background dark:to-emerald-950/20">
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-green-50 via-background to-emerald-50 dark:from-green-950/30 dark:via-background dark:to-emerald-950/20 animated-gradient-bg relative">
       {/* Decorative tree SVG on desktop */}
       <div className="hidden lg:flex items-center justify-center mr-8 opacity-15 pointer-events-none select-none">
         <svg width="200" height="300" viewBox="0 0 200 300" fill="none" className="text-green-700 dark:text-green-400">
@@ -147,7 +147,7 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
         </svg>
       </div>
 
-      <Card className="w-full max-w-md shadow-xl border-green-100 dark:border-green-900/30 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <Card className="w-full max-w-md shadow-xl shadow-green-900/10 dark:shadow-green-900/20 border-green-100 dark:border-green-900/30 animate-in fade-in slide-in-from-bottom-4 duration-500 hover-lift">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-3 size-14 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
             <TreePine className="size-7 text-green-600 dark:text-green-400" />
@@ -338,6 +338,9 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
             </TabsContent>
           </Tabs>
         </CardContent>
+        <div className="px-6 pb-3 text-center">
+          <p className="text-[9px] text-muted-foreground/50">v1.0.0 — Evidence stromů</p>
+        </div>
       </Card>
     </div>
   )

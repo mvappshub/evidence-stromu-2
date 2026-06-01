@@ -60,6 +60,18 @@ export async function PATCH(
       data,
     })
 
+    // Log activity — track what changed
+    const changedFields = Object.keys(data)
+    await db.activityLog.create({
+      data: {
+        action: "update",
+        entityType: "record",
+        entityId: String(recordNumber),
+        details: JSON.stringify({ recordNumber, changedFields }),
+        userId: auth.userId,
+      },
+    })
+
     return NextResponse.json({ record })
   } catch (error) {
     console.error("Update record error:", error)
@@ -90,6 +102,17 @@ export async function DELETE(
 
     // Cascade delete reminders via Prisma schema onDelete: Cascade
     await db.treeRecord.delete({ where: { recordNumber } })
+
+    // Log activity
+    await db.activityLog.create({
+      data: {
+        action: "delete",
+        entityType: "record",
+        entityId: String(recordNumber),
+        details: JSON.stringify({ recordNumber, speciesLatin: existing.speciesLatin }),
+        userId: auth.userId,
+      },
+    })
 
     return NextResponse.json({ message: "Record deleted successfully" })
   } catch (error) {

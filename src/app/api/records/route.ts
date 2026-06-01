@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
   const species = searchParams.get("species")
   const locality = searchParams.get("locality")
   const search = searchParams.get("search")
+  const dateFrom = searchParams.get("dateFrom")
+  const dateTo = searchParams.get("dateTo")
   const sort = searchParams.get("sort") || "createdAt"
   const order = searchParams.get("order") || "desc"
   const limit = parseInt(searchParams.get("limit") || "50", 10)
@@ -40,6 +42,14 @@ export async function GET(request: NextRequest) {
       { locality: { contains: search } },
       { note: { contains: search } },
     ]
+  }
+
+  // Date range filter on plantedAt
+  if (dateFrom || dateTo) {
+    const plantedAtFilter: Record<string, unknown> = {}
+    if (dateFrom) plantedAtFilter.gte = new Date(dateFrom)
+    if (dateTo) plantedAtFilter.lte = new Date(dateTo)
+    where.plantedAt = plantedAtFilter
   }
 
   const allowedSortFields = ["createdAt", "plantedAt", "speciesLatin", "recordNumber"]
@@ -85,6 +95,17 @@ export async function POST(request: NextRequest) {
         plantedAt: new Date(plantedAt),
         locality: locality || null,
         createdById: auth.userId,
+      },
+    })
+
+    // Log activity
+    await db.activityLog.create({
+      data: {
+        action: "create",
+        entityType: "record",
+        entityId: String(record.recordNumber),
+        details: JSON.stringify({ speciesLatin, recordNumber: record.recordNumber }),
+        userId: auth.userId,
       },
     })
 

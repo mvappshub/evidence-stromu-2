@@ -25,6 +25,7 @@ import {
   MapPin,
   FileJson,
   FileSpreadsheet,
+  Upload,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,13 +50,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { czechPlural } from '@/lib/czech-plural'
 import { CoordCell } from '@/components/table/CoordCell'
 import { ReminderCell } from '@/components/table/ReminderCell'
 import { BulkActionBar } from '@/components/table/BulkActionBar'
 import { RecordEditor } from '@/components/editors/RecordEditor'
+import { DateRangePicker } from '@/components/table/DateRangePicker'
+import { ImportDialog } from '@/components/ImportDialog'
 import { useUiStore } from '@/store/useUiStore'
 import type { TreeRecord, RecordsResponse } from '@/lib/types'
 
@@ -71,6 +73,11 @@ export function RecordsTable() {
   const setFilterLocality = useUiStore((s) => s.setFilterLocality)
   const selectedRecordNumber = useUiStore((s) => s.selectedRecordNumber)
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
+  const dateFrom = useUiStore((s) => s.dateFrom)
+  const dateTo = useUiStore((s) => s.dateTo)
+  const setDateFrom = useUiStore((s) => s.setDateFrom)
+  const setDateTo = useUiStore((s) => s.setDateTo)
+  const clearDateRange = useUiStore((s) => s.clearDateRange)
 
   // Local table state
   const [sorting, setSorting] = useState<SortingState>([
@@ -79,6 +86,7 @@ export function RecordsTable() {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [pagination, setPagination] = useState({ page: 0, pageSize: 50 })
   const [editorOpen, setEditorOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   // Build query params
   const queryParams = useMemo(() => {
@@ -86,6 +94,8 @@ export function RecordsTable() {
     if (searchQuery) params.set('search', searchQuery)
     if (filterSpecies) params.set('species', filterSpecies)
     if (filterLocality) params.set('locality', filterLocality)
+    if (dateFrom) params.set('dateFrom', dateFrom)
+    if (dateTo) params.set('dateTo', dateTo)
 
     const sortField = sorting[0]?.id ?? 'recordNumber'
     const order = sorting[0]?.desc ? 'desc' : 'asc'
@@ -95,7 +105,7 @@ export function RecordsTable() {
     params.set('offset', String(pagination.page * pagination.pageSize))
 
     return params.toString()
-  }, [searchQuery, filterSpecies, filterLocality, sorting, pagination])
+  }, [searchQuery, filterSpecies, filterLocality, dateFrom, dateTo, sorting, pagination])
 
   // Fetch records
   const { data, isLoading, isError } = useQuery<RecordsResponse>({
@@ -109,10 +119,17 @@ export function RecordsTable() {
   })
 
   // Fetch unique species and locality values for filter dropdowns
+  const filterQueryParams = useMemo(() => {
+    const params = new URLSearchParams()
+    if (dateFrom) params.set('dateFrom', dateFrom)
+    if (dateTo) params.set('dateTo', dateTo)
+    return params.toString()
+  }, [dateFrom, dateTo])
+
   const { data: filterData } = useQuery<{ species: string[]; localities: string[] }>({
-    queryKey: ['records-filters'],
+    queryKey: ['records-filters', filterQueryParams],
     queryFn: async () => {
-      const res = await fetch('/api/records/filters')
+      const res = await fetch(`/api/records/filters?${filterQueryParams}`)
       if (!res.ok) throw new Error('Failed')
       return res.json()
     },
@@ -174,16 +191,16 @@ export function RecordsTable() {
             className="-ml-3 h-8 gap-1"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
-            #
+            Záznam
             <ArrowUpDown className="size-3" />
           </Button>
         ),
         cell: ({ row }) => (
           <span className="font-mono text-xs">
-            {row.original.recordNumber}
+            #{row.original.recordNumber}
           </span>
         ),
-        size: 60,
+        size: 70,
       },
       {
         accessorKey: 'plantedAt',
@@ -252,7 +269,7 @@ export function RecordsTable() {
       {
         id: 'coords',
         header: 'Souřadnice',
-        cell: ({ row }) => <CoordCell recordNumber={row.original.recordNumber} />,
+        cell: ({ row }) => <CoordCell recordNumber={row.original.recordNumber} lat={row.original.lat} lng={row.original.lng} />,
         enableSorting: false,
         size: 80,
       },
@@ -313,7 +330,7 @@ export function RecordsTable() {
   return (
     <div className="flex flex-col h-full">
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b bg-muted/30">
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2 filter-bar">
         <div className="relative flex-1 min-w-0 w-full sm:w-auto sm:min-w-[180px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
@@ -367,6 +384,23 @@ export function RecordsTable() {
           </SelectContent>
         </Select>
 
+        <DateRangePicker
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={(d) => {
+            setDateFrom(d)
+            setPagination((p) => ({ ...p, page: 0 }))
+          }}
+          onDateToChange={(d) => {
+            setDateTo(d)
+            setPagination((p) => ({ ...p, page: 0 }))
+          }}
+          onClear={() => {
+            clearDateRange()
+            setPagination((p) => ({ ...p, page: 0 }))
+          }}
+        />
+
         <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap flex items-center gap-1">
           <TreePine className="size-3 text-green-600" />
           {data?.count !== undefined ? czechPlural(data.count, ['záznam', 'záznamy', 'záznamů']) : '…'}
@@ -379,11 +413,26 @@ export function RecordsTable() {
                 variant="ghost"
                 size="icon"
                 className="size-7"
+                onClick={() => setImportOpen(true)}
+              >
+                <Upload className="size-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Importovat</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
                 onClick={() => {
                   const params = new URLSearchParams()
                   if (searchQuery) params.set('search', searchQuery)
                   if (filterSpecies) params.set('species', filterSpecies)
                   if (filterLocality) params.set('locality', filterLocality)
+                  if (dateFrom) params.set('dateFrom', dateFrom)
+                  if (dateTo) params.set('dateTo', dateTo)
                   window.open(`/api/records/export?format=csv&${params.toString()}`, '_blank')
                 }}
               >
@@ -403,6 +452,8 @@ export function RecordsTable() {
                   if (searchQuery) params.set('search', searchQuery)
                   if (filterSpecies) params.set('species', filterSpecies)
                   if (filterLocality) params.set('locality', filterLocality)
+                  if (dateFrom) params.set('dateFrom', dateFrom)
+                  if (dateTo) params.set('dateTo', dateTo)
                   window.open(`/api/records/export?format=geojson&${params.toString()}`, '_blank')
                 }}
               >
@@ -419,12 +470,12 @@ export function RecordsTable() {
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="sticky top-0 z-10 bg-muted/60 backdrop-blur-sm table-header-enhanced">
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
                     style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
-                    className="text-xs"
+                    className="text-xs font-semibold"
                   >
                     {header.isPlaceholder
                       ? null
@@ -439,12 +490,12 @@ export function RecordsTable() {
           </TableHeader>
           <TableBody className="table-stripe">
             {isLoading ? (
-              // Loading skeleton
+              // Loading skeleton with green shimmer
               Array.from({ length: 8 }).map((_, idx) => (
                 <TableRow key={idx}>
                   {Array.from({ length: columns.length }).map((_, cellIdx) => (
                     <TableCell key={cellIdx}>
-                      <Skeleton className="h-4 w-full" />
+                      <div className="h-4 w-full rounded skeleton-green" />
                     </TableCell>
                   ))}
                 </TableRow>
@@ -461,7 +512,7 @@ export function RecordsTable() {
             ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-32">
-                  <div className="flex flex-col items-center gap-3 py-6 text-muted-foreground">
+                  <div className="flex flex-col items-center gap-3 py-6 text-muted-foreground bg-gradient-to-b from-green-50/50 to-transparent dark:from-green-950/10 dark:to-transparent">
                     <div className="size-16 rounded-full bg-green-50 dark:bg-green-950/20 flex items-center justify-center">
                       <TreePine className="size-8 text-green-400" />
                     </div>
@@ -481,8 +532,8 @@ export function RecordsTable() {
                     key={row.id}
                     data-state={isSelected ? 'selected' : undefined}
                     className={cn(
-                      'cursor-pointer transition-colors hover:bg-green-50/50 dark:hover:bg-green-950/10',
-                      isSelected && 'bg-green-50 dark:bg-green-950/20'
+                      'cursor-pointer table-row-smooth hover:bg-green-50/50 dark:hover:bg-green-950/10',
+                      isSelected && 'bg-green-50/60 dark:bg-green-950/20 border-l-2 border-l-green-500'
                     )}
                     onClick={() => {
                       setSelectedRecordNumber(row.original.recordNumber)
@@ -526,6 +577,11 @@ export function RecordsTable() {
               ))}
             </SelectContent>
           </Select>
+          {data?.count !== undefined && data.count > 0 && (
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              Zobrazeno {pagination.page * pagination.pageSize + 1}–{Math.min((pagination.page + 1) * pagination.pageSize, data.count)} z {data.count}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -591,6 +647,12 @@ export function RecordsTable() {
           setEditorOpen(open)
           if (!open) setSelectedRecordNumber(null)
         }}
+      />
+
+      {/* Import dialog */}
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
       />
     </div>
   )

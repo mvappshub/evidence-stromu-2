@@ -25,6 +25,17 @@ export async function POST(
       return NextResponse.json({ error: "Reminder is already inactive" }, { status: 400 })
     }
 
+    // Log activity before advancing/completing
+    await db.activityLog.create({
+      data: {
+        action: "ack",
+        entityType: "reminder",
+        entityId: id,
+        details: JSON.stringify({ recordNumber: reminder.recordNumber, text: reminder.text.slice(0, 100) }),
+        userId: auth.userId,
+      },
+    })
+
     if (reminder.mode === "interval") {
       // Advance to next interval
       if (!reminder.intervalNum || !reminder.intervalUnit) {

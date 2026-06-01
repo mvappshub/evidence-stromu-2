@@ -784,3 +784,76 @@ Stage Summary:
 4. **S-JTSK coordinates** — Add Czech coordinate system display option
 5. **Print view** — Print-friendly report of filtered records
 6. **Offline support** — Service worker for offline map tiles and data caching
+
+---
+Task ID: 5-b
+Agent: Feature Subagent B
+Task: Activity Log / Recent Changes Panel + Quick Date-Range Filter with Presets
+
+Work Log:
+
+### Feature 1: Activity Log / Recent Changes Panel
+
+**Backend:**
+- Updated `prisma/schema.prisma`:
+  - Added `ActivityLog` model with fields: id (uuid), action (create/update/delete/ack), entityType (record/reminder), entityId, details (JSON string), userId, createdAt
+  - Added `activityLogs ActivityLog[]` relation to User model
+- Ran `bun run db:push` to sync schema to database
+- Created `/home/z/my-project/src/app/api/activity-log/route.ts`:
+  - GET endpoint returning last 50 activities for current user (configurable via `?limit=N`)
+  - Returns `{ activities: [{ id, action, entityType, entityId, details, createdAt, userName }] }`
+  - Includes user relation for userName display
+  - Protected with requireAuth()
+- Added activity logging to existing API routes:
+  - `POST /api/records` — logs "create" action with speciesLatin and recordNumber
+  - `PATCH /api/records/[n]` — logs "update" action with changedFields
+  - `DELETE /api/records/[n]` — logs "delete" action with recordNumber and speciesLatin
+  - `POST /api/reminders` — logs "create" for reminder with recordNumber, text, mode
+  - `POST /api/reminders/[id]/ack` — logs "ack" action with recordNumber and text
+
+**Frontend:**
+- Created `/home/z/my-project/src/components/ActivityLog.tsx`:
+  - Popover panel triggered by Clock icon button in AppShell toolbar
+  - Scrollable list of recent activities (max 50)
+  - Each entry: action icon (green +/blue pencil/red trash/emerald check), entity description, time ago in Czech, user name
+  - Uses TanStack Query with 30s stale time
+  - Czech labels: "Aktivita" header, "před X min/hod/dny" (date-fns cs locale), "Vytvořeno", "Upraveno", "Smazáno", "Připomínka vyřízena"
+  - Entity descriptions parsed from details JSON (e.g. "Záznam #5 — Quercus robur")
+  - TreePine/Bell icons distinguish record vs reminder entity types
+- Updated `/home/z/my-project/src/components/AppShell.tsx`:
+  - Imported ActivityLog component
+  - Added between StatisticsPanel and KeyboardShortcuts
+
+### Feature 2: Quick Date-Range Filter with Presets
+
+**Backend:**
+- Updated `GET /api/records` to accept `dateFrom` and `dateTo` query params (ISO date strings)
+  - Adds `plantedAt: { gte: dateFrom, lte: dateTo }` to Prisma where clause when provided
+- Updated `GET /api/records/export` to accept `dateFrom` and `dateTo` params (same filter logic)
+- Updated `GET /api/records/filters` to accept `dateFrom` and `dateTo` params (now uses NextRequest, scoped species/locality lists to date range)
+
+**Frontend:**
+- Updated `src/store/useUiStore.ts`:
+  - Added `dateFrom: string | null`, `dateTo: string | null`
+  - Added `setDateFrom`, `setDateTo`, `clearDateRange` actions
+- Created `/home/z/my-project/src/components/table/DateRangePicker.tsx`:
+  - Popover with "Období" button (green-themed border when active, shows date range text)
+  - Left sidebar with preset buttons: "Tento měsíc", "Tento rok", "Posledních 30 dní", "Posledních 90 dní", "Minulý rok", "Vše" (clear)
+  - Right side with two Calendar pickers (Od/Do) using shadcn/ui Calendar
+  - Active range shown as formatted date text in button
+  - X button to clear date range
+  - Uses date-fns for date calculations (startOfMonth, startOfYear, subDays, etc.)
+- Updated `/home/z/my-project/src/components/table/RecordsTable.tsx`:
+  - Added DateRangePicker to filter bar after locality select
+  - Passes dateFrom/dateTo in all API query params (records, filters, export CSV, export GeoJSON)
+  - Filter query key includes date range for proper cache invalidation
+  - Resets pagination when date range changes
+
+Stage Summary:
+- Activity Log fully implemented with backend logging + frontend popover panel
+- All CRUD operations on records and reminders now log activity entries
+- Date-range filter with presets fully functional in filter bar
+- All three data endpoints (records, export, filters) support dateFrom/dateTo
+- Lint: 0 errors, 3 pre-existing warnings (react-hooks/incompatible-library)
+- Dev server compiles and runs correctly
+- API endpoints now total 18 (added GET /api/activity-log)

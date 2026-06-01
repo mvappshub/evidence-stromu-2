@@ -19,6 +19,7 @@ import { useUiStore } from '@/store/useUiStore'
 import { MaintenanceBell } from '@/components/MaintenanceBell'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
 import { StatisticsPanel } from '@/components/StatisticsPanel'
+import { ActivityLog } from '@/components/ActivityLog'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
 import { czechPlural } from '@/lib/czech-plural'
@@ -48,14 +49,22 @@ export function AppShell() {
   })
 
   return (
-    <div className="h-10 border-b glass-bar flex items-center px-2 gap-1 shrink-0 flex-wrap overflow-hidden z-20">
-      {/* Logo icon only */}
-      <TreePine className="size-5 text-green-600 shrink-0 mx-1" />
+    <div className="h-11 border-b flex items-center px-2.5 gap-1.5 shrink-0 flex-wrap overflow-hidden z-20 bg-gradient-to-r from-green-50/80 via-background to-green-50/40 dark:from-green-950/20 dark:via-background dark:to-green-950/10 backdrop-blur-md shadow-sm">
+      {/* Logo icon + app name */}
+      <div className="flex items-center gap-2 mr-1 shrink-0">
+        <div className="size-7 rounded-lg bg-green-600 flex items-center justify-center shadow-sm">
+          <TreePine className="size-4 text-white shrink-0" />
+        </div>
+        <div className="hidden md:flex flex-col leading-none">
+          <span className="text-xs font-bold text-foreground/90 tracking-tight">Evidence stromů</span>
+          <span className="text-[9px] text-muted-foreground font-normal">Systém evidence výsadby</span>
+        </div>
+      </div>
 
       <div className="w-px h-5 bg-border/60 mx-1" />
 
       {/* View mode toggle */}
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5 bg-muted/40 rounded-md p-0.5">
         {viewModes.map(({ mode, icon: Icon, label }) => (
           <Tooltip key={mode}>
             <TooltipTrigger asChild>
@@ -63,8 +72,10 @@ export function AppShell() {
                 variant={viewMode === mode ? 'default' : 'ghost'}
                 size="icon"
                 className={cn(
-                  'size-7 transition-colors',
-                  viewMode === mode && 'bg-green-600 hover:bg-green-700 text-white'
+                  'size-7 transition-all duration-150',
+                  viewMode === mode
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-sm view-mode-active'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent'
                 )}
                 onClick={() => setViewMode(mode)}
               >
@@ -79,7 +90,8 @@ export function AppShell() {
       </div>
 
       {countData !== undefined && (
-        <span className="text-[10px] text-muted-foreground ml-1 tabular-nums">
+        <span className="inline-flex items-center gap-1 text-[10px] font-medium ml-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 tabular-nums">
+          <span className="size-1.5 rounded-full bg-green-500" />
           {czechPlural(countData, ['strom', 'stromy', 'stromů'])}
         </span>
       )}
@@ -91,6 +103,9 @@ export function AppShell() {
 
       {/* Statistics panel */}
       <StatisticsPanel />
+
+      {/* Activity log */}
+      <ActivityLog />
 
       {/* Keyboard shortcuts */}
       <KeyboardShortcuts />

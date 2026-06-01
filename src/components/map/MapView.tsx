@@ -11,6 +11,9 @@ import { useUiStore } from '@/store/useUiStore'
 import { usePlantStore } from '@/store/usePlantStore'
 import { MapStyleSwitcher, getMapStyle } from './MapStyleSwitcher'
 import type { MapStyleKey } from './MapStyleSwitcher'
+import { HeatmapToggle } from './HeatmapToggle'
+import type { LayerMode } from './HeatmapToggle'
+import { MapLegend } from './MapLegend'
 import { toast } from 'sonner'
 
 /* ------------------------------------------------------------------ */
@@ -82,6 +85,54 @@ const MAP_STYLE = {
 } as maplibregl.StyleSpecification
 
 /* ------------------------------------------------------------------ */
+/*  Helper: add heatmap source + layer to a map                       */
+/* ------------------------------------------------------------------ */
+
+function addHeatmapToMap(map: maplibregl.Map, visible: boolean = false) {
+  if (!map.getSource('trees-source-heatmap')) {
+    map.addSource('trees-source-heatmap', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    })
+  }
+
+  if (!map.getLayer('heatmap-layer')) {
+    map.addLayer({
+      id: 'heatmap-layer',
+      type: 'heatmap',
+      source: 'trees-source-heatmap',
+      layout: {
+        visibility: visible ? 'visible' : 'none',
+      },
+      paint: {
+        'heatmap-weight': 1,
+        'heatmap-intensity': [
+          'interpolate', ['linear'], ['zoom'],
+          0, 1,
+          14, 3,
+        ],
+        'heatmap-color': [
+          'interpolate', ['linear'], ['heatmap-density'],
+          0, 'rgba(0, 0, 0, 0)',
+          0.2, 'rgba(34, 197, 94, 0.2)',
+          0.4, 'rgba(34, 197, 94, 0.4)',
+          0.6, 'rgba(132, 204, 22, 0.6)',
+          0.8, 'rgba(234, 179, 8, 0.8)',
+          1, 'rgba(239, 68, 68, 0.9)',
+        ],
+        'heatmap-radius': [
+          'interpolate', ['linear'], ['zoom'],
+          0, 5,
+          10, 15,
+          14, 25,
+        ],
+        'heatmap-opacity': 0.7,
+      },
+    })
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -111,6 +162,9 @@ export function MapView() {
 
   // Keep placeMode ref updated
   useEffect(() => { placeModeRef.current = placeMode }, [placeMode])
+
+  /* ---- Layer mode state ----------------------------------------- */
+  const [layerMode, setLayerMode] = useState<LayerMode>('points')
 
   /* ---- Data fetching --------------------------------------------- */
   const { data: geoData } = useQuery<GeoJsonResponse>({
@@ -242,6 +296,19 @@ export function MapView() {
     updateMapSourceRef.current = updateMapSource
   }, [updateMapSource])
 
+  /* ---- Update heatmap source when geoData changes ---------------- */
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !isMapReady.current) return
+    if (!map.getSource('trees-source-heatmap')) return
+
+    // Feed the raw (unclustered) GeoJSON data to the heatmap source
+    const heatmapData = geoData ?? { type: 'FeatureCollection', features: [] }
+    ;(map.getSource('trees-source-heatmap') as maplibregl.GeoJSONSource).setData(
+      heatmapData as maplibregl.GeoJSONSourceOptions['data']
+    )
+  }, [geoData])
+
   /* ---- Initialize map -------------------------------------------- */
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
@@ -345,6 +412,9 @@ export function MapView() {
           'circle-stroke-color': '#eab308',
         },
       })
+
+      // Add heatmap source and layer (hidden by default)
+      addHeatmapToMap(map, false)
 
       // Hover popup on individual tree points
       map.on('mousemove', 'trees-layer', (e) => {
@@ -635,6 +705,13 @@ export function MapView() {
             filter: ['==', ['get', 'selected'], true],
             paint: { 'circle-color': '#22c55e', 'circle-radius': 9, 'circle-stroke-width': 3, 'circle-stroke-color': '#eab308' },
           })
+
+          // Re-add heatmap source + layer (hidden by default; will be shown if layerMode is heatmap)
+          addHeatmapToMap(map, false)
+
+          // Reset layer mode to points on style change (layers are recreated in default visibility)
+          setLayerMode('points')
+
           // Re-add hover handlers
           map.on('mousemove', 'trees-layer', (e) => {
             if (e.features && e.features.length > 0) {
@@ -662,6 +739,40 @@ export function MapView() {
     }
   }, [])
 
+  /* ---- Layer mode toggle handler -------------------------------- */
+  const POINT_LAYER_IDS = ['clusters-layer', 'cluster-count-layer', 'trees-layer', 'selected-tree-layer'] as const
+  const HEATMAP_LAYER_ID = 'heatmap-layer'
+
+  const handleLayerModeToggle = useCallback(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    const newMode: LayerMode = layerMode === 'points' ? 'heatmap' : 'points'
+    setLayerMode(newMode)
+
+    if (newMode === 'heatmap') {
+      // Hide point layers, show heatmap
+      POINT_LAYER_IDS.forEach((layerId) => {
+        if (map.getLayer(layerId)) {
+          map.setLayoutProperty(layerId, 'visibility', 'none')
+        }
+      })
+      if (map.getLayer(HEATMAP_LAYER_ID)) {
+        map.setLayoutProperty(HEATMAP_LAYER_ID, 'visibility', 'visible')
+      }
+    } else {
+      // Show point layers, hide heatmap
+      POINT_LAYER_IDS.forEach((layerId) => {
+        if (map.getLayer(layerId)) {
+          map.setLayoutProperty(layerId, 'visibility', 'visible')
+        }
+      })
+      if (map.getLayer(HEATMAP_LAYER_ID)) {
+        map.setLayoutProperty(HEATMAP_LAYER_ID, 'visibility', 'none')
+      }
+    }
+  }, [layerMode])
+
   /* ---- Resize handler -------------------------------------------- */
   useEffect(() => {
     const handleResize = () => {
@@ -674,9 +785,11 @@ export function MapView() {
   return (
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
-      <div className="absolute top-3 right-12 z-10">
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
         <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={handleStyleChange} />
+        <HeatmapToggle mode={layerMode} onToggle={handleLayerModeToggle} />
       </div>
+      <MapLegend layerMode={layerMode} />
       {/* Flash markers for tree placement visual feedback */}
       {flashMarkers.map((marker) => (
         <div

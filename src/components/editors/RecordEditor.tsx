@@ -12,6 +12,12 @@ import {
   Upload,
   ImageIcon,
   Loader2,
+  TreePine,
+  MapPin,
+  FileText,
+  Camera,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -43,9 +49,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
+import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/store/useUiStore'
 import { toast } from 'sonner'
+import { wgs84ToSjtsk, formatDms, formatSjtsk } from '@/lib/coords'
 import type { TreeRecord } from '@/lib/types'
 
 const recordEditSchema = z.object({
@@ -63,6 +71,30 @@ interface RecordEditorProps {
   record: TreeRecord | null
   open: boolean
   onOpenChange: (open: boolean) => void
+}
+
+/** Small copy button for coordinate values */
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-5 shrink-0 ml-1"
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1500)
+        })
+      }}
+      type="button"
+      title="Kopírovat"
+    >
+      {copied ? <Check className="size-3 text-green-600" /> : <Copy className="size-3 text-muted-foreground" />}
+    </Button>
+  )
 }
 
 export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) {
@@ -179,9 +211,10 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto dialog-accent-top">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <TreePine className="size-4 text-green-600" />
             Upravit záznam #{record.recordNumber}
           </DialogTitle>
           <DialogDescription>
@@ -189,13 +222,16 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Species */}
           <div className="space-y-1.5">
-            <Label htmlFor="species" className="text-xs">Druh (latinsky)</Label>
+            <Label htmlFor="species" className="text-xs flex items-center gap-1.5">
+              <TreePine className="size-3 text-green-600" />
+              Druh (latinsky)
+            </Label>
             <Input
               id="species"
-              className="h-8 text-sm"
+              className="h-9 text-sm border-green-200 dark:border-green-900/50 focus-visible:ring-green-500/30"
               {...form.register('speciesLatin')}
             />
             {form.formState.errors.speciesLatin && (
@@ -207,14 +243,17 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
 
           {/* Planted at */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Datum výsadby</Label>
+            <Label className="text-xs flex items-center gap-1.5">
+              <CalendarDays className="size-3 text-green-600" />
+              Datum výsadby
+            </Label>
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   type="button"
                   className={cn(
-                    'h-8 text-sm justify-start text-left font-normal w-full',
+                    'h-9 text-sm justify-start text-left font-normal w-full',
                     !form.watch('plantedAt') && 'text-muted-foreground'
                   )}
                 >
@@ -248,45 +287,81 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
           </div>
 
           {/* Coordinates */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="lat" className="text-xs">Zem. šířka</Label>
-              <Input
-                id="lat"
-                type="number"
-                step="any"
-                className="h-8 text-sm"
-                {...form.register('lat', { valueAsNumber: true })}
-              />
-              {form.formState.errors.lat && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.lat.message}
-                </p>
-              )}
+          <Separator />
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1.5">
+              <MapPin className="size-3 text-green-600" />
+              Souřadnice
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label htmlFor="lat" className="text-[10px] text-muted-foreground">Zem. šířka</Label>
+                <Input
+                  id="lat"
+                  type="number"
+                  step="any"
+                  className="h-9 text-sm font-mono text-xs"
+                  {...form.register('lat', { valueAsNumber: true })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="lng" className="text-[10px] text-muted-foreground">Zem. délka</Label>
+                <Input
+                  id="lng"
+                  type="number"
+                  step="any"
+                  className="h-9 text-sm font-mono text-xs"
+                  {...form.register('lng', { valueAsNumber: true })}
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="lng" className="text-xs">Zem. délka</Label>
-              <Input
-                id="lng"
-                type="number"
-                step="any"
-                className="h-8 text-sm"
-                {...form.register('lng', { valueAsNumber: true })}
-              />
-              {form.formState.errors.lng && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.lng.message}
-                </p>
-              )}
-            </div>
+            {(form.formState.errors.lat || form.formState.errors.lng) && (
+              <p className="text-xs text-destructive">
+                {(form.formState.errors.lat?.message || form.formState.errors.lng?.message)}
+              </p>
+            )}
+            {/* Coordinate systems display */}
+            {form.watch('lat') !== undefined && form.watch('lng') !== undefined && !isNaN(form.watch('lat')) && !isNaN(form.watch('lng')) && (() => {
+              const lat = form.watch('lat')
+              const lng = form.watch('lng')
+              const dms = formatDms(lat, lng)
+              const sjtsk = wgs84ToSjtsk(lat, lng)
+              const sjtskStr = formatSjtsk(sjtsk.x, sjtsk.y)
+              return (
+                <div className="rounded-md border bg-muted/30 p-2 mt-1.5 space-y-1.5">
+                  <p className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                    <MapPin className="size-2.5" />
+                    Souřadnicové systémy
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground w-16 shrink-0">Stupně</span>
+                    <span className="text-[10px] font-mono">{dms}</span>
+                    <CopyBtn text={dms} />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground w-16 shrink-0">S-JTSK</span>
+                    <span className="text-[10px] font-mono">{sjtskStr}</span>
+                    <CopyBtn text={sjtskStr} />
+                  </div>
+                </div>
+              )
+            })()}
+            {/* Fallback when coords are invalid */}
+            {form.watch('lat') !== undefined && form.watch('lng') !== undefined && (isNaN(form.watch('lat')) || isNaN(form.watch('lng'))) && (
+              <p className="text-[10px] text-muted-foreground">Zadejte platné souřadnice pro zobrazení dalších formátů</p>
+            )}
           </div>
 
           {/* Locality */}
+          <Separator />
           <div className="space-y-1.5">
-            <Label htmlFor="locality" className="text-xs">Lokalita</Label>
+            <Label htmlFor="locality" className="text-xs flex items-center gap-1.5">
+              <MapPin className="size-3 text-green-600" />
+              Lokalita
+            </Label>
             <Input
               id="locality"
-              className="h-8 text-sm"
+              className="h-9 text-sm"
               placeholder="Např. Praha, Stromovka"
               {...form.register('locality')}
             />
@@ -294,7 +369,10 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
 
           {/* Note */}
           <div className="space-y-1.5">
-            <Label htmlFor="note" className="text-xs">Poznámka</Label>
+            <Label htmlFor="note" className="text-xs flex items-center gap-1.5">
+              <FileText className="size-3 text-green-600" />
+              Poznámka
+            </Label>
             <Textarea
               id="note"
               className="text-sm min-h-[60px]"
@@ -304,8 +382,12 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
           </div>
 
           {/* Photo */}
+          <Separator />
           <div className="space-y-1.5">
-            <Label className="text-xs">Fotografie</Label>
+            <Label className="text-xs flex items-center gap-1.5">
+              <Camera className="size-3 text-green-600" />
+              Fotografie
+            </Label>
             {photoPath ? (
               <div className="space-y-2">
                 <div className="relative rounded-lg border overflow-hidden bg-muted aspect-video max-w-[300px]">
@@ -363,10 +445,10 @@ export function RecordEditor({ record, open, onOpenChange }: RecordEditorProps) 
                   type="button"
                   variant="destructive"
                   size="sm"
-                  className="gap-1 mr-auto"
+                  className="gap-1.5 mr-auto"
                 >
                   <Trash2 className="size-3.5" />
-                  Smazat
+                  Smazat záznam
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>

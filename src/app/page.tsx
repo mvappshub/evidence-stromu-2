@@ -5,6 +5,7 @@ import { AppShell } from '@/components/AppShell'
 import { MapView } from '@/components/map/MapView'
 import { PlantContextBar } from '@/components/map/PlantContextBar'
 import { RecordsTable } from '@/components/table/RecordsTable'
+import { DashboardPanel } from '@/components/DashboardPanel'
 import { StatusBar } from '@/components/StatusBar'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -30,8 +31,9 @@ function WorkArea() {
 
   if (viewMode === 'list') {
     return (
-      <div className="flex-1 min-h-0">
-        <div className="w-full h-full">
+      <div className="flex-1 min-h-0 flex flex-col">
+        <DashboardPanel />
+        <div className="flex-1 min-h-0">
           <RecordsTable />
         </div>
       </div>
@@ -53,7 +55,12 @@ function WorkArea() {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={45} minSize={25}>
-          <RecordsTable />
+          <div className="flex flex-col h-full">
+            <DashboardPanel />
+            <div className="flex-1 min-h-0">
+              <RecordsTable />
+            </div>
+          </div>
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

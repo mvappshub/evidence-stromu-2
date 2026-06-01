@@ -6,7 +6,7 @@ export async function GET() {
   const auth = await requireAuth()
   if ("error" in auth) return auth.error
 
-  const [totalCount, speciesBreakdown, dateRange, localityBreakdown, yearCounts] = await Promise.all([
+  const [totalCount, speciesBreakdown, dateRange, localityBreakdown, yearCounts, speciesCount, localityCount] = await Promise.all([
     db.treeRecord.count({ where: { createdById: auth.userId } }),
     db.treeRecord.groupBy({
       by: ['speciesLatin'],
@@ -30,6 +30,16 @@ export async function GET() {
       where: { createdById: auth.userId },
       select: { plantedAt: true },
     }),
+    db.treeRecord.groupBy({
+      by: ['speciesLatin'],
+      where: { createdById: auth.userId },
+      _count: { _all: true },
+    }).then((r) => r.length),
+    db.treeRecord.groupBy({
+      by: ['locality'],
+      where: { createdById: auth.userId, locality: { not: null, not: '' } },
+      _count: { _all: true },
+    }).then((r) => r.length),
   ])
 
   // Build yearly breakdown from plantedAt dates
@@ -41,6 +51,9 @@ export async function GET() {
 
   return NextResponse.json({
     totalCount,
+    speciesCount,
+    localityCount,
+    lastPlantedAt: dateRange._max.plantedAt,
     speciesBreakdown: speciesBreakdown.map(s => ({
       species: s.speciesLatin,
       count: s._count.speciesLatin,

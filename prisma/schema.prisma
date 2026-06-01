@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime     @default(now())
+  records      TreeRecord[]
+}
+
+model TreeRecord {
+  recordNumber Int        @id @default(autoincrement())
+  plantedAt    DateTime
+  speciesLatin String
+  lat          Float
+  lng          Float
+  locality     String?
+  photoPath    String?
+  note         String?
+  createdById  String
+  createdBy    User       @relation(fields: [createdById], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  reminders    Reminder[]
+}
+
+model Reminder {
+  id           String     @id @default(uuid())
+  text         String
+  mode         String     // "interval" | "date"
+  intervalNum  Int?
+  intervalUnit String?    // "day" | "week" | "month" | "year"
+  startAt      DateTime?
+  dueAt        DateTime?  // jednorázové datum
+  nextDueAt    DateTime
+  active       Boolean    @default(true)
+  recordNumber Int
+  record       TreeRecord @relation(fields: [recordNumber], references: [recordNumber], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+}

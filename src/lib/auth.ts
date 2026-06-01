@@ -38,4 +38,8 @@ export const authOptions: NextAuthOptions = {
   },
   pages: { signIn: "/" },
   secret: process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production",
+  // Trust the X-Forwarded-Proto/X-Forwarded-Host headers from Caddy proxy
+  // This makes NextAuth correctly detect HTTPS and set secure cookies
+  // when accessed through the external preview URL
+  trustHost: true,
 }

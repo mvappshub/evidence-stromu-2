@@ -126,7 +126,7 @@ export function MaintenanceBell() {
           <Button
             variant="ghost"
             size="icon"
-            className="size-6 text-green-600 hover:text-green-700"
+            className="size-6 text-muted-foreground hover:text-foreground"
             onClick={() => ackMutation.mutate(reminder.id)}
             title="Vyřízeno"
             disabled={ackMutation.isPending}

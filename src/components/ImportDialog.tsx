@@ -193,98 +193,78 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   // ─── Import records one-by-one with progress ──────────────────────────
 
   const runImport = useCallback(async () => {
-    // Build mapped rows
-    const mappedRows: Record<string, string>[] = []
+    const records: Array<{
+      speciesLatin: string
+      plantedAt: string
+      lat: number
+      lng: number
+      locality?: string | null
+      note?: string | null
+    }> = []
+
     for (const row of rawData) {
       const mappedRow: Record<string, string> = {}
       for (const field of FIELDS) {
         const csvCol = mapping[field.key]
         mappedRow[field.key] = csvCol ? (row[csvCol]?.trim() ?? '') : ''
       }
-      mappedRows.push(mappedRow)
+      records.push({
+        speciesLatin: mappedRow.speciesLatin,
+        plantedAt: mappedRow.plantedAt,
+        lat: parseFloat(mappedRow.lat.replace(',', '.')),
+        lng: parseFloat(mappedRow.lng.replace(',', '.')),
+        locality: mappedRow.locality || null,
+        note: mappedRow.note || null,
+      })
     }
-
-    let imported = 0
-    let skipped = 0
-    const errors: string[] = []
-    abortRef.current = false
 
     setImporting(true)
-    setImportProgress({ current: 0, total: mappedRows.length })
+    setImportProgress({ current: 0, total: records.length })
     setStep('importing')
 
-    for (let i = 0; i < mappedRows.length; i++) {
-      if (abortRef.current) break
-
-      const r = mappedRows[i]
-
-      // Validate required fields client-side
-      if (!r.speciesLatin) {
-        errors.push(`Řádek ${i + 2}: Chybí druh`)
-        skipped++
-        setImportProgress({ current: i + 1, total: mappedRows.length })
-        continue
-      }
-      if (!r.plantedAt) {
-        errors.push(`Řádek ${i + 2}: Chybí datum výsadby`)
-        skipped++
-        setImportProgress({ current: i + 1, total: mappedRows.length })
-        continue
-      }
-
-      const lat = parseFloat(r.lat.replace(',', '.'))
-      const lng = parseFloat(r.lng.replace(',', '.'))
-
-      if (isNaN(lat) || isNaN(lng)) {
-        errors.push(`Řádek ${i + 2}: Neplatné souřadnice`)
-        skipped++
-        setImportProgress({ current: i + 1, total: mappedRows.length })
-        continue
-      }
-
-      try {
-        const res = await fetch('/api/records', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            speciesLatin: r.speciesLatin,
-            plantedAt: r.plantedAt,
-            lat,
-            lng,
-            locality: r.locality || undefined,
-            note: r.note || undefined,
-          }),
-        })
-
-        if (res.ok) {
-          imported++
-        } else {
-          const errData = await res.json().catch(() => ({}))
-          errors.push(`Řádek ${i + 2}: ${errData.error || 'Chyba při ukládání'}`)
-          skipped++
-        }
-      } catch {
-        errors.push(`Řádek ${i + 2}: Chyba sítě`)
-        skipped++
-      }
-
-      setImportProgress({ current: i + 1, total: mappedRows.length })
-    }
-
-    setImporting(false)
-    setImportResult({ imported, skipped, errors: errors.slice(0, 100) })
-    setStep('results')
-
-    // Invalidate queries
-    queryClient.invalidateQueries({ queryKey: ['records'] })
-    queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
-    queryClient.invalidateQueries({ queryKey: ['records-filters'] })
-    queryClient.invalidateQueries({ queryKey: ['records-count'] })
-
-    if (imported > 0) {
-      toast.success('Import dokončen', {
-        description: `Importováno ${imported} z ${mappedRows.length} záznamů`,
+    try {
+      const res = await fetch('/api/records/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records }),
       })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        toast.error('Import selhal', {
+          description: result.error || 'Chyba serveru',
+        })
+        setStep('mapping')
+        setImporting(false)
+        return
+      }
+
+      setImportProgress({ current: records.length, total: records.length })
+      setImportResult({
+        imported: result.imported ?? 0,
+        skipped: result.skipped ?? 0,
+        errors: result.errors ?? [],
+      })
+      setStep('results')
+
+      queryClient.invalidateQueries({ queryKey: ['records'] })
+      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+      queryClient.invalidateQueries({ queryKey: ['records-filters'] })
+      queryClient.invalidateQueries({ queryKey: ['records-count'] })
+      queryClient.invalidateQueries({ queryKey: ['records-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['activity-log'] })
+
+      if ((result.imported ?? 0) > 0) {
+        toast.success('Import dokončen', {
+          description: `Importováno ${result.imported} z ${records.length} záznamů`,
+        })
+      }
+    } catch {
+      toast.error('Import selhal', { description: 'Chyba sítě' })
+      setStep('mapping')
+    } finally {
+      setImporting(false)
     }
   }, [rawData, mapping, queryClient])
 
@@ -327,7 +307,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto dialog-accent-top">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Upload className="size-4 text-green-600" />
+            <Upload className="size-4 text-muted-foreground" />
             Importovat záznamy
           </DialogTitle>
           <DialogDescription>
@@ -348,7 +328,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
                 className={cn(
                   'px-1.5 py-0.5 rounded',
                   step === s
-                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-medium'
+                    ? 'bg-secondary text-secondary-foreground font-medium'
                     : 'text-muted-foreground'
                 )}
               >
@@ -364,15 +344,15 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
             className={cn(
               'flex flex-col items-center gap-4 rounded-lg border-2 border-dashed p-8 transition-colors',
               dragOver
-                ? 'border-green-400 bg-green-50/50 dark:bg-green-950/20'
-                : 'border-muted-foreground/25 hover:border-green-400/50 hover:bg-green-50/30 dark:hover:bg-green-950/10'
+                ? 'border-primary bg-accent/50'
+                : 'border-muted-foreground/25 hover:border-primary/40 hover:bg-muted/50'
             )}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleFileDrop}
           >
-            <div className="size-14 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-              <FileSpreadsheet className="size-6 text-green-500" />
+            <div className="size-14 rounded-full bg-muted flex items-center justify-center">
+              <FileSpreadsheet className="size-6 text-primary" />
             </div>
             <div className="text-center">
               <p className="text-sm font-medium">Nahrajte CSV soubor</p>
@@ -406,7 +386,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
         {step === 'preview' && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm">
-              <FileSpreadsheet className="size-4 text-green-600" />
+              <FileSpreadsheet className="size-4 text-muted-foreground" />
               <span className="font-medium">{file?.name}</span>
               <span className="text-muted-foreground">
                 ({rawData.length} {rawData.length === 1 ? 'záznam' : rawData.length < 5 ? 'záznamy' : 'záznamů'})
@@ -550,7 +530,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
         {step === 'importing' && (
           <div className="space-y-4 py-4">
             <div className="flex items-center justify-center gap-3">
-              <Loader2 className="size-5 animate-spin text-green-600" />
+              <Loader2 className="size-5 animate-spin text-primary" />
               <span className="text-sm font-medium">Probíhá import…</span>
             </div>
             <Progress
@@ -568,7 +548,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg border p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{importResult.imported}</div>
+                <div className="text-2xl font-bold text-primary">{importResult.imported}</div>
                 <div className="text-xs text-muted-foreground">Importováno</div>
               </div>
               <div className="rounded-lg border p-4 text-center">
@@ -594,7 +574,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
             )}
 
             {importResult.skipped === 0 && (
-              <div className="flex items-center gap-2 justify-center text-green-600">
+              <div className="flex items-center gap-2 justify-center text-primary">
                 <Check className="size-5" />
                 <span className="text-sm font-medium">Všechny záznamy byly úspěšně importovány</span>
               </div>

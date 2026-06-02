@@ -106,7 +106,7 @@ export function DateRangePicker({
             size="sm"
             className={cn(
               'h-8 gap-1.5 text-xs calendar-icon-hover group',
-              hasRange && 'border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950/30 dark:text-green-400'
+              hasRange && 'border-border bg-secondary text-secondary-foreground'
             )}
           >
             <CalendarDays className="size-3.5 transition-transform" />

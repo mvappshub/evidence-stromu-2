@@ -23,22 +23,16 @@ export function HeatmapToggle({ mode, onToggle }: HeatmapToggleProps) {
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
-          variant="secondary"
+          variant="ghost"
           size="icon"
           className={cn(
-            'size-8 shadow-md border transition-colors',
-            isHeatmap
-              ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800'
-              : 'bg-background/90 backdrop-blur-sm border-border'
+            'size-6 rounded-none border-l border-border',
+            isHeatmap && 'bg-accent text-foreground',
           )}
           onClick={onToggle}
           title={isHeatmap ? 'Teplotní mapa' : 'Bodová vrstva'}
         >
-          {isHeatmap ? (
-            <Flame className="size-3.5" />
-          ) : (
-            <CircleDot className="size-3.5" />
-          )}
+          {isHeatmap ? <Flame className="size-3" /> : <CircleDot className="size-3" />}
         </Button>
       </TooltipTrigger>
       <TooltipContent side="left" className="text-xs">

@@ -2,11 +2,27 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  outputFileTracingRoot: process.cwd(),
   /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
+  reactStrictMode: true,
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: [
+          "**/.git/**",
+          "**/node_modules/**",
+          "**/.next/**",
+          "**/.next-smoke/**",
+          "**/.playwright-mcp/**",
+          "**/dev.log",
+          "**/server.log",
+        ],
+      };
+    }
+
+    return config;
   },
-  reactStrictMode: false,
 };
 
 export default nextConfig;

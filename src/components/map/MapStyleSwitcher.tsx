@@ -84,12 +84,12 @@ export function MapStyleSwitcher({ currentStyle, onStyleChange, className }: Map
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="secondary"
+          variant="ghost"
           size="icon"
-          className="size-8 shadow-md bg-background/90 backdrop-blur-sm border"
+          className="size-6 rounded-none"
           title="Styl mapy"
         >
-          <Layers className="size-3.5" />
+          <Layers className="size-3" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className={cn("w-48 p-1 style-switcher-fade-in", className)}>
@@ -99,7 +99,7 @@ export function MapStyleSwitcher({ currentStyle, onStyleChange, className }: Map
             className={cn(
               'w-full text-left px-3 py-2 rounded-sm text-sm transition-colors',
               currentStyle === style.key
-                ? 'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400 font-medium'
+                ? 'bg-secondary text-secondary-foreground font-medium'
                 : 'hover:bg-accent'
             )}
             onClick={() => {

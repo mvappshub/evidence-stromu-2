@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const backup = {
       version: 1,
       timestamp: new Date().toISOString(),
+      recordCount: records.length,
       user: user ? { name: user.name, email: user.email } : null,
       records: records.map((r) => ({
         recordNumber: r.recordNumber,

@@ -6,6 +6,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-toolbar: var(--toolbar);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -37,1425 +38,306 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
 }
 
+/* Light — Chrome DevTools light */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 3px;
+  --background: #ffffff;
+  --foreground: #3c3c3c;
+  --toolbar: #f3f3f3;
+  --card: #ffffff;
+  --card-foreground: #3c3c3c;
+  --popover: #ffffff;
+  --popover-foreground: #3c3c3c;
+  --primary: #1a1a1a;
+  --primary-foreground: #ffffff;
+  --secondary: #ebebeb;
+  --secondary-foreground: #3c3c3c;
+  --muted: #f3f3f3;
+  --muted-foreground: #6e6e6e;
+  --accent: #e8e8e8;
+  --accent-foreground: #1a1a1a;
+  --destructive: #c5221f;
+  --border: #d4d4d4;
+  --input: #ffffff;
+  --ring: #8a8a8a;
+  --chart-1: #58a6ff;
+  --chart-2: #6e7681;
+  --chart-3: #484f58;
+  --chart-4: #8b949e;
+  --chart-5: #30363d;
+  --sidebar: #f3f3f3;
+  --sidebar-foreground: #3c3c3c;
+  --sidebar-primary: #1a1a1a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8e8e8;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #d4d4d4;
+  --sidebar-ring: #8a8a8a;
+  --map-cluster-1: #8b949e;
+  --map-cluster-2: #6e7681;
+  --map-cluster-3: #484f58;
+  --map-cluster-4: #30363d;
+  --map-point: #0969da;
+  --map-point-selected-stroke: #9a6700;
 }
 
+/* Dark — VS Code / DevTools panel */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #1e1e1e;
+  --foreground: #cccccc;
+  --toolbar: #2d2d2d;
+  --card: #252526;
+  --card-foreground: #cccccc;
+  --popover: #252526;
+  --popover-foreground: #cccccc;
+  --primary: #cccccc;
+  --primary-foreground: #1e1e1e;
+  --secondary: #3c3c3c;
+  --secondary-foreground: #cccccc;
+  --muted: #2d2d2d;
+  --muted-foreground: #9d9d9d;
+  --accent: #37373d;
+  --accent-foreground: #cccccc;
+  --destructive: #f14c4c;
+  --border: #3c3c3c;
+  --input: #3c3c3c;
+  --ring: #6e6e6e;
+  --chart-1: #58a6ff;
+  --chart-2: #6e7681;
+  --chart-3: #484f58;
+  --chart-4: #8b949e;
+  --chart-5: #30363d;
+  --sidebar: #252526;
+  --sidebar-foreground: #cccccc;
+  --sidebar-primary: #cccccc;
+  --sidebar-primary-foreground: #1e1e1e;
+  --sidebar-accent: #37373d;
+  --sidebar-accent-foreground: #cccccc;
+  --sidebar-border: #3c3c3c;
+  --sidebar-ring: #6e6e6e;
+  --map-cluster-1: #8b949e;
+  --map-cluster-2: #6e7681;
+  --map-cluster-3: #484f58;
+  --map-cluster-4: #30363d;
+  --map-point: #58a6ff;
+  --map-point-selected-stroke: #d29922;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring/40;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased text-[13px] leading-snug;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Custom scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: oklch(0.7 0 0);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.5 0 0);
-}
-.dark ::-webkit-scrollbar-thumb {
-  background: oklch(0.4 0 0);
+/* DevTools chrome */
+.devtools-titlebar {
+  height: 28px;
+  background: var(--toolbar);
+  border-bottom: 1px solid var(--border);
 }
 
-/* MapLibre overrides for professional look */
+.devtools-segment {
+  display: inline-flex;
+  height: 22px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+}
+
+.devtools-segment > button {
+  height: 100%;
+  padding: 0 8px;
+  font-size: 11px;
+  line-height: 20px;
+  color: var(--muted-foreground);
+  border-right: 1px solid var(--border);
+  background: transparent;
+}
+.devtools-segment > button:last-child {
+  border-right: none;
+}
+.devtools-segment > button:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.devtools-segment > button[data-active="true"] {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.devtools-drawer {
+  background: var(--toolbar);
+  border-top: 1px solid var(--border);
+}
+
+.devtools-input {
+  height: 22px;
+  font-size: 11px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: var(--input);
+  padding: 0 6px;
+}
+.dark .devtools-input {
+  background: #3c3c3c;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border: 2px solid var(--background);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
 .maplibregl-map {
-  font-family: var(--font-sans), sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
 .maplibregl-ctrl-scale {
   font-size: 10px !important;
+  font-family: var(--font-mono), monospace !important;
   border-color: var(--border) !important;
-  background: var(--background) !important;
+  background: var(--toolbar) !important;
   color: var(--foreground) !important;
+  border-radius: 0 !important;
 }
 .maplibregl-popup-content {
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
-  box-shadow: 0 4px 12px oklch(0 0 0 / 10%);
+  border-radius: 2px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono), monospace;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+.maplibregl-ctrl-bottom-right {
+  bottom: 4.5rem !important;
+  right: 0 !important;
 }
 
-/* Smooth transitions */
-.transition-view {
-  transition: all 0.2s ease-in-out;
+.table-stripe tr:nth-child(even) {
+  background-color: oklch(0 0 0 / 3%);
+}
+.dark .table-stripe tr:nth-child(even) {
+  background-color: oklch(1 0 0 / 3%);
 }
 
-/* Selected row highlight animation */
-@keyframes highlight-pulse {
-  0%, 100% { background-color: oklch(0.6 0.2 145 / 0.08); }
-  50% { background-color: oklch(0.6 0.2 145 / 0.15); }
-}
-.row-highlight {
-  animation: highlight-pulse 2s ease-in-out 2;
-}
-
-/* Place mode indicator */
-@keyframes place-mode-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.6 0.2 145 / 0.4); }
-  50% { box-shadow: 0 0 0 6px oklch(0.6 0.2 145 / 0); }
-}
-.place-mode-active {
-  animation: place-mode-pulse 2s infinite;
-}
-
-/* Tree placement flash animation */
 @keyframes tree-place-flash {
   0% {
-    transform: translate(-50%, -50%) scale(0.5);
-    opacity: 1;
-    background-color: oklch(0.7 0.2 145 / 0.9);
-    box-shadow: 0 0 0 0 oklch(0.7 0.2 145 / 0.6);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.5);
-    opacity: 0.8;
-    background-color: oklch(0.7 0.2 145 / 0.5);
-    box-shadow: 0 0 20px 10px oklch(0.7 0.2 145 / 0.2);
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0.85;
+    background-color: rgb(88 166 255 / 0.65);
   }
   100% {
-    transform: translate(-50%, -50%) scale(2.5);
+    transform: translate(-50%, -50%) scale(1.6);
     opacity: 0;
-    background-color: oklch(0.7 0.2 145 / 0);
-    box-shadow: 0 0 30px 15px oklch(0.7 0.2 145 / 0);
+    background-color: rgb(88 166 255 / 0);
   }
 }
 .tree-flash-marker {
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   pointer-events: none;
   z-index: 5;
-  animation: tree-place-flash 0.8s ease-out forwards;
-}
-.tree-flash-marker::after {
-  content: '🌳';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 16px;
-  animation: tree-place-flash 0.8s ease-out forwards;
+  animation: tree-place-flash 0.5s ease-out forwards;
 }
 
-/* Draggable selected tree marker */
-.selected-tree-marker:hover {
-  cursor: grab !important;
-  transform: scale(1.2);
-  transition: transform 0.15s ease;
-}
-.selected-tree-marker:active {
-  cursor: grabbing !important;
-  transform: scale(1.1);
-}
-
-/* Table alternating row stripes */
-.table-stripe tr:nth-child(even) {
-  background-color: oklch(0.98 0.002 145 / 0.3);
-}
-.dark .table-stripe tr:nth-child(even) {
-  background-color: oklch(0.22 0.005 145 / 0.15);
-}
-
-/* Subtle elevation for panels and cards */
-.elevation-1 {
-  box-shadow: 0 1px 3px oklch(0 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.04);
-}
-.elevation-2 {
-  box-shadow: 0 3px 6px oklch(0 0 0 / 0.08), 0 2px 4px oklch(0 0 0 / 0.04);
-}
-
-/* Toolbar glass effect */
-.glass-bar {
-  background: oklch(1 0 0 / 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.dark .glass-bar {
-  background: oklch(0.15 0 0 / 0.85);
-}
-
-/* Smooth focus ring for inputs */
-input:focus-visible, textarea:focus-visible {
-  box-shadow: 0 0 0 2px oklch(0.6 0.2 145 / 0.3);
-}
-
-/* Transition for interactive elements */
-.interactive-transition {
-  transition: all 0.15s ease;
-}
-.interactive-transition:hover {
-  transform: translateY(-1px);
-}
-
-/* Smooth page transition */
-@keyframes page-enter {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.page-enter {
-  animation: page-enter 0.25s ease-out;
-}
-
-/* Green shimmer skeleton animation */
-@keyframes green-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-.skeleton-green {
-  background: linear-gradient(
-    90deg,
-    oklch(0.95 0.01 145 / 0.4) 25%,
-    oklch(0.92 0.03 145 / 0.6) 50%,
-    oklch(0.95 0.01 145 / 0.4) 75%
-  );
-  background-size: 200% 100%;
-  animation: green-shimmer 1.5s ease-in-out infinite;
-}
-.dark .skeleton-green {
-  background: linear-gradient(
-    90deg,
-    oklch(0.22 0.01 145 / 0.4) 25%,
-    oklch(0.25 0.03 145 / 0.6) 50%,
-    oklch(0.22 0.01 145 / 0.4) 75%
-  );
-  background-size: 200% 100%;
-  animation: green-shimmer 1.5s ease-in-out infinite;
-}
-
-/* Hover-lift effect for cards and buttons */
-.hover-lift {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px oklch(0 0 0 / 0.1), 0 2px 4px oklch(0 0 0 / 0.06);
-}
-.dark .hover-lift:hover {
-  box-shadow: 0 4px 12px oklch(0 0 0 / 0.3), 0 2px 4px oklch(0 0 0 / 0.2);
-}
-
-/* Smooth scroll behavior */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Better table header styling */
-.table-header-enhanced th {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.025em;
-  text-transform: uppercase;
-  color: oklch(0.45 0.02 145 / 0.8);
-  background: oklch(0.97 0.005 145 / 0.6);
-}
-.dark .table-header-enhanced th {
-  color: oklch(0.7 0.02 145 / 0.8);
-  background: oklch(0.18 0.005 145 / 0.3);
-}
-
-/* Smooth table row transitions */
-.table-row-smooth {
-  transition: background-color 0.1s ease, border-color 0.1s ease, transform 0.08s ease;
-}
-
-/* Map control button polish */
-.map-control-btn {
-  transition: all 0.15s ease;
-  border-radius: 8px;
-}
-.map-control-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px oklch(0 0 0 / 0.12);
-}
-
-/* Popover card styling */
-.popover-card {
-  border-radius: 12px;
-  box-shadow: 0 8px 24px oklch(0 0 0 / 0.12), 0 2px 8px oklch(0 0 0 / 0.06);
-}
-.dark .popover-card {
-  box-shadow: 0 8px 24px oklch(0 0 0 / 0.4), 0 2px 8px oklch(0 0 0 / 0.2);
-}
-
-/* Badge chip styling */
-.badge-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1.4;
-  transition: all 0.15s ease;
-}
-.badge-chip:hover {
-  filter: brightness(0.95);
-}
-
-/* Input field polish */
-.input-polish {
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.input-polish:focus {
-  border-color: oklch(0.6 0.2 145);
-  box-shadow: 0 0 0 3px oklch(0.6 0.2 145 / 0.15);
-}
-
-/* Subtle texture for filter bars */
-.filter-bar {
-  background: linear-gradient(180deg, oklch(0.98 0.003 145 / 0.5), oklch(0.97 0.002 145 / 0.3));
-  border-bottom: 1px solid oklch(0.92 0.005 145 / 0.6);
-}
-.dark .filter-bar {
-  background: linear-gradient(180deg, oklch(0.18 0.005 145 / 0.3), oklch(0.15 0.003 145 / 0.2));
-  border-bottom: 1px solid oklch(0.3 0.005 145 / 0.4);
-}
-
-/* Better focus-visible states with green accent */
-*:focus-visible {
-  outline: 2px solid oklch(0.6 0.2 145 / 0.6);
-  outline-offset: 2px;
+.mini-info-panel {
+  background: var(--toolbar);
+  border: 1px solid var(--border);
   border-radius: 2px;
-}
-
-/* Print-friendly styles */
-@media print {
-  /* Hide all UI chrome */
-  .glass-bar,
-  .no-print,
-  [class*="AppShell"],
-  [class*="StatusBar"],
-  [class*="PlantContextBar"],
-  [class*="MaintenanceBell"],
-  [class*="KeyboardShortcuts"],
-  [class*="StatisticsPanel"],
-  [class*="SpeciesDetailPanel"],
-  [class*="ActivityLog"],
-  [class*="ImportDialog"],
-  [class*="BulkActionBar"],
-  [class*="filter-bar"],
-  [class*="maplibregl-map"],
-  [class*="MapView"],
-  [role="toolbar"],
-  nav,
-  header,
-  footer,
-  .resizable-handle,
-  button[variant="ghost"],
-  .pagination {
-    display: none !important;
-  }
-
-  body {
-    background: white !important;
-    color: black !important;
-    font-size: 11px;
-  }
-
-  /* Map should be hidden */
-  .maplibregl-map,
-  [class*="map-container"] {
-    display: none !important;
-  }
-
-  /* Table styling for print */
-  table {
-    border-collapse: collapse;
-    width: 100%;
-  }
-  th, td {
-    border: 1px solid #ddd;
-    padding: 4px 8px;
-    font-size: 11px;
-  }
-  th {
-    background: #f5f5f5 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  /* Remove shadows and effects */
-  * {
-    box-shadow: none !important;
-    text-shadow: none !important;
-  }
-
-  /* Ensure table fills width */
-  [class*="RecordsTable"] {
-    width: 100%;
-    overflow: visible !important;
-  }
-}
-
-/* Green accent strip for dialogs */
-.dialog-accent-top {
-  position: relative;
-}
-.dialog-accent-top::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, oklch(0.6 0.2 145), oklch(0.5 0.15 160), oklch(0.6 0.2 145));
-  border-radius: inherit;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-/* Animated gradient background */
-@keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-.animated-gradient-bg {
-  background-size: 300% 300%;
-  animation: gradient-shift 15s ease infinite;
-}
-
-/* View mode active left accent */
-.view-mode-active {
-  position: relative;
-}
-.view-mode-active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 2px;
-  bottom: 2px;
-  width: 2px;
-  border-radius: 1px;
-  background: oklch(0.6 0.2 145);
-}
-
-/* Green chip hover animation */
-.chip-hover {
-  transition: transform 0.15s ease, background-color 0.15s ease;
-}
-.chip-hover:hover {
-  transform: scale(1.05);
-}
-
-/* Subtle separator for status bar */
-.status-separator {
-  width: 1px;
-  height: 10px;
-  background: oklch(0.7 0 0 / 0.3);
-}
-.dark .status-separator {
-  background: oklch(0.4 0 0 / 0.3);
-}
-
-/* ── Green text selection ── */
-::selection {
-  background-color: oklch(0.7 0.18 145 / 0.25);
-  color: inherit;
-}
-.dark ::selection {
-  background-color: oklch(0.5 0.15 145 / 0.35);
-}
-
-/* ── Staggered animation delay utilities ── */
-.stagger-1 { animation-delay: 0ms; }
-.stagger-2 { animation-delay: 50ms; }
-.stagger-3 { animation-delay: 100ms; }
-.stagger-4 { animation-delay: 150ms; }
-.stagger-5 { animation-delay: 200ms; }
-
-/* ── Row fade-in entrance animation ── */
-@keyframes row-fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.row-animate {
-  animation: row-fade-in 0.25s ease-out both;
-}
-
-/* ── Subtle diagonal background pattern ── */
-.bg-pattern {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 10px,
-    oklch(0.7 0.02 145 / 0.03) 10px,
-    oklch(0.7 0.02 145 / 0.03) 11px
-  );
-}
-.dark .bg-pattern {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 10px,
-    oklch(0.5 0.02 145 / 0.04) 10px,
-    oklch(0.5 0.02 145 / 0.04) 11px
-  );
-}
-
-/* ── Connection status pulse animation ── */
-@keyframes status-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.65 0.2 145 / 0.5); }
-  50% { box-shadow: 0 0 0 4px oklch(0.65 0.2 145 / 0); }
-}
-.status-dot-connected {
-  animation: status-pulse 2.5s ease-in-out infinite;
-}
-
-@keyframes status-pulse-error {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.6 0.2 25 / 0.5); }
-  50% { box-shadow: 0 0 0 4px oklch(0.6 0.2 25 / 0); }
-}
-.status-dot-disconnected {
-  animation: status-pulse-error 1.5s ease-in-out infinite;
-}
-
-/* ── Map vignette overlay ── */
-.map-vignette {
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at center, transparent 60%, oklch(0 0 0 / 0.08) 100%);
-}
-.dark .map-vignette {
-  background:
-    radial-gradient(ellipse at center, transparent 55%, oklch(0 0 0 / 0.15) 100%);
-}
-
-/* ── Compass rose (CSS) ── */
-.compass-rose {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: oklch(1 0 0 / 0.85);
-  backdrop-filter: blur(8px);
-  border: 1px solid oklch(0.8 0 0 / 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 4px 8px;
   font-size: 11px;
-  font-weight: 700;
-  color: oklch(0.35 0.15 145);
-  box-shadow: 0 1px 4px oklch(0 0 0 / 0.1);
-  transition: transform 0.3s ease;
-  user-select: none;
-}
-.dark .compass-rose {
-  background: oklch(0.2 0 0 / 0.85);
-  border-color: oklch(0.4 0 0 / 0.3);
-  color: oklch(0.75 0.12 145);
+  box-shadow: none;
 }
 
-/* ── Map loading shimmer ── */
-@keyframes map-shimmer {
-  0% { opacity: 0.3; }
-  50% { opacity: 0.6; }
-  100% { opacity: 0.3; }
-}
-.map-loading-shimmer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 5;
-  background: linear-gradient(
-    135deg,
-    transparent 30%,
-    oklch(0.65 0.12 145 / 0.08) 50%,
-    transparent 70%
-  );
-  background-size: 300% 300%;
-  animation: map-shimmer 1.8s ease-in-out infinite, gradient-shift 3s ease infinite;
-}
-
-/* ── Coordinate display overlay ── */
 .coord-display {
   font-family: var(--font-mono), monospace;
   font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: oklch(1 0 0 / 0.8);
-  backdrop-filter: blur(8px);
-  border: 1px solid oklch(0.85 0 0 / 0.4);
-  color: oklch(0.4 0 0);
-  tabular-nums: true;
-}
-.dark .coord-display {
-  background: oklch(0.2 0 0 / 0.8);
-  border-color: oklch(0.35 0 0 / 0.4);
-  color: oklch(0.75 0 0);
+  padding: 2px 6px;
+  background: var(--toolbar);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted-foreground);
 }
 
-/* ── Green checkbox accent ── */
-.checkbox-green[data-state="checked"] {
-  background-color: oklch(0.55 0.18 145);
-  border-color: oklch(0.55 0.18 145);
-}
-
-/* ── Toolbar gradient border bottom ── */
-.toolbar-border-gradient {
-  border-image: linear-gradient(to right, oklch(0.6 0.18 145 / 0.4), oklch(0.6 0.18 145 / 0.1), transparent) 1;
-}
-
-/* ── Place mode slide animation ── */
-@keyframes place-mode-enter {
-  from { transform: translateY(4px); opacity: 0.7; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.place-mode-active-anim {
-  animation: place-mode-enter 0.2s ease-out;
-}
-
-/* ── Count badge pulse ── */
-@keyframes count-badge-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.06); }
-}
-.count-badge-pulse {
-  animation: count-badge-pulse 3s ease-in-out infinite;
-}
-
-/* ── Sort transition animation ── */
-@keyframes sort-flash {
-  0% { background-color: oklch(0.7 0.12 145 / 0.15); }
-  100% { background-color: transparent; }
-}
-.sort-flash {
-  animation: sort-flash 0.5s ease-out;
-}
-
-/* ── Time display gradient ── */
-.time-display {
-  background: linear-gradient(90deg, oklch(0.97 0.005 145 / 0.4), oklch(0.97 0.003 145 / 0.2));
-  padding: 1px 8px;
-  border-radius: 4px;
-}
-.dark .time-display {
-  background: linear-gradient(90deg, oklch(0.22 0.008 145 / 0.3), oklch(0.22 0.005 145 / 0.15));
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   ROUND 6 — New Animations & Utility Classes
-   ══════════════════════════════════════════════════════════════════ */
-
-/* ── Shimmer keyframe (logo icon shine) ── */
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-.logo-shimmer {
-  background: linear-gradient(
-    110deg,
-    oklch(0.55 0.2 145) 0%,
-    oklch(0.55 0.2 145) 40%,
-    oklch(0.85 0.12 145) 50%,
-    oklch(0.55 0.2 145) 60%,
-    oklch(0.55 0.2 145) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 3s ease-in-out infinite;
-}
-
-/* ── Breathing pulse keyframe (place mode button) ── */
-@keyframes breathing-pulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 oklch(0.55 0.2 145 / 0.3); }
-  50% { transform: scale(1.04); box-shadow: 0 0 12px 2px oklch(0.55 0.2 145 / 0.2); }
-}
-.breathing-pulse {
-  animation: breathing-pulse 2.5s ease-in-out infinite;
-}
-
-/* ── Slide-in chip keyframe ── */
-@keyframes slide-in-chip {
-  from { opacity: 0; transform: translateX(-8px) scale(0.9); }
-  to { opacity: 1; transform: translateX(0) scale(1); }
-}
-.chip-enter {
-  animation: slide-in-chip 0.25s ease-out both;
-}
-
-/* ── Border glow keyframe (dialog save glow) ── */
-@keyframes border-glow {
-  0% { box-shadow: 0 0 0 0 oklch(0.55 0.2 145 / 0); border-color: inherit; }
-  30% { box-shadow: 0 0 16px 4px oklch(0.55 0.2 145 / 0.3); border-color: oklch(0.55 0.2 145 / 0.5); }
-  100% { box-shadow: 0 0 0 0 oklch(0.55 0.2 145 / 0); border-color: inherit; }
-}
-.border-glow-active {
-  animation: border-glow 1.2s ease-out;
-}
-
-/* ── Dash animation keyframe (photo drag-over) ── */
-@keyframes dash-animation {
-  to { stroke-dashoffset: -20; }
-}
-.dash-border-animated {
-  border-style: dashed;
-  border-color: oklch(0.55 0.2 145 / 0.6);
-  background-image: repeating-linear-gradient(
-    90deg,
-    oklch(0.55 0.2 145 / 0.08) 0px,
-    oklch(0.55 0.2 145 / 0.08) 4px,
-    transparent 4px,
-    transparent 8px
-  );
-  background-size: 200% 100%;
-  animation: dash-slide 0.8s linear infinite;
-}
-@keyframes dash-slide {
-  from { background-position: 0% 0; }
-  to { background-position: 100% 0; }
-}
-
-/* ── Gradient border animated (toolbar bottom) ── */
-@keyframes gradient-border-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-.gradient-border-animated {
-  position: relative;
-}
-.gradient-border-animated::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    oklch(0.6 0.2 145 / 0.1),
-    oklch(0.6 0.2 145 / 0.6),
-    oklch(0.5 0.15 160 / 0.6),
-    oklch(0.6 0.2 145 / 0.6),
-    oklch(0.6 0.2 145 / 0.1)
-  );
-  background-size: 300% 100%;
-  animation: gradient-border-shift 8s ease infinite;
-}
-
-/* ── Badge glow class ── */
-.badge-glow {
-  box-shadow: 0 0 6px 1px oklch(0.55 0.2 145 / 0.25);
-}
-.dark .badge-glow {
-  box-shadow: 0 0 6px 1px oklch(0.55 0.2 145 / 0.2);
-}
-
-/* ── Scale-in animation class ── */
-@keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95) translateY(4px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-.scale-in {
-  animation: scale-in 0.2s ease-out;
-}
-
-/* ── Tooltip bounce animation ── */
-@keyframes tooltip-bounce {
-  0% { opacity: 0; transform: translateY(4px) scale(0.96); }
-  60% { transform: translateY(-2px) scale(1.02); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-.tooltip-bounce {
-  animation: tooltip-bounce 0.25s ease-out;
-}
-
-/* ── Species frequency dot ── */
-.species-freq-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  margin-left: 4px;
-  flex-shrink: 0;
-}
-
-/* ── Pagination pill indicator ── */
-.pagination-pill-active {
-  background: oklch(0.55 0.18 145);
-  color: white;
-  border-radius: 9999px;
-  padding: 2px 10px;
-  font-weight: 600;
-  font-size: 11px;
-  min-width: 36px;
-  text-align: center;
-}
-
-/* ── Compass rose hover rotation ── */
-.compass-rose:hover {
-  transform: rotate(calc(var(--compass-rotate, 0) * 1deg)) scale(1.1) !important;
-  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* ── Cluster expansion bounce ── */
-@keyframes cluster-bounce {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.15); }
-  70% { transform: scale(0.95); }
-  100% { transform: scale(1); }
-}
-
-/* ── Map style switcher fade-in ── */
-@keyframes fade-in-panel {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.style-switcher-fade-in {
-  animation: fade-in-panel 0.2s ease-out;
-}
-
-/* ── Coordinate counter animation ── */
-@keyframes coord-flash {
-  0% { color: oklch(0.55 0.2 145); }
-  100% { color: inherit; }
-}
-.coord-flash {
-  animation: coord-flash 0.4s ease-out;
-}
-
-/* ── Place mode bar shimmer ── */
-@keyframes bar-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-.bar-shimmer-active {
-  background-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    oklch(0.65 0.15 145 / 0.08) 25%,
-    oklch(0.65 0.15 145 / 0.15) 50%,
-    oklch(0.65 0.15 145 / 0.08) 75%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: bar-shimmer 2.5s ease-in-out infinite;
-}
-
-/* ── Calendar icon wobble on hover ── */
-@keyframes calendar-wobble {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(-8deg); }
-  50% { transform: rotate(8deg); }
-  75% { transform: rotate(-4deg); }
-  100% { transform: rotate(0deg); }
-}
-.calendar-icon-hover:hover svg:first-child,
-.calendar-icon-hover:hover .lucide-calendar-days {
-  animation: calendar-wobble 0.4s ease-in-out;
-}
-
-/* ── Dialog tab transition ── */
-.dialog-tab-transition {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-/* ── Photo drag-over highlight ── */
-.photo-drag-over {
-  border-color: oklch(0.55 0.2 145) !important;
-  background-color: oklch(0.95 0.03 145 / 0.3) !important;
-}
-.dark .photo-drag-over {
-  border-color: oklch(0.55 0.2 145) !important;
-  background-color: oklch(0.2 0.03 145 / 0.3) !important;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   ROUND 7 — New Animations & Utility Classes
-   ══════════════════════════════════════════════════════════════════ */
-
-/* ── Leaf float keyframe (floating green circle particles) ── */
-@keyframes leaf-float {
-  0% {
-    transform: translateY(0) translateX(0) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.7;
-  }
-  50% {
-    transform: translateY(-40vh) translateX(20px) rotate(180deg);
-    opacity: 0.5;
-  }
-  90% {
-    opacity: 0.2;
-  }
-  100% {
-    transform: translateY(-80vh) translateX(-10px) rotate(360deg);
-    opacity: 0;
-  }
-}
-.leaf-particle {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  animation: leaf-float var(--leaf-duration, 12s) ease-in-out infinite;
-  animation-delay: var(--leaf-delay, 0s);
-  background: radial-gradient(circle at 30% 30%, oklch(0.72 0.18 145 / 0.6), oklch(0.55 0.2 145 / 0.3));
-}
-.dark .leaf-particle {
-  background: radial-gradient(circle at 30% 30%, oklch(0.5 0.12 145 / 0.4), oklch(0.35 0.1 145 / 0.2));
-}
-
-/* ── Mesh gradient background ── */
-@keyframes mesh-gradient {
-  0% {
-    background-position: 0% 0%, 100% 0%, 50% 100%;
-  }
-  33% {
-    background-position: 50% 50%, 0% 100%, 100% 0%;
-  }
-  66% {
-    background-position: 100% 50%, 50% 0%, 0% 100%;
-  }
-  100% {
-    background-position: 0% 0%, 100% 0%, 50% 100%;
-  }
-}
-.mesh-gradient-bg {
-  background:
-    radial-gradient(ellipse at 20% 50%, oklch(0.92 0.05 145 / 0.4), transparent 50%),
-    radial-gradient(ellipse at 80% 20%, oklch(0.9 0.06 160 / 0.3), transparent 50%),
-    radial-gradient(ellipse at 50% 80%, oklch(0.88 0.04 130 / 0.3), transparent 50%),
-    linear-gradient(135deg, oklch(0.97 0.01 145), oklch(0.95 0.02 160));
-  background-size: 200% 200%, 200% 200%, 200% 200%, 100% 100%;
-  animation: mesh-gradient 20s ease-in-out infinite;
-}
-.dark .mesh-gradient-bg {
-  background:
-    radial-gradient(ellipse at 20% 50%, oklch(0.2 0.04 145 / 0.3), transparent 50%),
-    radial-gradient(ellipse at 80% 20%, oklch(0.18 0.05 160 / 0.2), transparent 50%),
-    radial-gradient(ellipse at 50% 80%, oklch(0.15 0.03 130 / 0.2), transparent 50%),
-    linear-gradient(135deg, oklch(0.15 0 0), oklch(0.12 0.01 145));
-  background-size: 200% 200%, 200% 200%, 200% 200%, 100% 100%;
-  animation: mesh-gradient 20s ease-in-out infinite;
-}
-
-/* ── Typing cursor keyframe ── */
-@keyframes typing-cursor {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-.typing-cursor::after {
-  content: '|';
-  animation: typing-cursor 1s step-end infinite;
-  color: oklch(0.55 0.18 145);
-  font-weight: 300;
-  margin-left: 2px;
-}
-
-/* ── Sweep progress keyframe (status bar refresh indicator) ── */
-@keyframes sweep-progress {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(200%);
-  }
-}
-.sweep-progress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  overflow: hidden;
-}
-.sweep-progress::after {
-  content: '';
-  display: block;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    oklch(0.55 0.18 145 / 0.6),
-    oklch(0.55 0.18 145 / 0.8),
-    oklch(0.55 0.18 145 / 0.6),
-    transparent
-  );
-  animation: sweep-progress 60s linear infinite;
-}
-.dark .sweep-progress::after {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    oklch(0.55 0.18 145 / 0.4),
-    oklch(0.55 0.18 145 / 0.6),
-    oklch(0.55 0.18 145 / 0.4),
-    transparent
-  );
-}
-
-/* ── Slide-up info panel keyframe ── */
-@keyframes slide-up-info {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-.slide-up-info {
-  animation: slide-up-info 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* ── Pulse tree icon keyframe ── */
-@keyframes pulse-tree-icon {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.12);
-    opacity: 1;
-  }
-}
-.pulse-tree-icon {
-  animation: pulse-tree-icon 2s ease-in-out infinite;
-}
-
-/* ── Grid fade keyframe (lat/lng grid overlay) ── */
-@keyframes grid-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.grid-overlay {
+.map-loading-shimmer {
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  z-index: 3;
-  animation: grid-fade 0.3s ease-out;
-}
-
-/* ── Scroll shadow top (gradient indicating hidden content above) ── */
-@keyframes scroll-shadow-appear {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.scroll-shadow-top {
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 24px;
-  pointer-events: none;
-  z-index: 5;
-  background: linear-gradient(
-    to bottom,
-    oklch(0.97 0.005 145 / 0.9),
-    oklch(0.97 0.005 145 / 0.5) 40%,
-    transparent
-  );
-  animation: scroll-shadow-appear 0.2s ease-out;
-}
-.dark .scroll-shadow-top {
-  background: linear-gradient(
-    to bottom,
-    oklch(0.15 0.005 145 / 0.9),
-    oklch(0.15 0.005 145 / 0.5) 40%,
-    transparent
-  );
-}
-
-/* ── Green ring on hover for pagination buttons ── */
-.pagination-green-ring:hover {
-  box-shadow: 0 0 0 2px oklch(0.55 0.18 145 / 0.4);
-}
-
-/* ── Counter animation for filtered/total counts ── */
-@keyframes counter-pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); color: oklch(0.55 0.18 145); }
-  100% { transform: scale(1); }
-}
-.counter-animate {
-  animation: counter-pop 0.35s ease-out;
-}
-
-/* ── Connection status bounce ── */
-@keyframes status-bounce {
-  0%, 100% { transform: scale(1); }
-  30% { transform: scale(1.3); }
-  60% { transform: scale(0.9); }
-  80% { transform: scale(1.05); }
-}
-.status-bounce {
-  animation: status-bounce 0.5s ease-out;
-}
-
-/* ── CSS-only tree silhouette for empty state ── */
-.css-tree-silhouette {
-  position: relative;
-  display: inline-block;
-}
-.css-tree-silhouette::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 28px;
-  background: oklch(0.55 0.12 80 / 0.5);
-  border-radius: 2px;
-}
-.css-tree-silhouette::after {
-  content: '';
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 44px;
-  background: linear-gradient(
-    180deg,
-    oklch(0.6 0.2 145 / 0.6),
-    oklch(0.5 0.18 145 / 0.4)
-  );
-  clip-path: polygon(50% 0%, 100% 35%, 85% 35%, 100% 65%, 75% 65%, 85% 100%, 15% 100%, 25% 65%, 0% 65%, 15% 35%, 0% 35%);
-}
-.dark .css-tree-silhouette::before {
-  background: oklch(0.4 0.08 80 / 0.4);
-}
-.dark .css-tree-silhouette::after {
-  background: linear-gradient(
-    180deg,
-    oklch(0.45 0.12 145 / 0.5),
-    oklch(0.35 0.1 145 / 0.3)
-  );
-}
-
-/* ── Map scale bar green accent ── */
-.map-scale-accent .maplibregl-ctrl-scale {
-  border-color: oklch(0.55 0.18 145 / 0.6) !important;
-  color: oklch(0.4 0.1 145) !important;
-  font-weight: 600 !important;
-  border-width: 2px 0 0 0 !important;
-  padding: 2px 4px !important;
-}
-.dark .map-scale-accent .maplibregl-ctrl-scale {
-  border-color: oklch(0.5 0.15 145 / 0.5) !important;
-  color: oklch(0.7 0.1 145) !important;
-}
-
-/* ── Mini info panel for map selected tree ── */
-.mini-info-panel {
-  background: oklch(1 0 0 / 0.92);
-  backdrop-filter: blur(12px);
-  border: 1px solid oklch(0.85 0.02 145 / 0.5);
-  border-radius: 10px;
-  box-shadow: 0 4px 16px oklch(0 0 0 / 0.1);
-  padding: 10px 14px;
-  max-width: 240px;
-}
-.dark .mini-info-panel {
-  background: oklch(0.2 0 0 / 0.92);
-  border-color: oklch(0.35 0.02 145 / 0.4);
-  box-shadow: 0 4px 16px oklch(0 0 0 / 0.3);
-}
-
-/* ── Parallax tilt for card ── */
-.parallax-tilt {
-  transition: transform 0.1s ease-out;
-  transform-style: preserve-3d;
-  perspective: 1000px;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   ROUND 8 — Visual Polish: Gradient Divider, Smooth Transitions
-   ══════════════════════════════════════════════════════════════════ */
-
-/* ── Gradient divider between map and table views ── */
-.gradient-divider-v {
-  position: relative;
-}
-.gradient-divider-v::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    oklch(0.6 0.18 145 / 0.3) 15%,
-    oklch(0.55 0.2 145 / 0.6) 50%,
-    oklch(0.6 0.18 145 / 0.3) 85%,
-    transparent 100%
-  );
-  z-index: 5;
-  pointer-events: none;
-}
-.dark .gradient-divider-v::before {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    oklch(0.5 0.15 145 / 0.2) 15%,
-    oklch(0.45 0.18 145 / 0.5) 50%,
-    oklch(0.5 0.15 145 / 0.2) 85%,
-    transparent 100%
-  );
-}
-
-/* ── Gradient divider horizontal (between top/bottom panels) ── */
-.gradient-divider-h {
-  position: relative;
-}
-.gradient-divider-h::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    oklch(0.6 0.18 145 / 0.3) 15%,
-    oklch(0.55 0.2 145 / 0.6) 50%,
-    oklch(0.6 0.18 145 / 0.3) 85%,
-    transparent 100%
-  );
-  z-index: 5;
+  z-index: 2;
+  background: oklch(0 0 0 / 6%);
   pointer-events: none;
 }
 
-/* ── Smooth view mode transition ── */
-@keyframes view-fade-in {
-  from { opacity: 0; transform: translateY(2px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.view-transition {
-  animation: view-fade-in 0.2s ease-out;
-}
-
-/* ── Dashboard panel entrance animation ── */
-@keyframes dashboard-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.dashboard-enter {
-  animation: dashboard-slide-in 0.3s ease-out;
-}
-
-/* ── Metric card hover glow ── */
-@keyframes metric-glow {
-  0%, 100% { box-shadow: 0 0 0 0 oklch(0.55 0.18 145 / 0); }
-  50% { box-shadow: 0 0 12px 2px oklch(0.55 0.18 145 / 0.1); }
-}
-.metric-card-hover:hover {
-  animation: metric-glow 1.5s ease-in-out 1;
-}
-
-/* ── Skeleton pulse with softer color ── */
-@keyframes skeleton-soft-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.7; }
-}
-.skeleton-soft {
-  animation: skeleton-soft-pulse 1.8s ease-in-out infinite;
-  background-color: oklch(0.9 0.01 145 / 0.5);
-}
-.dark .skeleton-soft {
-  background-color: oklch(0.25 0.01 145 / 0.5);
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   prefers-reduced-motion: reduce
-   ══════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  .logo-shimmer,
-  .breathing-pulse,
-  .badge-glow,
-  .bar-shimmer-active,
-  .count-badge-pulse,
-  .place-mode-active-anim,
-  .status-dot-connected,
-  .status-dot-disconnected,
-  .skeleton-green,
-  .leaf-particle,
-  .mesh-gradient-bg,
-  .typing-cursor::after,
-  .sweep-progress::after,
-  .pulse-tree-icon,
-  .counter-animate,
-  .status-bounce,
-  .slide-up-info {
-    animation: none !important;
-  }
-  .typing-cursor::after {
-    opacity: 1 !important;
-  }
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   Enhanced @media print rules
-   ══════════════════════════════════════════════════════════════════ */
 @media print {
-  /* Hide non-essential UI */
-  .glass-bar,
   .no-print,
   [data-print-hide],
   nav,
-  .compass-rose,
-  .map-control-btn,
   .maplibregl-control-container,
   .coord-display,
-  .map-vignette,
   .tree-flash-marker {
     display: none !important;
   }
-
   body {
     background: white !important;
     color: black !important;
     font-size: 11px;
   }
-
-  /* Hide map entirely */
-  .maplibregl-map,
-  .map-container {
+  .maplibregl-map {
     display: none !important;
   }
-
-  /* Hide AppShell, StatusBar, PlantContextBar */
-  .h-11.border-b,
-  .h-7.border-t,
-  .absolute.bottom-4 {
+  .devtools-titlebar,
+  .h-6.border-t,
+  .devtools-drawer {
     display: none !important;
   }
-
-  /* Show only table content */
   table {
     border-collapse: collapse;
     width: 100%;
   }
-  th, td {
-    border: 1px solid #ddd;
+  th,
+  td {
+    border: 1px solid #ccc;
     padding: 4px 8px;
     font-size: 11px;
   }
   th {
-    background: #f5f5f5 !important;
-    -webkit-print-color-adjust: exact;
+    background: #f0f0f0 !important;
     print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
-
-  /* Page header with date */
   @page {
     margin: 1.5cm;
   }
-  body::before {
-    content: 'Evidence stromů — vytištěno ' attr(data-print-date);
-    display: block;
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #22c55e;
-    color: #166534;
-  }
-
-  /* Remove animations/shadows for print */
   * {
     animation: none !important;
     box-shadow: none !important;

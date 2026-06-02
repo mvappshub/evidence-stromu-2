@@ -5,13 +5,14 @@ import { AppShell } from '@/components/AppShell'
 import { MapView } from '@/components/map/MapView'
 import { PlantContextBar } from '@/components/map/PlantContextBar'
 import { RecordsTable } from '@/components/table/RecordsTable'
-import { DashboardPanel } from '@/components/DashboardPanel'
 import { StatusBar } from '@/components/StatusBar'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from 'next-themes'
 import { useUiStore } from '@/store/useUiStore'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { MapProvider } from '@/components/map/MapContext'
+import { BackupRestoreProvider } from '@/components/BackupRestore'
 
 function WorkArea() {
   const viewMode = useUiStore((s) => s.viewMode)
@@ -31,11 +32,8 @@ function WorkArea() {
 
   if (viewMode === 'list') {
     return (
-      <div className="flex-1 min-h-0 flex flex-col">
-        <DashboardPanel />
-        <div className="flex-1 min-h-0">
-          <RecordsTable />
-        </div>
+      <div className="flex-1 min-h-0">
+        <RecordsTable />
       </div>
     )
   }
@@ -55,11 +53,8 @@ function WorkArea() {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={45} minSize={25}>
-          <div className="flex flex-col h-full gradient-divider-v">
-            <DashboardPanel />
-            <div className="flex-1 min-h-0">
-              <RecordsTable />
-            </div>
+          <div className="flex flex-col h-full min-h-0 border-l">
+            <RecordsTable />
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
@@ -69,21 +64,25 @@ function WorkArea() {
 
 function AppContent() {
   return (
-    <div className="h-screen flex flex-col bg-pattern page-enter">
-      <AppShell />
-      <WorkArea />
-      <StatusBar />
-    </div>
+    <MapProvider>
+      <div className="h-screen flex flex-col bg-background">
+        <AppShell />
+        <WorkArea />
+        <StatusBar />
+      </div>
+    </MapProvider>
   )
 }
 
 export default function Home() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <AuthGate>
-        <TooltipProvider delayDuration={300}>
-          <AppContent />
-        </TooltipProvider>
+        <BackupRestoreProvider>
+          <TooltipProvider delayDuration={300}>
+            <AppContent />
+          </TooltipProvider>
+        </BackupRestoreProvider>
       </AuthGate>
     </ThemeProvider>
   )

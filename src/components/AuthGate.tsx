@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TreePine, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/useAuthStore'
 
@@ -44,7 +44,7 @@ function getPasswordStrength(password: string): { label: string; color: string; 
   if (score <= 1) return { label: 'Slabé', color: 'bg-red-500', width: 'w-1/4' }
   if (score <= 2) return { label: 'Střední', color: 'bg-yellow-500', width: 'w-2/4' }
   if (score <= 3) return { label: 'Dobré', color: 'bg-blue-500', width: 'w-3/4' }
-  return { label: 'Silné', color: 'bg-green-500', width: 'w-full' }
+  return { label: 'Silné', color: 'bg-primary', width: 'w-full' }
 }
 
 function AuthGateInner({ children }: { children: React.ReactNode }) {
@@ -54,27 +54,10 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showRegPassword, setShowRegPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-  const [tiltStyle, setTiltStyle] = useState({ transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)' })
-  const cardRef = useRef<HTMLDivElement>(null)
-
   // Hydrate auth state from localStorage on mount
   useEffect(() => {
     hydrate()
   }, [hydrate])
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!cardRef.current) return
-    const rect = cardRef.current.getBoundingClientRect()
-    const x = (e.clientX - rect.left) / rect.width
-    const y = (e.clientY - rect.top) / rect.height
-    const rotateY = (x - 0.5) * 4
-    const rotateX = (0.5 - y) * 4
-    setTiltStyle({ transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)` })
-  }, [])
-
-  const handleMouseLeave = useCallback(() => {
-    setTiltStyle({ transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)' })
-  }, [])
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -173,59 +156,24 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 mesh-gradient-bg relative overflow-hidden">
-      {/* Floating leaf particles */}
-      <div className="leaf-particle" style={{ width: 8, height: 8, left: '10%', bottom: '-5%', '--leaf-duration': '14s', '--leaf-delay': '0s' } as React.CSSProperties} />
-      <div className="leaf-particle" style={{ width: 6, height: 6, left: '25%', bottom: '-8%', '--leaf-duration': '18s', '--leaf-delay': '2s' } as React.CSSProperties} />
-      <div className="leaf-particle" style={{ width: 10, height: 10, left: '45%', bottom: '-3%', '--leaf-duration': '12s', '--leaf-delay': '4s' } as React.CSSProperties} />
-      <div className="leaf-particle" style={{ width: 7, height: 7, left: '65%', bottom: '-6%', '--leaf-duration': '16s', '--leaf-delay': '1s' } as React.CSSProperties} />
-      <div className="leaf-particle" style={{ width: 5, height: 5, left: '80%', bottom: '-4%', '--leaf-duration': '20s', '--leaf-delay': '3s' } as React.CSSProperties} />
-      <div className="leaf-particle" style={{ width: 9, height: 9, left: '55%', bottom: '-7%', '--leaf-duration': '15s', '--leaf-delay': '5s' } as React.CSSProperties} />
-      <div className="leaf-particle" style={{ width: 6, height: 6, left: '35%', bottom: '-2%', '--leaf-duration': '17s', '--leaf-delay': '7s' } as React.CSSProperties} />
-
-      {/* Decorative tree SVG on desktop */}
-      <div className="hidden lg:flex items-center justify-center mr-8 opacity-15 pointer-events-none select-none">
-        <svg width="200" height="300" viewBox="0 0 200 300" fill="none" className="text-green-700 dark:text-green-400">
-          {/* Tree trunk */}
-          <rect x="88" y="180" width="24" height="120" rx="4" fill="currentColor" opacity="0.6" />
-          {/* Tree crown layers */}
-          <ellipse cx="100" cy="140" rx="70" ry="55" fill="currentColor" opacity="0.4" />
-          <ellipse cx="100" cy="100" rx="55" ry="50" fill="currentColor" opacity="0.5" />
-          <ellipse cx="100" cy="65" rx="40" ry="40" fill="currentColor" opacity="0.6" />
-          {/* Small roots */}
-          <path d="M88 295 Q70 280 55 290" stroke="currentColor" strokeWidth="4" fill="none" opacity="0.3" />
-          <path d="M112 295 Q130 280 145 290" stroke="currentColor" strokeWidth="4" fill="none" opacity="0.3" />
-        </svg>
-      </div>
-
-      <Card
-        ref={cardRef}
-        className="w-full max-w-md shadow-xl shadow-green-900/10 dark:shadow-green-900/20 border-green-100 dark:border-green-900/30 animate-in fade-in slide-in-from-bottom-4 duration-500 hover-lift parallax-tilt"
-        style={tiltStyle}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-      >
-        <CardHeader className="text-center pb-2">
-          <div className="mx-auto mb-3 size-14 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
-            <TreePine className="size-7 text-green-600 dark:text-green-400" />
-          </div>
-          <CardTitle className="text-xl">Evidenční systém výsadby</CardTitle>
-          <CardDescription className="text-green-700/70 dark:text-green-400/70 typing-cursor">
-            Evidence výsadby a údržby stromů
-          </CardDescription>
+    <div className="flex items-center justify-center min-h-screen p-4 bg-background">
+      <Card className="w-full max-w-sm rounded-sm border border-border shadow-none bg-card">
+        <CardHeader className="pb-2 border-b border-border">
+          <CardTitle className="text-[13px] font-normal font-mono">evidence-stromu</CardTitle>
+          <CardDescription className="text-[11px]">přihlášení</CardDescription>
         </CardHeader>
         <CardContent className="pt-2">
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 h-auto p-0 bg-transparent border-b rounded-none">
               <TabsTrigger
                 value="login"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:shadow-none data-[state=active]:bg-transparent py-2.5 text-sm font-medium transition-colors"
+                className="rounded-none border-b border-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none data-[state=active]:bg-transparent py-2 text-[11px] font-mono"
               >
                 Přihlášení
               </TabsTrigger>
               <TabsTrigger
                 value="register"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:shadow-none data-[state=active]:bg-transparent py-2.5 text-sm font-medium transition-colors"
+                className="rounded-none border-b border-transparent data-[state=active]:border-foreground data-[state=active]:shadow-none data-[state=active]:bg-transparent py-2 text-[11px] font-mono"
               >
                 Registrace
               </TabsTrigger>
@@ -284,13 +232,12 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
                       id="remember-me"
                       checked={rememberMe}
                       onCheckedChange={(checked) => setRememberMe(checked === true)}
-                      className="checkbox-green"
                     />
                     <Label htmlFor="remember-me" className="text-xs text-muted-foreground cursor-pointer">Zapamatovat si mě</Label>
                   </div>
                   <button
                     type="button"
-                    className="text-xs text-green-700 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 hover:underline"
+                    className="text-xs text-primary hover:underline"
                     onClick={() => toast.info('Funkce zatím není dostupná')}
                   >
                     Zapomněli jste heslo?
@@ -373,10 +320,10 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
                         Síla hesla: <span className="font-medium">{passwordStrength.label}</span>
                       </p>
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
-                        <span className={regPassword.length >= 6 ? 'text-green-600 dark:text-green-400' : ''}>Min. 6 znaků</span>
-                        <span className={/[A-Z]/.test(regPassword) ? 'text-green-600 dark:text-green-400' : ''}>Velké písmeno</span>
-                        <span className={/[0-9]/.test(regPassword) ? 'text-green-600 dark:text-green-400' : ''}>Číslo</span>
-                        <span className={/[^A-Za-z0-9]/.test(regPassword) ? 'text-green-600 dark:text-green-400' : ''}>Spec. znak</span>
+                        <span className={regPassword.length >= 6 ? 'text-primary' : ''}>Min. 6 znaků</span>
+                        <span className={/[A-Z]/.test(regPassword) ? 'text-primary' : ''}>Velké písmeno</span>
+                        <span className={/[0-9]/.test(regPassword) ? 'text-primary' : ''}>Číslo</span>
+                        <span className={/[^A-Za-z0-9]/.test(regPassword) ? 'text-primary' : ''}>Spec. znak</span>
                       </div>
                     </div>
                   )}

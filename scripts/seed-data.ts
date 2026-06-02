@@ -97,7 +97,15 @@ async function main() {
 
   for (let b = 0; b < batches; b++) {
     const batchCount = Math.min(batchSize, count - b * batchSize)
-    const records = []
+    const records: Array<{
+      plantedAt: Date
+      speciesLatin: string
+      lat: number
+      lng: number
+      locality: string | null
+      note: string | null
+      createdById: string
+    }> = []
 
     for (let i = 0; i < batchCount; i++) {
       const loc = randomChoice(CZECH_LOCATIONS)

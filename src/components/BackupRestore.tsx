@@ -1,13 +1,18 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Database, Download, Upload } from 'lucide-react'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useCallback,
+  type ReactNode,
+} from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Download, Upload, ExternalLink, Table2 } from 'lucide-react'
+import {
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
@@ -19,21 +24,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { toast } from 'sonner'
 
-export function BackupRestore() {
+const isDev = process.env.NODE_ENV === 'development'
+
+type BackupContextValue = {
+  fileInputRef: React.RefObject<HTMLInputElement | null>
+  handleDownload: () => Promise<void>
+  triggerRestorePicker: () => void
+  handleOpenPrismaStudio: () => Promise<void>
+  studioLoading: boolean
+}
+
+const BackupContext = createContext<BackupContextValue | null>(null)
+
+function useBackupContext() {
+  const ctx = useContext(BackupContext)
+  if (!ctx) throw new Error('BackupRestoreProvider required')
+  return ctx
+}
+
+export function BackupRestoreProvider({ children }: { children: ReactNode }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [studioLoading, setStudioLoading] = useState(false)
   const queryClient = useQueryClient()
 
-  // Download backup
   const handleDownload = useCallback(async () => {
     try {
       const res = await fetch('/api/records/backup')
@@ -51,14 +68,13 @@ export function BackupRestore() {
       URL.revokeObjectURL(url)
 
       toast.success('Záloha stažena', {
-        description: `${data.records?.length ?? 0} záznamů exportováno`,
+        description: `${data.records?.length ?? 0} záznamů`,
       })
     } catch {
-      toast.error('Chyba', { description: 'Nepodařilo se stáhnout zálohu' })
+      toast.error('Nepodařilo se stáhnout zálohu')
     }
   }, [])
 
-  // Restore mutation
   const restoreMutation = useMutation({
     mutationFn: async (file: File) => {
       const text = await file.text()
@@ -75,10 +91,7 @@ export function BackupRestore() {
       return res.json()
     },
     onSuccess: (data) => {
-      toast.success('Data obnovena', {
-        description: `${data.restored} záznamů obnoveno ze zálohy`,
-      })
-      // Invalidate all queries
+      toast.success('Data obnovena', { description: `${data.restored} záznamů` })
       queryClient.invalidateQueries()
       setConfirmOpen(false)
       setPendingFile(null)
@@ -90,50 +103,50 @@ export function BackupRestore() {
     },
   })
 
-  // File picker change handler
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setPendingFile(file)
-      setConfirmOpen(true)
-    }
-    // Reset the input so the same file can be selected again
-    e.target.value = ''
-  }, [])
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) {
+        setPendingFile(file)
+        setConfirmOpen(true)
+      }
+      e.target.value = ''
+    },
+    []
+  )
 
-  // Confirm restore
   const handleConfirmRestore = useCallback(() => {
-    if (pendingFile) {
-      restoreMutation.mutate(pendingFile)
-    }
+    if (pendingFile) restoreMutation.mutate(pendingFile)
   }, [pendingFile, restoreMutation])
 
-  return (
-    <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-7">
-                <Database className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={handleDownload}>
-                <Download className="size-3.5 mr-2" />
-                Stáhnout zálohu
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-                <Upload className="size-3.5 mr-2" />
-                Obnovit ze zálohy
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">Záloha dat</TooltipContent>
-      </Tooltip>
+  const handleOpenPrismaStudio = useCallback(async () => {
+    setStudioLoading(true)
+    try {
+      const res = await fetch('/api/dev/prisma-studio', { method: 'POST' })
+      const data = (await res.json()) as { url?: string; error?: string; started?: boolean }
+      if (!res.ok) throw new Error(data.error ?? 'Nepodařilo se spustit Prisma Studio')
+      if (data.url) window.open(data.url, '_blank', 'noopener,noreferrer')
+      toast.success(data.started ? 'Prisma Studio spuštěno' : 'Prisma Studio otevřeno')
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Spusťte: bun run db:studio'
+      )
+    } finally {
+      setStudioLoading(false)
+    }
+  }, [])
 
-      {/* Hidden file input */}
+  const value: BackupContextValue = {
+    fileInputRef,
+    handleDownload,
+    triggerRestorePicker: () => fileInputRef.current?.click(),
+    handleOpenPrismaStudio,
+    studioLoading,
+  }
+
+  return (
+    <BackupContext.Provider value={value}>
+      {children}
       <input
         ref={fileInputRef}
         type="file"
@@ -141,24 +154,60 @@ export function BackupRestore() {
         className="hidden"
         onChange={handleFileChange}
       />
-
-      {/* Confirmation dialog */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Obnovit data ze zálohy?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tímto se nahradí všechna stávající data. Pokračovat?
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">Nahradí se všechna stávající data.</span>
+              <span className="block text-xs text-muted-foreground">
+                Fotografie zálohujte zvlášť ve složce{' '}
+                <code className="text-[10px]">public/uploads/</code>.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Zrušit</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmRestore} disabled={restoreMutation.isPending}>
+            <AlertDialogAction
+              onClick={handleConfirmRestore}
+              disabled={restoreMutation.isPending}
+            >
               {restoreMutation.isPending ? 'Obnovuji…' : 'Obnovit'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </BackupContext.Provider>
+  )
+}
+
+export function BackupRestoreMenuItems() {
+  const { handleDownload, triggerRestorePicker, handleOpenPrismaStudio, studioLoading } =
+    useBackupContext()
+
+  return (
+    <>
+      <DropdownMenuItem onClick={handleDownload}>
+        <Download className="size-3.5 mr-2" />
+        Stáhnout zálohu JSON
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={triggerRestorePicker}>
+        <Upload className="size-3.5 mr-2" />
+        Obnovit ze zálohy
+      </DropdownMenuItem>
+      {isDev && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={handleOpenPrismaStudio}
+            disabled={studioLoading}
+          >
+            <Table2 className="size-3.5 mr-2" />
+            {studioLoading ? 'Spouštím…' : 'Prisma Studio'}
+            <ExternalLink className="size-3 ml-auto opacity-50" />
+          </DropdownMenuItem>
+        </>
+      )}
     </>
   )
 }

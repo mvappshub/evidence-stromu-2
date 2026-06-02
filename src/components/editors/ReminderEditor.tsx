@@ -47,7 +47,7 @@ const reminderFormSchema = z.object({
   intervalUnit: z.enum(['day', 'week', 'month', 'year']).optional(),
   startAt: z.string().optional(),
   dueAt: z.string().optional(),
-  active: z.boolean().optional().default(true),
+  active: z.boolean(),
 })
 
 type ReminderFormValues = z.infer<typeof reminderFormSchema>
@@ -101,6 +101,8 @@ export function ReminderEditor({
   })
 
   const watchMode = form.watch('mode')
+  const watchStartAt = form.watch('startAt') ?? ''
+  const watchDueAt = form.watch('dueAt') ?? ''
 
   // Create reminder mutation
   const createMutation = useMutation({
@@ -410,12 +412,12 @@ export function ReminderEditor({
                   variant="outline"
                   className={cn(
                     'h-8 text-sm justify-start text-left font-normal w-full',
-                    !form.watch('startAt') && 'text-muted-foreground'
+                    !watchStartAt && 'text-muted-foreground'
                   )}
                 >
                   <CalendarDays className="mr-2 size-3.5" />
-                  {form.watch('startAt')
-                    ? format(new Date(form.watch('startAt')), 'd.M.yyyy', { locale: cs })
+                  {watchStartAt
+                    ? format(new Date(watchStartAt), 'd.M.yyyy', { locale: cs })
                     : 'Vyberte datum'}
                 </Button>
               </PopoverTrigger>
@@ -423,8 +425,8 @@ export function ReminderEditor({
                 <Calendar
                   mode="single"
                   selected={
-                    form.watch('startAt')
-                      ? new Date(form.watch('startAt'))
+                    watchStartAt
+                      ? new Date(watchStartAt)
                       : undefined
                   }
                   onSelect={(date) => {
@@ -450,12 +452,12 @@ export function ReminderEditor({
                   variant="outline"
                   className={cn(
                     'h-8 text-sm justify-start text-left font-normal w-full',
-                    !form.watch('dueAt') && 'text-muted-foreground'
+                    !watchDueAt && 'text-muted-foreground'
                   )}
                 >
                   <CalendarDays className="mr-2 size-3.5" />
-                  {form.watch('dueAt')
-                    ? format(new Date(form.watch('dueAt')), 'd.M.yyyy', { locale: cs })
+                  {watchDueAt
+                    ? format(new Date(watchDueAt), 'd.M.yyyy', { locale: cs })
                     : 'Vyberte datum'}
                 </Button>
               </PopoverTrigger>
@@ -463,8 +465,8 @@ export function ReminderEditor({
                 <Calendar
                   mode="single"
                   selected={
-                    form.watch('dueAt')
-                      ? new Date(form.watch('dueAt'))
+                    watchDueAt
+                      ? new Date(watchDueAt)
                       : undefined
                   }
                   onSelect={(date) => {

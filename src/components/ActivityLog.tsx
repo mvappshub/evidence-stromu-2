@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query'
 import { parseISO, formatDistanceToNow } from 'date-fns'
 import { cs } from 'date-fns/locale'
 import {
-  Clock,
   Plus,
   Pencil,
   Trash2,
@@ -15,7 +14,6 @@ import {
   Loader2,
   Activity,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import {
   Popover,
   PopoverContent,
@@ -44,7 +42,7 @@ interface ActivityResponse {
 }
 
 const actionConfig: Record<string, { icon: typeof Plus; label: string; bgColor: string; ringColor: string }> = {
-  create: { icon: Plus, label: 'Vytvořeno', bgColor: 'text-green-600 dark:text-green-400', ringColor: 'ring-green-200 dark:ring-green-800 bg-green-50 dark:bg-green-950/50' },
+  create: { icon: Plus, label: 'Vytvořeno', bgColor: 'text-primary', ringColor: 'ring-border bg-muted' },
   update: { icon: Pencil, label: 'Upraveno', bgColor: 'text-amber-600 dark:text-amber-400', ringColor: 'ring-amber-200 dark:ring-amber-800 bg-amber-50 dark:bg-amber-950/50' },
   delete: { icon: Trash2, label: 'Smazáno', bgColor: 'text-red-600 dark:text-red-400', ringColor: 'ring-red-200 dark:ring-red-800 bg-red-50 dark:bg-red-950/50' },
   ack: { icon: CheckCircle, label: 'Vyřízeno', bgColor: 'text-blue-600 dark:text-blue-400', ringColor: 'ring-blue-200 dark:ring-blue-800 bg-blue-50 dark:bg-blue-950/50' },
@@ -128,7 +126,7 @@ function TimelineEntry({
             {config.label}
           </span>
           {isRecord ? (
-            <Badge variant="outline" className="h-3.5 px-1 text-[8px] gap-0.5 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400">
+            <Badge variant="outline" className="h-3.5 px-1 text-[8px] gap-0.5">
               <TreePine className="size-2" />
               Strom
             </Badge>
@@ -185,8 +183,15 @@ function ActivitySkeleton() {
   )
 }
 
-export function ActivityLog() {
-  const [open, setOpen] = useState(false)
+interface ActivityLogProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function ActivityLog({ open: openProp, onOpenChange }: ActivityLogProps) {
+  const [openInternal, setOpenInternal] = useState(false)
+  const open = openProp ?? openInternal
+  const setOpen = onOpenChange ?? setOpenInternal
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
 
   const { data, isLoading } = useQuery<ActivityResponse>({
@@ -210,16 +215,12 @@ export function ActivityLog() {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-7" title="Aktivita">
-          <Clock className="size-3.5" />
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger className="sr-only" tabIndex={-1} aria-hidden />
       <PopoverContent align="end" className="w-80 p-0">
-        <div className="p-3 border-b bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20">
+        <div className="p-3 border-b">
           <div className="flex items-center gap-2">
-            <div className="size-6 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center">
-              <Activity className="size-3 text-green-600 dark:text-green-400" />
+            <div className="size-6 rounded-full bg-muted flex items-center justify-center">
+              <Activity className="size-3 text-muted-foreground" />
             </div>
             <div>
               <p className="text-xs font-semibold">Panel aktivit</p>

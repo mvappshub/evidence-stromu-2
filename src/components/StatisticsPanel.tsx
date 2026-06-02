@@ -3,26 +3,29 @@
 import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { cs } from 'date-fns/locale'
-import { BarChart3, TreePine, Calendar, MapPin } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { TreePine, Calendar, MapPin } from 'lucide-react'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { czechPlural } from '@/lib/czech-plural'
-
 interface Stats {
   totalCount: number
   speciesBreakdown: { species: string; count: number }[]
   dateRange: { earliest: string | null; latest: string | null }
   localityBreakdown: { locality: string | null; count: number }[]
-  yearlyBreakdown: { year: string; count: number }[]
+  yearlyBreakdown: { year: string | null; count: number }[]
 }
 
-export function StatisticsPanel() {
+interface StatisticsPanelProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function StatisticsPanel({ open, onOpenChange }: StatisticsPanelProps) {
   const { data: stats, isLoading } = useQuery<Stats>({
     queryKey: ['records-stats'],
     queryFn: async () => {
@@ -33,37 +36,23 @@ export function StatisticsPanel() {
     staleTime: 30_000,
   })
 
+  const yearlyBreakdown = (stats?.yearlyBreakdown ?? []).filter(
+    (item): item is { year: string; count: number } =>
+      typeof item.year === 'string' && item.year.length > 0
+  )
+  const maxYearlyCount = Math.max(1, ...yearlyBreakdown.map((item) => item.count))
+
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-7" title="Statistiky">
-          <BarChart3 className="size-3.5" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-96 p-0">
-        <div className="p-4 border-b bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="size-4 text-green-600" />
-            <h3 className="text-sm font-semibold">Statistiky výsadby</h3>
-          </div>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-96 max-w-[calc(100vw-2rem)] gap-0 p-0 overflow-hidden">
+        <DialogHeader className="px-4 py-3 border-b">
+          <DialogTitle className="text-sm font-medium">Statistiky</DialogTitle>
+        </DialogHeader>
         <ScrollArea className="max-h-[420px]">
           {isLoading ? (
             <div className="p-4 text-center text-xs text-muted-foreground">Načítání…</div>
           ) : stats ? (
             <div className="p-4 space-y-4">
-              {/* Total count */}
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-full bg-green-50 dark:bg-green-950/30 flex items-center justify-center">
-                  <TreePine className="size-4 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold tabular-nums">{stats.totalCount}</p>
-                  <p className="text-[10px] text-muted-foreground">{czechPlural(stats.totalCount, ['strom', 'stromy', 'stromů'])} celkem</p>
-                </div>
-              </div>
-
-              {/* Date range */}
               {stats.dateRange.earliest && (
                 <div className="flex items-center gap-2 text-xs">
                   <Calendar className="size-3.5 text-muted-foreground shrink-0" />
@@ -78,7 +67,7 @@ export function StatisticsPanel() {
               {/* Species bar chart */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5">
-                  <TreePine className="size-3 text-green-600" />
+                  <TreePine className="size-3 text-muted-foreground" />
                   <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">Druhy</p>
                 </div>
                 {stats.speciesBreakdown.slice(0, 8).map((s, idx) => {
@@ -96,7 +85,7 @@ export function StatisticsPanel() {
                       </div>
                       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-green-500 transition-all duration-500"
+                          className="h-full rounded-sm bg-foreground/25 transition-colors"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -111,7 +100,7 @@ export function StatisticsPanel() {
                   <Separator />
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="size-3 text-emerald-500" />
+                      <MapPin className="size-3 text-muted-foreground" />
                       <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">Lokality</p>
                     </div>
                     {stats.localityBreakdown.slice(0, 5).map((l) => {
@@ -129,7 +118,7 @@ export function StatisticsPanel() {
                           </div>
                           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                              className="h-full rounded-sm bg-foreground/20 transition-colors"
                               style={{ width: `${pct}%` }}
                             />
                           </div>
@@ -141,31 +130,31 @@ export function StatisticsPanel() {
               )}
 
               {/* Yearly breakdown timeline */}
-              {stats.yearlyBreakdown.length > 0 && (
+              {yearlyBreakdown.length > 0 && (
                 <>
                   <Separator />
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <Calendar className="size-3 text-green-600" />
+                      <Calendar className="size-3 text-muted-foreground" />
                       <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">Výsadba po letech</p>
                     </div>
                     <div className="relative flex items-end gap-1 h-20">
                       {/* Connecting line */}
                       <div className="absolute bottom-0 left-0 right-0 h-px bg-muted" />
-                      {stats.yearlyBreakdown.map((y, idx) => {
-                        const maxCount = Math.max(...stats.yearlyBreakdown.map(x => x.count))
-                        const pct = (y.count / maxCount) * 100
+                      {yearlyBreakdown.map((y, idx) => {
+                        const pct = (y.count / maxYearlyCount) * 100
+                        const shortYear = y.year.slice(-2)
                         return (
                           <div key={y.year} className="flex-1 flex flex-col items-center gap-0.5 relative" title={`${y.year}: ${y.count}`}>
                             <span className="text-[9px] font-medium tabular-nums">{y.count}</span>
                             <div
-                              className="w-full rounded-t bg-green-500/70 transition-all duration-500 min-h-[2px] hover:bg-green-500"
+                              className="w-full rounded-t bg-foreground/30 min-h-[2px] hover:bg-foreground/40"
                               style={{ height: `${Math.max(pct, 5)}%` }}
                             />
-                            <span className="text-[8px] text-muted-foreground">{y.year.slice(2)}</span>
+                            <span className="text-[8px] text-muted-foreground">{shortYear}</span>
                             {/* Connecting line between bars */}
-                            {idx < stats.yearlyBreakdown.length - 1 && (
-                              <div className="absolute top-[15%] right-0 translate-x-1/2 w-full h-px bg-green-300/40 dark:bg-green-700/40" />
+                            {idx < yearlyBreakdown.length - 1 && (
+                              <div className="absolute top-[15%] right-0 translate-x-1/2 w-full h-px bg-border/60" />
                             )}
                           </div>
                         )
@@ -179,7 +168,7 @@ export function StatisticsPanel() {
             <div className="p-4 text-center text-xs text-muted-foreground">Chyba při načítání</div>
           )}
         </ScrollArea>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -102,7 +102,7 @@ export function UserProfileDialog({ open, onOpenChange }: { open: boolean; onOpe
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="size-5 text-green-600" />
+            <User className="size-5 text-muted-foreground" />
             Profil uživatele
           </DialogTitle>
           <DialogDescription>Správa vašeho účtu</DialogDescription>

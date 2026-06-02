@@ -10,6 +10,13 @@ const registerSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  if (process.env.ALLOW_REGISTRATION === "false") {
+    return NextResponse.json(
+      { error: "Registrace je vypnutá" },
+      { status: 403 }
+    )
+  }
+
   try {
     const body = await request.json()
     const parsed = registerSchema.safeParse(body)

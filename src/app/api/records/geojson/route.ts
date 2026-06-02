@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
+import { buildRecordsWhere, parseRecordsFilterParams } from "@/lib/records-query"
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request)
   if ("error" in auth) return auth.error
 
   const { searchParams } = new URL(request.url)
-  const species = searchParams.get("species")
-
-  const where: Record<string, unknown> = {
-    createdById: auth.userId,
-  }
-
-  if (species) {
-    where.speciesLatin = species
-  }
+  const filters = parseRecordsFilterParams(searchParams)
+  const where = buildRecordsWhere(auth.userId, filters)
 
   const records = await db.treeRecord.findMany({
     where,

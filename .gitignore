@@ -50,5 +50,13 @@ test
 prompt
 
 server.log
-# Skills directory
+
+# SQLite databases and user uploads
+*.db
+*.db-journal
+prisma/db/
+db/
+public/uploads/
+
+# Skills directory (legacy template)
 /skills/

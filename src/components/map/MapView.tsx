@@ -6,16 +6,17 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import Supercluster from 'supercluster'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { TreePine, Ruler, X } from 'lucide-react'
 import { useUiStore } from '@/store/useUiStore'
 import { usePlantStore } from '@/store/usePlantStore'
-import { MapStyleSwitcher, getMapStyle } from './MapStyleSwitcher'
+import { getMapStyle } from './MapStyleSwitcher'
 import type { MapStyleKey } from './MapStyleSwitcher'
-import { HeatmapToggle } from './HeatmapToggle'
 import type { LayerMode } from './HeatmapToggle'
-import { MapLegend } from './MapLegend'
+import { MapOverlays } from './MapOverlays'
 import { toast } from 'sonner'
-import { haversineDistance, formatDistance } from '@/lib/haversine'
+import { haversineDistance } from '@/lib/haversine'
+import { useMapContext } from '@/components/map/MapContext'
+import { useMapGeoJson } from '@/hooks/useMapGeoJson'
+import { MAP_COLORS } from '@/lib/map-colors'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -114,12 +115,12 @@ function addHeatmapToMap(map: maplibregl.Map, visible: boolean = false) {
         ],
         'heatmap-color': [
           'interpolate', ['linear'], ['heatmap-density'],
-          0, 'rgba(0, 0, 0, 0)',
-          0.2, 'rgba(34, 197, 94, 0.2)',
-          0.4, 'rgba(34, 197, 94, 0.4)',
-          0.6, 'rgba(132, 204, 22, 0.6)',
-          0.8, 'rgba(234, 179, 8, 0.8)',
-          1, 'rgba(239, 68, 68, 0.9)',
+          0, MAP_COLORS.heatmap[0],
+          0.2, MAP_COLORS.heatmap[1],
+          0.4, MAP_COLORS.heatmap[2],
+          0.6, MAP_COLORS.heatmap[3],
+          0.8, MAP_COLORS.heatmap[4],
+          1, MAP_COLORS.heatmap[5],
         ],
         'heatmap-radius': [
           'interpolate', ['linear'], ['zoom'],
@@ -144,13 +145,18 @@ export function MapView() {
   const isMapReady = useRef(false)
   const updateMapSourceRef = useRef<(map: maplibregl.Map) => void>(() => {})
   const popupRef = useRef<maplibregl.Popup | null>(null)
+  const popupRecordNumberRef = useRef<number | null>(null)
   const hasFittedBounds = useRef(false)
   const selectedMarkerRef = useRef<maplibregl.Marker | null>(null)
+  const createMutateRef = useRef<((args: { lat: number; lng: number }) => void) | null>(null)
   const updateMutateRef = useRef<((args: { recordNumber: number; lat: number; lng: number }) => void) | null>(null)
+  const cursorCoordFrameRef = useRef<number | null>(null)
+  const pendingCursorCoordRef = useRef<{ lat: number; lng: number } | null>(null)
+  const lastCursorCoordKeyRef = useRef<string | null>(null)
 
   const selectedRecordNumber = useUiStore((s) => s.selectedRecordNumber)
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
-  const speciesFilter = useUiStore((s) => s.speciesFilter)
+  const { setMap, setBearing } = useMapContext()
   const placeMode = usePlantStore((s) => s.placeMode)
   const measureMode = usePlantStore((s) => s.measureMode)
   const toggleMeasureMode = usePlantStore((s) => s.toggleMeasureMode)
@@ -194,39 +200,37 @@ export function MapView() {
 
   /* ---- Mouse coordinate state ----------------------------------- */
   const [cursorCoord, setCursorCoord] = useState<{ lat: number; lng: number } | null>(null)
-  const [mapBearing, setMapBearing] = useState(0)
   const [gridVisible, setGridVisible] = useState(false)
 
   /* ---- Data fetching --------------------------------------------- */
-  const geojsonQueryParams = useMemo(() => {
-    const params = new URLSearchParams()
-    if (speciesFilter) params.set('species', speciesFilter)
-    return params.toString()
-  }, [speciesFilter])
-
-  const { data: geoData } = useQuery<GeoJsonResponse>({
-    queryKey: ['records-geojson', geojsonQueryParams],
-    queryFn: async () => {
-      const res = await fetch(`/api/records/geojson?${geojsonQueryParams}`)
-      if (!res.ok) throw new Error('Failed to fetch')
-      return res.json()
-    },
-  })
+  const { data: geoData } = useMapGeoJson()
 
   /* ---- Create record mutation ------------------------------------ */
   const createMutation = useMutation({
     mutationFn: async (data: { lat: number; lng: number }) => {
+      const speciesLatin = activeSpecies.trim()
+      const plantedAt = activeDate.trim()
+      if (!speciesLatin || !plantedAt) {
+        throw new Error('Vyplňte druh a datum výsadby v liště pod mapou')
+      }
+
       const res = await fetch('/api/records', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
-          speciesLatin: activeSpecies,
-          plantedAt: activeDate,
-          locality: activeLocality || null,
+          speciesLatin,
+          plantedAt,
+          locality: activeLocality.trim() || null,
         }),
       })
-      if (!res.ok) throw new Error('Failed to create')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        const detail = Array.isArray(err.details)
+          ? err.details.map((d: { message?: string }) => d.message).filter(Boolean).join(', ')
+          : ''
+        throw new Error(err.error && detail ? `${err.error}: ${detail}` : err.error || 'Nepodařilo se vytvořit záznam')
+      }
       return res.json()
     },
     onSuccess: (data) => {
@@ -241,10 +245,15 @@ export function MapView() {
       queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
       queryClient.invalidateQueries({ queryKey: ['records'] })
     },
-    onError: () => {
-      toast.error('Chyba', { description: 'Nepodařilo se vložit strom' })
+    onError: (error) => {
+      toast.error('Chyba', {
+        description: error instanceof Error ? error.message : 'Nepodařilo se vložit strom',
+      })
     },
   })
+
+  // Keep create mutate ref updated without rebinding map click listeners on render.
+  useEffect(() => { createMutateRef.current = createMutation.mutate }, [createMutation.mutate])
 
   /* ---- Update record mutation (drag) ----------------------------- */
   const updateMutation = useMutation({
@@ -342,7 +351,7 @@ export function MapView() {
     // Feed the raw (unclustered) GeoJSON data to the heatmap source
     const heatmapData = geoData ?? { type: 'FeatureCollection', features: [] }
     ;(map.getSource('trees-source-heatmap') as maplibregl.GeoJSONSource).setData(
-      heatmapData as maplibregl.GeoJSONSourceOptions['data']
+      heatmapData as GeoJSON.FeatureCollection
     )
   }, [geoData])
 
@@ -358,9 +367,9 @@ export function MapView() {
       attributionControl: false,
     })
 
-    map.addControl(new maplibregl.NavigationControl(), 'bottom-right')
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
     map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left')
 
     map.on('load', () => {
       isMapReady.current = true
@@ -381,13 +390,13 @@ export function MapView() {
           'circle-color': [
             'step',
             ['get', 'point_count'],
-            '#86efac',
+            MAP_COLORS.cluster[0],
             10,
-            '#4ade80',
+            MAP_COLORS.cluster[1],
             50,
-            '#22c55e',
+            MAP_COLORS.cluster[2],
             200,
-            '#16a34a',
+            MAP_COLORS.cluster[3],
           ],
           'circle-radius': [
             'step',
@@ -429,7 +438,7 @@ export function MapView() {
         source: 'trees-source',
         filter: ['!=', ['get', 'cluster'], true],
         paint: {
-          'circle-color': '#22c55e',
+          'circle-color': MAP_COLORS.point,
           'circle-radius': 6,
           'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
@@ -443,7 +452,7 @@ export function MapView() {
         source: 'trees-source',
         filter: ['==', ['get', 'selected'], true],
         paint: {
-          'circle-color': '#22c55e',
+          'circle-color': MAP_COLORS.point,
           'circle-radius': 9,
           'circle-stroke-width': 3,
           'circle-stroke-color': '#eab308',
@@ -488,6 +497,10 @@ export function MapView() {
           const props = feat.properties!
           map.getCanvas().style.cursor = placeModeRef.current ? 'crosshair' : 'pointer'
 
+          const recordNumber = Number(props.recordNumber)
+          if (popupRecordNumberRef.current === recordNumber) return
+          popupRecordNumberRef.current = recordNumber
+
           const coordinates = (feat.geometry as any).coordinates.slice()
           const date = props.plantedAt ? format(new Date(props.plantedAt), 'd.M.yyyy') : ''
           const locality = props.locality ? `<br/>📍 ${props.locality}` : ''
@@ -507,6 +520,7 @@ export function MapView() {
 
       map.on('mouseleave', 'trees-layer', () => {
         map.getCanvas().style.cursor = placeModeRef.current ? 'crosshair' : ''
+        popupRecordNumberRef.current = null
         if (popupRef.current) {
           popupRef.current.remove()
           popupRef.current = null
@@ -522,13 +536,19 @@ export function MapView() {
     })
 
     mapRef.current = map
+    setMap(map)
+
+    const onRotate = () => setBearing(map.getBearing())
+    map.on('rotate', onRotate)
 
     return () => {
+      map.off('rotate', onRotate)
       map.remove()
       mapRef.current = null
+      setMap(null)
       isMapReady.current = false
     }
-  }, [])
+  }, [setMap, setBearing])
 
   /* ---- Fit bounds on first data load ----------------------------- */
   useEffect(() => {
@@ -578,7 +598,7 @@ export function MapView() {
         const { lat, lng } = e.lngLat
         // Show visual feedback flash at click point
         addFlashMarker(e.point.x, e.point.y)
-        createMutation.mutate({ lat, lng })
+        createMutateRef.current?.({ lat, lng })
         return
       }
 
@@ -614,7 +634,9 @@ export function MapView() {
         const sc = superclusterRef.current
         if (sc && clusterId != null) {
           const zoom = sc.getClusterExpansionZoom(Number(clusterId))
-          const center = features[0].geometry.coordinates
+          const geom = features[0].geometry
+          if (geom.type !== 'Point') return
+          const center = geom.coordinates
           map.flyTo({
             center: center as [number, number],
             zoom,
@@ -631,7 +653,7 @@ export function MapView() {
       map.off('click', handleMapClick)
       map.off('click', handleClusterClick)
     }
-  }, [placeMode, createMutation, setSelectedRecordNumber, setMeasurePoints])
+  }, [placeMode, addFlashMarker, setSelectedRecordNumber])
 
   /* ---- Cursor style based on place/measure mode ------------------ */
   useEffect(() => {
@@ -652,19 +674,40 @@ export function MapView() {
     if (!map) return
 
     const onMouseMove = (e: maplibregl.MapMouseEvent) => {
-      setCursorCoord({ lat: e.lngLat.lat, lng: e.lngLat.lng })
+      pendingCursorCoordRef.current = { lat: e.lngLat.lat, lng: e.lngLat.lng }
+      if (cursorCoordFrameRef.current !== null) return
+
+      cursorCoordFrameRef.current = window.requestAnimationFrame(() => {
+        cursorCoordFrameRef.current = null
+        const coord = pendingCursorCoordRef.current
+        if (!coord) return
+
+        const key = `${coord.lat.toFixed(4)},${coord.lng.toFixed(4)}`
+        if (key === lastCursorCoordKeyRef.current) return
+        lastCursorCoordKeyRef.current = key
+        setCursorCoord(coord)
+      })
     }
-    const onMouseOut = () => setCursorCoord(null)
-    const onRotate = () => setMapBearing(map.getBearing())
+    const onMouseOut = () => {
+      pendingCursorCoordRef.current = null
+      lastCursorCoordKeyRef.current = null
+      if (cursorCoordFrameRef.current !== null) {
+        window.cancelAnimationFrame(cursorCoordFrameRef.current)
+        cursorCoordFrameRef.current = null
+      }
+      setCursorCoord(null)
+    }
 
     map.on('mousemove', onMouseMove)
     map.on('mouseout', onMouseOut)
-    map.on('rotate', onRotate)
 
     return () => {
+      if (cursorCoordFrameRef.current !== null) {
+        window.cancelAnimationFrame(cursorCoordFrameRef.current)
+        cursorCoordFrameRef.current = null
+      }
       map.off('mousemove', onMouseMove)
       map.off('mouseout', onMouseOut)
-      map.off('rotate', onRotate)
     }
   }, [])
 
@@ -714,7 +757,7 @@ export function MapView() {
     el.style.width = '18px'
     el.style.height = '18px'
     el.style.borderRadius = '50%'
-    el.style.backgroundColor = '#22c55e'
+    el.style.backgroundColor = MAP_COLORS.point
     el.style.border = '3px solid #eab308'
     el.style.cursor = 'grab'
     el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)'
@@ -771,7 +814,7 @@ export function MapView() {
     setMapStyle(style)
     const map = mapRef.current
     if (map) {
-      map.setStyle(getMapStyle(style) as maplibregl.StyleSpecification)
+      map.setStyle(getMapStyle(style) as unknown as maplibregl.StyleSpecification)
       // Need to re-add sources/layers after style change
       map.once('style.load', () => {
         if (!map.getSource('trees-source')) {
@@ -784,7 +827,7 @@ export function MapView() {
             id: 'clusters-layer', type: 'circle', source: 'trees-source',
             filter: ['==', ['get', 'cluster'], true],
             paint: {
-              'circle-color': ['step', ['get', 'point_count'], '#86efac', 10, '#4ade80', 50, '#22c55e', 200, '#16a34a'],
+              'circle-color': ['step', ['get', 'point_count'], MAP_COLORS.cluster[0], 10, MAP_COLORS.cluster[1], 50, MAP_COLORS.cluster[2], 200, MAP_COLORS.cluster[3]],
               'circle-radius': ['step', ['get', 'point_count'], 18, 10, 24, 50, 30, 200, 36],
               'circle-stroke-width': 3, 'circle-stroke-color': '#ffffff', 'circle-opacity': 0.9,
             },
@@ -798,12 +841,12 @@ export function MapView() {
           map.addLayer({
             id: 'trees-layer', type: 'circle', source: 'trees-source',
             filter: ['!=', ['get', 'cluster'], true],
-            paint: { 'circle-color': '#22c55e', 'circle-radius': 6, 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' },
+            paint: { 'circle-color': MAP_COLORS.point, 'circle-radius': 6, 'circle-stroke-width': 2, 'circle-stroke-color': '#ffffff' },
           })
           map.addLayer({
             id: 'selected-tree-layer', type: 'circle', source: 'trees-source',
             filter: ['==', ['get', 'selected'], true],
-            paint: { 'circle-color': '#22c55e', 'circle-radius': 9, 'circle-stroke-width': 3, 'circle-stroke-color': '#eab308' },
+            paint: { 'circle-color': MAP_COLORS.point, 'circle-radius': 9, 'circle-stroke-width': 3, 'circle-stroke-color': MAP_COLORS.pointSelectedStroke },
           })
 
           // Re-add heatmap source + layer (hidden by default; will be shown if layerMode is heatmap)
@@ -829,26 +872,6 @@ export function MapView() {
           // Reset layer mode to points on style change (layers are recreated in default visibility)
           setLayerMode('points')
 
-          // Re-add hover handlers
-          map.on('mousemove', 'trees-layer', (e) => {
-            if (e.features && e.features.length > 0) {
-              const feat = e.features[0]
-              const props = feat.properties!
-              map.getCanvas().style.cursor = placeModeRef.current ? 'crosshair' : 'pointer'
-              const coordinates = (feat.geometry as any).coordinates.slice()
-              const date = props.plantedAt ? format(new Date(props.plantedAt), 'd.M.yyyy') : ''
-              const locality = props.locality ? `<br/>📍 ${props.locality}` : ''
-              if (popupRef.current) popupRef.current.remove()
-              popupRef.current = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10, className: 'tree-popup' })
-                .setLngLat(coordinates)
-                .setHTML(`<div style="font-size:12px"><em>${props.speciesLatin}</em><br/>📅 ${date}${locality}</div>`)
-                .addTo(map)
-            }
-          })
-          map.on('mouseleave', 'trees-layer', () => {
-            map.getCanvas().style.cursor = placeModeRef.current ? 'crosshair' : ''
-            if (popupRef.current) { popupRef.current.remove(); popupRef.current = null }
-          })
           // Trigger data update
           updateMapSourceRef.current(map)
         }
@@ -959,14 +982,6 @@ export function MapView() {
     }
   }, [selectedRecordNumber, geoData])
 
-  /* ---- Expose map instance for StatusBar zoom level ------------- */
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map) return
-    const container = map.getContainer()
-    ;(container as HTMLElement & { __mapInstance?: object }).__mapInstance = map
-  }, [geoData])
-
   /* ---- Resize handler -------------------------------------------- */
   useEffect(() => {
     const handleResize = () => {
@@ -982,128 +997,23 @@ export function MapView() {
     <div className="relative w-full h-full">
       <div ref={mapContainer} className="w-full h-full" />
 
-      {/* Vignette overlay */}
-      <div className="absolute inset-0 map-vignette z-[1]" />
-
-      {/* Loading shimmer */}
-      {isGeoLoading && <div className="map-loading-shimmer" />}
-
-      {/* Compass rose */}
-      <div className="absolute top-3 left-3 z-10">
-        <div
-          className="compass-rose"
-          style={{ transform: `rotate(${-mapBearing}deg)`, ['--compass-rotate' as string]: String(-mapBearing) }}
-        >
-          N
-        </div>
-      </div>
-
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
-        <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={handleStyleChange} className="style-switcher-fade-in" />
-        <HeatmapToggle mode={layerMode} onToggle={handleLayerModeToggle} />
-        <button
-          type="button"
-          onClick={toggleMeasureMode}
-          className={`size-8 rounded-md border flex items-center justify-center transition-colors shadow-sm ${
-            measureMode
-              ? 'bg-red-500 border-red-600 text-white hover:bg-red-600'
-              : 'bg-background/90 border-border text-muted-foreground hover:text-foreground hover:bg-background'
-          }`}
-          title="Měření vzdálenosti"
-        >
-          <Ruler className="size-3.5" />
-        </button>
-      </div>
-
-      {/* Measurement distance panel */}
-      {measureMode && measurePoints.length > 0 && (
-        <div className="absolute top-14 right-3 z-10 bg-background/95 border border-border rounded-lg shadow-lg p-3 min-w-[160px]">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="text-xs font-medium text-muted-foreground">Měření vzdálenosti</span>
-            <button
-              type="button"
-              onClick={clearMeasurePoints}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              title="Vymazat body"
-            >
-              <X className="size-3.5" />
-            </button>
-          </div>
-          <div className="text-lg font-bold tabular-nums text-red-600 dark:text-red-400">
-            {formatDistance(totalMeasureDistance)}
-          </div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">
-            {measurePoints.length} {measurePoints.length === 1 ? 'bod' : measurePoints.length < 5 ? 'body' : 'bodů'}
-          </div>
-        </div>
-      )}
-      <MapLegend layerMode={layerMode} />
-
-      {/* Coordinate display */}
-      {cursorCoord && (
-        <div className="absolute bottom-14 left-3 z-10 coord-display coord-flash" key={`${cursorCoord.lat.toFixed(3)},${cursorCoord.lng.toFixed(3)}`}>
-          {cursorCoord.lat.toFixed(5)}, {cursorCoord.lng.toFixed(5)}
-        </div>
-      )}
-
-      {/* Flash markers for tree placement visual feedback */}
-      {flashMarkers.map((marker) => (
-        <div
-          key={marker.id}
-          className="tree-flash-marker"
-          style={{ left: marker.x, top: marker.y }}
-        />
-      ))}
-      {/* Grid overlay */}
-      {gridVisible && (
-        <div className="grid-overlay">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="lat-grid" width="100%" height="50" patternUnits="userSpaceOnUse">
-                <line x1="0" y1="50" x2="100%" y2="50" stroke="oklch(0.55 0.15 145 / 0.15)" strokeWidth="0.5" strokeDasharray="4 4" />
-              </pattern>
-              <pattern id="lng-grid" width="50" height="100%" patternUnits="userSpaceOnUse">
-                <line x1="50" y1="0" x2="50" y2="100%" stroke="oklch(0.55 0.15 145 / 0.15)" strokeWidth="0.5" strokeDasharray="4 4" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#lat-grid)" />
-            <rect width="100%" height="100%" fill="url(#lng-grid)" />
-          </svg>
-        </div>
-      )}
-
-      {/* Empty state overlay for new users */}
-      {geoData?.features?.length === 0 && !isGeoLoading && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm">
-          <div className="text-center space-y-3 max-w-sm px-4">
-            <div className="size-20 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center pulse-tree-icon">
-              <TreePine className="size-10 text-green-600" />
-            </div>
-            <h3 className="text-lg font-semibold">Začněte evidovat stromy</h3>
-            <p className="text-sm text-muted-foreground">
-              Klikněte na tlačítko <strong>„Vkládat&quot;</strong> dole na mapě a poté klikněte na místo, kde byl strom vysazen.
-            </p>
-            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 rounded border bg-muted text-[10px] font-mono">P</kbd> Režim vkládání</span>
-              <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 rounded border bg-muted text-[10px] font-mono">?</kbd> Klávesové zkratky</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mini info panel for selected tree */}
-      {selectedTreeInfo && (
-        <div className="absolute bottom-14 right-3 z-10 mini-info-panel slide-up-info">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-xs text-green-600 dark:text-green-400 font-semibold">#{selectedTreeInfo.recordNumber}</span>
-            <span className="text-sm italic font-medium truncate">{selectedTreeInfo.species}</span>
-          </div>
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-            <span>📅 {selectedTreeInfo.date}</span>
-            {selectedTreeInfo.locality && <span>📍 {selectedTreeInfo.locality}</span>}
-          </div>
-        </div>
-      )}
+      <MapOverlays
+        isGeoLoading={isGeoLoading}
+        featureCount={geoData?.features?.length ?? 0}
+        mapStyle={mapStyle}
+        onStyleChange={handleStyleChange}
+        layerMode={layerMode}
+        onLayerModeToggle={handleLayerModeToggle}
+        measureMode={measureMode}
+        onToggleMeasureMode={toggleMeasureMode}
+        measurePoints={measurePoints}
+        totalMeasureDistance={totalMeasureDistance}
+        onClearMeasurePoints={clearMeasurePoints}
+        cursorCoord={cursorCoord}
+        flashMarkers={flashMarkers}
+        gridVisible={gridVisible}
+        selectedTreeInfo={selectedTreeInfo}
+      />
     </div>
   )
 }

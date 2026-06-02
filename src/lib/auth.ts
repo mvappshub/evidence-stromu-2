@@ -1,4 +1,4 @@
-import type { NextAuthOptions, CookieOption } from "next-auth"
+import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
 import { db } from "@/lib/db"
@@ -38,11 +38,10 @@ export const authOptions: NextAuthOptions = {
   },
   pages: { signIn: "/" },
   secret: process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production",
-  trustHost: true,
   // Force SameSite=Lax (not None) and secure=false for widest compatibility
   // The Caddy proxy forwards requests, so cookies set on the proxy domain
   // will be sent back correctly as long as SameSite=Lax
-  useSecureCookies: false,
+  useSecureCookies: process.env.NODE_ENV === "production",
   cookies: {
     sessionToken: {
       name: "next-auth.session-token",

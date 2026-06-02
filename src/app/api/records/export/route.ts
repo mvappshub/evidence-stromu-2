@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
+import { buildRecordsWhere, parseRecordsFilterParams } from "@/lib/records-query"
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request)
@@ -8,38 +9,8 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const format = searchParams.get("format") ?? "csv"
-  const species = searchParams.get("species")
-  const locality = searchParams.get("locality")
-  const search = searchParams.get("search")
-  const dateFrom = searchParams.get("dateFrom")
-  const dateTo = searchParams.get("dateTo")
-
-  // Build the same filter as the records GET endpoint
-  const where: Record<string, unknown> = {
-    createdById: auth.userId,
-  }
-
-  if (species) {
-    where.speciesLatin = { contains: species }
-  }
-  if (locality) {
-    where.locality = { contains: locality }
-  }
-  if (search) {
-    where.OR = [
-      { speciesLatin: { contains: search } },
-      { locality: { contains: search } },
-      { note: { contains: search } },
-    ]
-  }
-
-  // Date range filter on plantedAt
-  if (dateFrom || dateTo) {
-    const plantedAtFilter: Record<string, unknown> = {}
-    if (dateFrom) plantedAtFilter.gte = new Date(dateFrom)
-    if (dateTo) plantedAtFilter.lte = new Date(dateTo)
-    where.plantedAt = plantedAtFilter
-  }
+  const filters = parseRecordsFilterParams(searchParams)
+  const where = buildRecordsWhere(auth.userId, filters)
 
   const records = await db.treeRecord.findMany({
     where,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
+import { deletePhotoFile } from "@/lib/photo-storage"
 
 const updateRecordSchema = z.object({
   speciesLatin: z.string().min(1).optional(),
@@ -12,6 +13,35 @@ const updateRecordSchema = z.object({
   note: z.string().nullable().optional(),
   photoPath: z.string().nullable().optional(),
 })
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ n: string }> }
+) {
+  const auth = await requireAuth(request)
+  if ("error" in auth) return auth.error
+
+  try {
+    const { n } = await params
+    const recordNumber = parseInt(n, 10)
+    if (isNaN(recordNumber)) {
+      return NextResponse.json({ error: "Invalid record number" }, { status: 400 })
+    }
+
+    const record = await db.treeRecord.findFirst({
+      where: { recordNumber, createdById: auth.userId },
+      include: { reminders: true },
+    })
+    if (!record) {
+      return NextResponse.json({ error: "Record not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ record })
+  } catch (error) {
+    console.error("Get record error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -99,6 +129,8 @@ export async function DELETE(
     if (!existing) {
       return NextResponse.json({ error: "Record not found" }, { status: 404 })
     }
+
+    await deletePhotoFile(existing.photoPath)
 
     // Cascade delete reminders via Prisma schema onDelete: Cascade
     await db.treeRecord.delete({ where: { recordNumber } })

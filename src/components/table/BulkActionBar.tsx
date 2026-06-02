@@ -43,6 +43,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 import { ReminderEditor } from '@/components/editors/ReminderEditor'
 import type { Reminder } from '@/lib/types'
 
@@ -105,9 +106,17 @@ export function BulkActionBar({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
       queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+      queryClient.invalidateQueries({ queryKey: ['records-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['activity-log'] })
       setNoteDialogOpen(false)
       noteForm.reset()
       onClearSelection()
+      toast.success('Poznámka přidána', {
+        description: `Přidáno k ${selectedRecordNumbers.length} záznamům`,
+      })
+    },
+    onError: () => {
+      toast.error('Chyba při přidávání poznámky')
     },
   })
 
@@ -138,24 +147,47 @@ export function BulkActionBar({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
       queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+      queryClient.invalidateQueries({ queryKey: ['records-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['activity-log'] })
       setEditDialogOpen(false)
       editForm.reset()
       onClearSelection()
+      toast.success('Záznamy upraveny')
+    },
+    onError: () => {
+      toast.error('Chyba při hromadné úpravě')
     },
   })
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async () => {
-      await Promise.all(
-        selectedRecordNumbers.map(n =>
-          fetch(`/api/records/${n}`, { method: 'DELETE' })
-        )
-      )
+      const res = await fetch('/api/records/bulk/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordNumbers: selectedRecordNumbers }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Chyba při mazání')
+      }
+      return res.json() as Promise<{ deleted: number }>
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['records'] })
       queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+      queryClient.invalidateQueries({ queryKey: ['records-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['records-count'] })
+      queryClient.invalidateQueries({ queryKey: ['records-filters'] })
+      queryClient.invalidateQueries({ queryKey: ['activity-log'] })
       onClearSelection()
+      toast.success('Záznamy smazány', {
+        description: `${data.deleted} záznamů odstraněno`,
+      })
+    },
+    onError: (error) => {
+      toast.error('Chyba při mazání', {
+        description: error instanceof Error ? error.message : undefined,
+      })
     },
   })
 
@@ -267,7 +299,7 @@ export function BulkActionBar({
             </p>
             <div className="space-y-1.5">
               <Label htmlFor="edit-species" className="text-xs flex items-center gap-1.5">
-                <TreePine className="size-3 text-green-600" />
+                <TreePine className="size-3 text-muted-foreground" />
                 Druh
               </Label>
               <Input
@@ -291,7 +323,7 @@ export function BulkActionBar({
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs flex items-center gap-1.5">
-                <CalendarDays className="size-3 text-green-600" />
+                <CalendarDays className="size-3 text-muted-foreground" />
                 Datum výsadby
               </Label>
               <Popover open={editCalendarOpen} onOpenChange={setEditCalendarOpen}>
@@ -302,7 +334,7 @@ export function BulkActionBar({
                     size="sm"
                     className="w-full justify-start gap-1.5 text-sm font-normal h-9"
                   >
-                    <CalendarDays className="size-3.5 text-green-600" />
+                    <CalendarDays className="size-3.5 text-muted-foreground" />
                     {editPlantedAt
                       ? format(parseISO(editPlantedAt), 'd.M.yyyy')
                       : 'Vyberte datum…'}

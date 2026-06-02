@@ -38,15 +38,19 @@ interface Stats {
 
 function getFrequencyBadge(count: number, total: number) {
   const pct = total > 0 ? (count / total) * 100 : 0
-  if (pct >= 10) return { label: 'Běžný', color: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' }
+  if (pct >= 10) return { label: 'Běžný', color: 'bg-primary/15 text-primary dark:bg-primary/25 dark:text-primary' }
   if (pct >= 3) return { label: 'Mírný', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400' }
   return { label: 'Vzácný', color: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400' }
 }
 
-export function SpeciesDetailPanel() {
+interface SpeciesDetailPanelProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function SpeciesDetailPanel({ open, onOpenChange }: SpeciesDetailPanelProps) {
   const [selectedSpecies, setSelectedSpecies] = useState<string | null>(null)
-  const speciesFilter = useUiStore((s) => s.speciesFilter)
-  const setSpeciesFilter = useUiStore((s) => s.setSpeciesFilter)
+  const filterSpecies = useUiStore((s) => s.filterSpecies)
   const setFilterSpecies = useUiStore((s) => s.setFilterSpecies)
 
   // Fetch stats for species breakdown
@@ -73,51 +77,35 @@ export function SpeciesDetailPanel() {
   })
 
   const handleSpeciesClick = (species: string) => {
-    if (selectedSpecies === species) {
-      // Deselect
+    if (filterSpecies === species) {
       setSelectedSpecies(null)
-      setSpeciesFilter(null)
       setFilterSpecies('')
     } else {
       setSelectedSpecies(species)
-      setSpeciesFilter(species)
       setFilterSpecies(species)
     }
   }
 
   const handleClearFilter = () => {
     setSelectedSpecies(null)
-    setSpeciesFilter(null)
     setFilterSpecies('')
   }
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            'size-7',
-            speciesFilter && 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-          )}
-          title="Druhy stromů"
-        >
-          <Flower2 className="size-3.5" />
-        </Button>
-      </PopoverTrigger>
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger className="sr-only" tabIndex={-1} aria-hidden />
       <PopoverContent align="end" className="w-80 p-0">
-        <div className="p-4 border-b bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20">
+        <div className="p-4 border-b">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Flower2 className="size-4 text-green-600" />
+              <Flower2 className="size-4 text-muted-foreground" />
               <h3 className="text-sm font-semibold">Druhy stromů</h3>
             </div>
-            {speciesFilter && (
+            {filterSpecies && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 text-[10px] px-2 text-green-700 dark:text-green-400"
+                className="h-6 text-[10px] px-2"
                 onClick={handleClearFilter}
               >
                 <X className="size-3 mr-1" />
@@ -136,14 +124,14 @@ export function SpeciesDetailPanel() {
             <div className="p-3 space-y-1">
               {stats.speciesBreakdown.map((s) => {
                 const badge = getFrequencyBadge(s.count, stats.totalCount)
-                const isSelected = speciesFilter === s.species
+                const isSelected = filterSpecies === s.species
                 return (
                   <button
                     key={s.species}
                     className={cn(
                       'w-full text-left px-3 py-2 rounded-md transition-colors flex items-center gap-2 group',
                       isSelected
-                        ? 'bg-green-100 dark:bg-green-900/30 ring-1 ring-green-300 dark:ring-green-700'
+                        ? 'bg-accent ring-1 ring-border'
                         : 'hover:bg-muted/60'
                     )}
                     onClick={() => handleSpeciesClick(s.species)}
@@ -151,7 +139,7 @@ export function SpeciesDetailPanel() {
                     <span
                       className={cn(
                         'size-2 rounded-full shrink-0',
-                        badge.color.includes('green') ? 'bg-green-500' :
+                        badge.label === 'Běžný' ? 'bg-primary' :
                         badge.color.includes('yellow') ? 'bg-yellow-500' : 'bg-red-500'
                       )}
                     />
@@ -176,14 +164,14 @@ export function SpeciesDetailPanel() {
               <Separator />
               <div className="p-3 space-y-3 bg-muted/20">
                 <div className="flex items-center gap-2">
-                  <TreePine className="size-4 text-green-600 shrink-0" />
+                  <TreePine className="size-4 text-muted-foreground shrink-0" />
                   <span className="text-sm font-semibold italic">{speciesDetail.species}</span>
                 </div>
 
                 {/* Count */}
                 <div className="flex items-center gap-2">
-                  <div className="size-6 rounded-full bg-green-50 dark:bg-green-950/30 flex items-center justify-center">
-                    <TreePine className="size-3 text-green-600" />
+                  <div className="size-6 rounded-full bg-muted flex items-center justify-center">
+                    <TreePine className="size-3 text-muted-foreground" />
                   </div>
                   <div>
                     <span className="text-sm font-bold tabular-nums">{speciesDetail.count}</span>
@@ -207,7 +195,7 @@ export function SpeciesDetailPanel() {
                 {speciesDetail.localities.length > 0 && (
                   <div className="space-y-1">
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="size-3 text-emerald-500" />
+                      <MapPin className="size-3 text-muted-foreground" />
                       <p className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">Lokality</p>
                     </div>
                     {speciesDetail.localities.slice(0, 5).map((loc) => (

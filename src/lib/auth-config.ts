@@ -1,20 +1,11 @@
-const DEV_FALLBACK_SECRET = "dev-secret-change-in-production"
-
-function hasConfiguredSecret(secret: string | undefined) {
-  if (!secret) return false
-  const normalized = secret.trim()
-  return normalized.length > 0 && normalized !== DEV_FALLBACK_SECRET
-}
-
 export function getAuthSecret(): string {
   const secret = process.env.NEXTAUTH_SECRET?.trim()
-  if (hasConfiguredSecret(secret)) return secret as string
-
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("NEXTAUTH_SECRET must be configured in production")
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      "NEXTAUTH_SECRET must be set in .env (min. 32 characters). Copy .env.example and run: openssl rand -base64 32"
+    )
   }
-
-  return DEV_FALLBACK_SECRET
+  return secret
 }
 
 export function isSecureCookie() {

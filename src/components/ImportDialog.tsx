@@ -29,7 +29,11 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import type { CsvImportFieldKey } from '@/lib/csv-header-map'
+import {
+  areRequiredFieldsMapped,
+  FIELDS,
+  type CsvImportFieldKey,
+} from '@/lib/csv-import-fields'
 import {
   buildAutoColumnMapping,
   createEmptyColumnMapping,
@@ -41,15 +45,6 @@ import { toast } from 'sonner'
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type Step = 'upload' | 'preview' | 'mapping' | 'importing' | 'results'
-
-const FIELDS = [
-  { key: 'speciesLatin', label: 'Druh', required: true },
-  { key: 'plantedAt', label: 'Datum výsadby', required: true },
-  { key: 'lat', label: 'Zem. šířka', required: true },
-  { key: 'lng', label: 'Zem. délka', required: true },
-  { key: 'locality', label: 'Lokalita', required: false },
-  { key: 'note', label: 'Poznámka', required: false },
-] as const
 
 type FieldKey = CsvImportFieldKey
 
@@ -165,11 +160,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
     }
   }, [rawData, mapping, queryClient])
 
-  // ─── Mapping validation ────────────────────────────────────────────────
-
-  const requiredFieldsMapped = FIELDS.filter((f) => f.required).every(
-    (f) => mapping[f.key] !== ''
-  )
+  const requiredFieldsMapped = areRequiredFieldsMapped(mapping)
 
   // ─── Reset ──────────────────────────────────────────────────────────────
 

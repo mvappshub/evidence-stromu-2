@@ -1,8 +1,12 @@
-import {
-  RECORD_FILTER_SPECS,
-  type RecordsFilterParams,
-  type UiRecordFilters,
+import type {
+  RecordsFilterParams,
+  UiRecordFilters,
 } from "@/lib/records-filter-definition"
+import {
+  createInactiveFilterParams,
+  RECORD_FILTER_REGISTRY,
+  RECORD_FILTER_SPECS,
+} from "@/lib/record-filter-registry"
 import { recordsFilterParamsToSearchParams } from "@/lib/records-query"
 
 export type { UiRecordFilters } from "@/lib/records-filter-definition"
@@ -18,23 +22,10 @@ export function hasActiveRecordFilters(ui: UiRecordFilters): boolean {
 export function uiFiltersToRecordsParams(
   ui: UiRecordFilters
 ): RecordsFilterParams {
-  const params: RecordsFilterParams = {}
+  const params = createInactiveFilterParams()
 
-  for (const spec of RECORD_FILTER_SPECS) {
-    const uiValue = ui[spec.uiKey]
-    if (spec.kind === "boolean") {
-      if (spec.apiKey === "hasNote") params.hasNote = ui.hasNoteFilter
-      if (spec.apiKey === "noReminder") params.noReminder = ui.noReminderFilter
-      continue
-    }
-    const stringValue = uiValue as string | null
-    const normalized =
-      stringValue && String(stringValue).length > 0 ? stringValue : null
-    if (spec.apiKey === "search") params.search = normalized
-    if (spec.apiKey === "species") params.species = normalized
-    if (spec.apiKey === "locality") params.locality = normalized
-    if (spec.apiKey === "dateFrom") params.dateFrom = normalized
-    if (spec.apiKey === "dateTo") params.dateTo = normalized
+  for (const spec of RECORD_FILTER_REGISTRY) {
+    spec.normalizeFromUi(params, ui)
   }
 
   return params
@@ -61,10 +52,13 @@ export function formatActiveRecordFilterLabels(ui: UiRecordFilters): string[] {
   for (const spec of RECORD_FILTER_SPECS) {
     const uiValue = ui[spec.uiKey]
     if (spec.kind === "boolean") {
-      if (uiValue) labels.push(spec.printLabel)
+      if (uiValue) labels.push(spec.printLabel as string)
       continue
     }
-    if (uiValue) labels.push(spec.printLabel(String(uiValue)))
+    if (uiValue) {
+      const label = spec.printLabel
+      labels.push(typeof label === "string" ? label : label(String(uiValue)))
+    }
   }
 
   return labels

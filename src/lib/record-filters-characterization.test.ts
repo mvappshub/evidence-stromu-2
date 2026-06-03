@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest"
-import {
-  RECORD_FILTER_SPECS,
-  type RecordsFilterParams,
-} from "@/lib/records-filter-definition"
+import type { RecordsFilterParams } from "@/lib/records-filter-definition"
+import { RECORD_FILTER_SPECS } from "@/lib/record-filter-registry"
 import {
   formatActiveRecordFilterLabels,
   uiFiltersToRecordsParams,

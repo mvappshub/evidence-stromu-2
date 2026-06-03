@@ -15,7 +15,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
     // Initialize the fetch interceptor first
     initAuthInterceptor()
     // Then hydrate auth state from localStorage
-    hydrate()
+    void hydrate()
   }, [hydrate])
 
   return <>{children}</>

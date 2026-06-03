@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -48,16 +48,12 @@ function getPasswordStrength(password: string): { label: string; color: string; 
 }
 
 function AuthGateInner({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, setAuth, logout, hydrate } = useAuthStore()
+  const { isAuthenticated, isLoading, setAuth, logout } = useAuthStore()
   const [loginLoading, setLoginLoading] = useState(false)
   const [registerLoading, setRegisterLoading] = useState(false)
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showRegPassword, setShowRegPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-  // Hydrate auth state from localStorage on mount
-  useEffect(() => {
-    hydrate()
-  }, [hydrate])
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),

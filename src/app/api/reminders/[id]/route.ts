@@ -15,9 +15,121 @@ const updateReminderSchema = z.object({
   active: z.boolean().optional(),
 })
 
+type PatchReminderInput = z.infer<typeof updateReminderSchema>
+
+type ExistingReminder = NonNullable<Awaited<ReturnType<typeof getReminderForUser>>>
+
+type ParsedPatchDates = {
+  parsedStartAt: Date | null | undefined
+  parsedDueAt: Date | null | undefined
+}
+
 async function getReminderForUser(id: string, userId: string) {
   return db.reminder.findFirst({
     where: { id, record: { createdById: userId } },
+  })
+}
+
+function parsePatchReminderBody(body: unknown) {
+  const parsed = updateReminderSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.issues },
+      { status: 400 }
+    )
+  }
+  return { update: parsed.data }
+}
+
+function parseNullableReminderDate(value: string | null | undefined) {
+  if (value !== undefined && value !== null) {
+    return parseInputDate(value)
+  }
+  if (value === null) {
+    return null
+  }
+  return undefined
+}
+
+function validatePatchReminderDates(update: PatchReminderInput) {
+  const parsedStartAt = parseNullableReminderDate(update.startAt)
+  if (update.startAt !== undefined && update.startAt !== null && !parsedStartAt) {
+    return NextResponse.json({ error: "Invalid startAt date" }, { status: 400 })
+  }
+
+  const parsedDueAt = parseNullableReminderDate(update.dueAt)
+  if (update.dueAt !== undefined && update.dueAt !== null && !parsedDueAt) {
+    return NextResponse.json({ error: "Invalid dueAt date" }, { status: 400 })
+  }
+
+  return { parsedStartAt, parsedDueAt }
+}
+
+function shouldRecalculateNextDueAt(update: PatchReminderInput) {
+  return (
+    update.mode !== undefined ||
+    update.intervalNum !== undefined ||
+    update.intervalUnit !== undefined ||
+    update.startAt !== undefined ||
+    update.dueAt !== undefined
+  )
+}
+
+function buildReminderPatchData(
+  update: PatchReminderInput,
+  dates: ParsedPatchDates,
+  existing: ExistingReminder
+) {
+  const { parsedStartAt, parsedDueAt } = dates
+  const data: Record<string, unknown> = {}
+
+  if (update.text !== undefined) data.text = update.text
+  if (update.mode !== undefined) data.mode = update.mode
+  if (update.intervalNum !== undefined) data.intervalNum = update.intervalNum
+  if (update.intervalUnit !== undefined) data.intervalUnit = update.intervalUnit
+  if (update.startAt !== undefined) data.startAt = parsedStartAt ?? null
+  if (update.dueAt !== undefined) data.dueAt = parsedDueAt ?? null
+  if (update.active !== undefined) data.active = update.active
+
+  if (shouldRecalculateNextDueAt(update)) {
+    const mode =
+      (update.mode as "interval" | "date") ?? (existing.mode as "interval" | "date")
+    const intervalNum =
+      update.intervalNum !== undefined ? update.intervalNum : existing.intervalNum
+    const intervalUnit =
+      update.intervalUnit !== undefined
+        ? (update.intervalUnit as "day" | "week" | "month" | "year")
+        : (existing.intervalUnit as "day" | "week" | "month" | "year")
+    const startAtValue =
+      update.startAt !== undefined ? (parsedStartAt ?? null) : existing.startAt
+    const dueAtValue = update.dueAt !== undefined ? (parsedDueAt ?? null) : existing.dueAt
+
+    data.nextDueAt = calculateNextDueAt(
+      mode,
+      startAtValue,
+      intervalNum,
+      intervalUnit,
+      dueAtValue
+    )
+  }
+
+  return data
+}
+
+async function logReminderUpdate(
+  id: string,
+  userId: string,
+  recordNumber: number,
+  changedFields: string[]
+) {
+  await db.activityLog.create({
+    data: {
+      action: "update",
+      entityType: "reminder",
+      entityId: id,
+      details: JSON.stringify({ recordNumber, changedFields }),
+      userId,
+    },
   })
 }
 
@@ -36,81 +148,19 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const parsed = updateReminderSchema.safeParse(body)
+    const parsed = parsePatchReminderBody(body)
+    if (parsed instanceof NextResponse) return parsed
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Validation failed", details: parsed.error.issues },
-        { status: 400 }
-      )
-    }
+    const dates = validatePatchReminderDates(parsed.update)
+    if (dates instanceof NextResponse) return dates
 
-    const update = parsed.data
-    const data: Record<string, unknown> = {}
-    const parsedStartAt = update.startAt !== undefined && update.startAt !== null
-      ? parseInputDate(update.startAt)
-      : update.startAt === null
-        ? null
-        : undefined
-    if (update.startAt !== undefined && update.startAt !== null && !parsedStartAt) {
-      return NextResponse.json({ error: "Invalid startAt date" }, { status: 400 })
-    }
-
-    const parsedDueAt = update.dueAt !== undefined && update.dueAt !== null
-      ? parseInputDate(update.dueAt)
-      : update.dueAt === null
-        ? null
-        : undefined
-    if (update.dueAt !== undefined && update.dueAt !== null && !parsedDueAt) {
-      return NextResponse.json({ error: "Invalid dueAt date" }, { status: 400 })
-    }
-
-    if (update.text !== undefined) data.text = update.text
-    if (update.mode !== undefined) data.mode = update.mode
-    if (update.intervalNum !== undefined) data.intervalNum = update.intervalNum
-    if (update.intervalUnit !== undefined) data.intervalUnit = update.intervalUnit
-    if (update.startAt !== undefined) data.startAt = parsedStartAt ?? null
-    if (update.dueAt !== undefined) data.dueAt = parsedDueAt ?? null
-    if (update.active !== undefined) data.active = update.active
-
-    // Determine if we need to recalculate nextDueAt
-    const needsRecalc =
-      update.mode !== undefined ||
-      update.intervalNum !== undefined ||
-      update.intervalUnit !== undefined ||
-      update.startAt !== undefined ||
-      update.dueAt !== undefined
-
-    if (needsRecalc) {
-      const mode = (update.mode as "interval" | "date") ?? (existing.mode as "interval" | "date")
-      const intervalNum = update.intervalNum !== undefined ? update.intervalNum : existing.intervalNum
-      const intervalUnit = update.intervalUnit !== undefined ? update.intervalUnit as "day" | "week" | "month" | "year" : existing.intervalUnit as "day" | "week" | "month" | "year"
-      const startAtValue = update.startAt !== undefined
-        ? (parsedStartAt ?? null)
-        : existing.startAt
-      const dueAtValue = update.dueAt !== undefined
-        ? (parsedDueAt ?? null)
-        : existing.dueAt
-
-      data.nextDueAt = calculateNextDueAt(mode, startAtValue, intervalNum, intervalUnit, dueAtValue)
-    }
-
+    const data = buildReminderPatchData(parsed.update, dates, existing)
     const reminder = await db.reminder.update({
       where: { id },
       data,
     })
 
-    // Log activity
-    const changedFields = Object.keys(data)
-    await db.activityLog.create({
-      data: {
-        action: "update",
-        entityType: "reminder",
-        entityId: id,
-        details: JSON.stringify({ recordNumber: existing.recordNumber, changedFields }),
-        userId: auth.userId,
-      },
-    })
+    await logReminderUpdate(id, auth.userId, existing.recordNumber, Object.keys(data))
 
     return NextResponse.json({ reminder })
   } catch (error) {
@@ -141,7 +191,10 @@ export async function DELETE(
         action: "delete",
         entityType: "reminder",
         entityId: id,
-        details: JSON.stringify({ recordNumber: existing.recordNumber, text: existing.text.slice(0, 100) }),
+        details: JSON.stringify({
+          recordNumber: existing.recordNumber,
+          text: existing.text.slice(0, 100),
+        }),
         userId: auth.userId,
       },
     })

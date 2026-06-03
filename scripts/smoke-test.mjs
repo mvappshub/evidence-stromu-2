@@ -78,6 +78,69 @@ async function main() {
   )
 
   if (recordNumber) {
+    const reminderCreate = await request('/api/reminders', {
+      method: 'POST',
+      headers: { ...auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        recordNumber,
+        text: 'Smoke reminder',
+        mode: 'date',
+        dueAt: '2030-06-01',
+      }),
+    })
+    assert(
+      'POST /api/reminders',
+      reminderCreate.res.status === 201 && reminderCreate.json?.reminder?.id,
+      reminderCreate.text.slice(0, 200)
+    )
+    const reminderId = reminderCreate.json?.reminder?.id
+
+    if (reminderId) {
+      const reminderPatchText = await request(`/api/reminders/${reminderId}`, {
+        method: 'PATCH',
+        headers: { ...auth, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Smoke reminder updated' }),
+      })
+      assert(
+        'PATCH /api/reminders/[id] text',
+        reminderPatchText.res.ok &&
+          reminderPatchText.json?.reminder?.text === 'Smoke reminder updated',
+        reminderPatchText.text.slice(0, 200)
+      )
+
+      const reminderPatchDue = await request(`/api/reminders/${reminderId}`, {
+        method: 'PATCH',
+        headers: { ...auth, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dueAt: '2030-07-15' }),
+      })
+      assert(
+        'PATCH /api/reminders/[id] dueAt',
+        reminderPatchDue.res.ok && reminderPatchDue.json?.reminder?.dueAt,
+        reminderPatchDue.text.slice(0, 200)
+      )
+
+      const reminderAck = await request(`/api/reminders/${reminderId}/ack`, {
+        method: 'POST',
+        headers: auth,
+      })
+      assert(
+        'POST /api/reminders/[id]/ack',
+        reminderAck.res.ok && reminderAck.json?.action === 'completed',
+        reminderAck.text.slice(0, 200)
+      )
+
+      const reminderDelete = await request(`/api/reminders/${reminderId}`, {
+        method: 'DELETE',
+        headers: auth,
+      })
+      assert(
+        'DELETE /api/reminders/[id]',
+        reminderDelete.res.ok &&
+          reminderDelete.json?.message === 'Reminder deleted successfully',
+        reminderDelete.text.slice(0, 200)
+      )
+    }
+
     const bulkDel = await request('/api/records/bulk/delete', {
       method: 'POST',
       headers: { ...auth, 'Content-Type': 'application/json' },

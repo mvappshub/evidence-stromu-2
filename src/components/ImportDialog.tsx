@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import Papa from 'papaparse'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   Upload,
@@ -30,7 +29,12 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { resolveCsvHeaderAlias, type CsvImportFieldKey } from '@/lib/csv-header-map'
+import type { CsvImportFieldKey } from '@/lib/csv-header-map'
+import {
+  buildAutoColumnMapping,
+  createEmptyColumnMapping,
+  parseCsvText,
+} from '@/lib/csv-import-parse'
 import { toast } from 'sonner'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -65,14 +69,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   const [file, setFile] = useState<File | null>(null)
   const [rawHeaders, setRawHeaders] = useState<string[]>([])
   const [rawData, setRawData] = useState<Record<string, string>[]>([])
-  const [mapping, setMapping] = useState<Record<FieldKey, string>>({
-    speciesLatin: '',
-    plantedAt: '',
-    lat: '',
-    lng: '',
-    locality: '',
-    note: '',
-  })
+  const [mapping, setMapping] = useState<Record<FieldKey, string>>(createEmptyColumnMapping())
   const [importResult, setImportResult] = useState<{
     imported: number
     skipped: number
@@ -88,63 +85,11 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
     setFile(f)
     const reader = new FileReader()
     reader.onload = (e) => {
-      const text = (e.target?.result as string).replace(/^\uFEFF/, '')
-      
-      // Try semicolon first, then comma, then auto-detect
-      let result = Papa.parse(text, {
-        header: true,
-        delimiter: ';',
-        skipEmptyLines: true,
-      })
-
-      let headers = result.meta.fields ?? []
-      let data = result.data as Record<string, string>[]
-
-      if (headers.length <= 1 && text.includes(',')) {
-        const commaResult = Papa.parse(text, {
-          header: true,
-          delimiter: ',',
-          skipEmptyLines: true,
-        })
-        if ((commaResult.meta.fields ?? []).length > headers.length) {
-          headers = commaResult.meta.fields ?? []
-          data = commaResult.data as Record<string, string>[]
-        }
-      }
-
-      if (headers.length <= 1) {
-        const autoResult = Papa.parse(text, {
-          header: true,
-          skipEmptyLines: true,
-        })
-        if ((autoResult.meta.fields ?? []).length > headers.length) {
-          headers = autoResult.meta.fields ?? []
-          data = autoResult.data as Record<string, string>[]
-        }
-      }
-
+      const text = e.target?.result as string
+      const { headers, rows } = parseCsvText(text)
       setRawHeaders(headers)
-      setRawData(data)
-
-      // Auto-detect mapping
-      const autoMap: Record<FieldKey, string> = {
-        speciesLatin: '',
-        plantedAt: '',
-        lat: '',
-        lng: '',
-        locality: '',
-        note: '',
-      }
-
-      for (const h of headers) {
-        const normalized = h.trim().toLowerCase()
-        const fieldKey = resolveCsvHeaderAlias(normalized)
-        if (fieldKey && !autoMap[fieldKey]) {
-          autoMap[fieldKey] = h
-        }
-      }
-
-      setMapping(autoMap)
+      setRawData(rows)
+      setMapping(buildAutoColumnMapping(headers))
       setStep('preview')
     }
     reader.readAsText(f, 'utf-8')
@@ -256,14 +201,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
     setFile(null)
     setRawHeaders([])
     setRawData([])
-    setMapping({
-      speciesLatin: '',
-      plantedAt: '',
-      lat: '',
-      lng: '',
-      locality: '',
-      note: '',
-    })
+    setMapping(createEmptyColumnMapping())
     setImportResult(null)
     setImporting(false)
     setImportProgress({ current: 0, total: 0 })

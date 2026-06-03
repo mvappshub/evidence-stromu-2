@@ -15,7 +15,8 @@ export interface ImportResult {
   errors: string[]
 }
 
-function parsePlantedAt(value: string): Date | null {
+/** Exported for unit tests (date formats accepted by CSV/JSON import). */
+export function parsePlantedAt(value: string): Date | null {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return new Date(value + "T00:00:00.000Z")
   }

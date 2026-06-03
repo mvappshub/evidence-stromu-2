@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import {
   Upload,
   FileSpreadsheet,
@@ -40,6 +39,10 @@ import {
   parseCsvText,
 } from '@/lib/csv-import-parse'
 import { mapCsvRowsToImportInputs } from '@/lib/csv-import-rows'
+import {
+  IMPORT_RECORDS_HTTP_ERROR,
+  useImportRecords,
+} from '@/hooks/useImportRecords'
 import { toast } from 'sonner'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -56,7 +59,7 @@ interface ImportDialogProps {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
-  const queryClient = useQueryClient()
+  const { mutateAsync: importRecordsAsync } = useImportRecords()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef(false)
 
@@ -115,50 +118,33 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
     setStep('importing')
 
     try {
-      const res = await fetch('/api/records/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records }),
-      })
-
-      const result = await res.json()
-
-      if (!res.ok) {
-        toast.error('Import selhal', {
-          description: result.error || 'Chyba serveru',
-        })
-        setStep('mapping')
-        setImporting(false)
-        return
-      }
+      const result = await importRecordsAsync({ records })
 
       setImportProgress({ current: records.length, total: records.length })
       setImportResult({
-        imported: result.imported ?? 0,
-        skipped: result.skipped ?? 0,
-        errors: result.errors ?? [],
+        imported: result.imported,
+        skipped: result.skipped,
+        errors: result.errors,
       })
       setStep('results')
 
-      queryClient.invalidateQueries({ queryKey: ['records'] })
-      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
-      queryClient.invalidateQueries({ queryKey: ['records-filters'] })
-      queryClient.invalidateQueries({ queryKey: ['records-count'] })
-      queryClient.invalidateQueries({ queryKey: ['records-stats'] })
-      queryClient.invalidateQueries({ queryKey: ['activity-log'] })
-
-      if ((result.imported ?? 0) > 0) {
+      if (result.imported > 0) {
         toast.success('Import dokončen', {
           description: `Importováno ${result.imported} z ${records.length} záznamů`,
         })
       }
-    } catch {
-      toast.error('Import selhal', { description: 'Chyba sítě' })
+    } catch (error) {
+      toast.error('Import selhal', {
+        description:
+          error instanceof Error && error.name === IMPORT_RECORDS_HTTP_ERROR
+            ? error.message
+            : 'Chyba sítě',
+      })
       setStep('mapping')
     } finally {
       setImporting(false)
     }
-  }, [rawData, mapping, queryClient])
+  }, [rawData, mapping, importRecordsAsync])
 
   const requiredFieldsMapped = areRequiredFieldsMapped(mapping)
 

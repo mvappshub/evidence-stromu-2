@@ -96,12 +96,10 @@ export function ensureTreeStack(
   applyLayerModeVisibility(map, layerMode)
 }
 
-export function applyLayerModeVisibility(
+function setLayerModeVisibility(
   map: maplibregl.Map,
   layerMode: 'points' | 'heatmap'
 ): void {
-  if (!map.isStyleLoaded()) return
-
   const showHeatmap = layerMode === 'heatmap'
   TREE_LAYER_IDS.forEach((id) => {
     if (map.getLayer(id)) {
@@ -111,6 +109,17 @@ export function applyLayerModeVisibility(
   if (map.getLayer(HEATMAP_LAYER_ID)) {
     map.setLayoutProperty(HEATMAP_LAYER_ID, 'visibility', showHeatmap ? 'visible' : 'none')
   }
+}
+
+export function applyLayerModeVisibility(
+  map: maplibregl.Map,
+  layerMode: 'points' | 'heatmap'
+): void {
+  if (map.isStyleLoaded()) {
+    setLayerModeVisibility(map, layerMode)
+    return
+  }
+  map.once('style.load', () => setLayerModeVisibility(map, layerMode))
 }
 
 export { FIRST_TREE_LAYER_ID }

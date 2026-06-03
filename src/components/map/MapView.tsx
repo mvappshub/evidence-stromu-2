@@ -12,7 +12,11 @@ import { useMapRecordMutations } from '@/hooks/useMapRecordMutations'
 import { useMapTreeLayers } from '@/hooks/useMapTreeLayers'
 import { useMapInit } from '@/hooks/useMapInit'
 import { useMapInteractions } from '@/hooks/useMapInteractions'
-import { useMapStyleLifecycle } from '@/hooks/useMapStyleLifecycle'
+import {
+  useMapStyleLifecycle,
+  type SavedMapCamera,
+} from '@/hooks/useMapStyleLifecycle'
+import type { MapStyleKey } from '@/lib/map-basemaps'
 import { useMapOverlayLayers } from '@/hooks/useMapOverlayLayers'
 import { useOsmTreesLayer } from '@/hooks/useOsmTreesLayer'
 import { useMapIdentify } from '@/hooks/useMapIdentify'
@@ -22,6 +26,10 @@ export function MapView() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const updateMapSourceRef = useRef<(map: maplibregl.Map) => void>(() => {})
+  const applyMeasureRef = useRef<(map: maplibregl.Map) => void>(() => {})
+  const mapStyleRef = useRef<MapStyleKey>('osm')
+  const layerModeRef = useRef<LayerMode>('points')
+  const pendingCameraRef = useRef<SavedMapCamera | null>(null)
   const [layersEpoch, setLayersEpoch] = useState(0)
 
   const { map } = useMapContext()
@@ -40,11 +48,14 @@ export function MapView() {
 
   const { mapStyle, handleStyleChange } = useMapStyleLifecycle(
     mapRef,
-    layerMode,
-    setLayerMode,
-    updateMapSourceRef,
-    bumpLayersEpoch
+    mapStyleRef,
+    pendingCameraRef
   )
+
+  useEffect(() => {
+    mapStyleRef.current = mapStyle
+    layerModeRef.current = layerMode
+  }, [mapStyle, layerMode])
 
   const { handleLayerModeToggle } = useMapTreeLayers(
     map,
@@ -72,17 +83,20 @@ export function MapView() {
     layersEpoch,
     geoData,
     createMutateRef,
-    measureMode
+    measureMode,
+    applyMeasureRef
   )
 
   useMapInit(
     mapContainer,
     mapRef,
     updateMapSourceRef,
+    applyMeasureRef,
     placeModeRef,
     bumpLayersEpoch,
-    mapStyle,
-    layerMode
+    mapStyleRef,
+    layerModeRef,
+    pendingCameraRef
   )
   useMapOverlayLayers()
   useOsmTreesLayer(layersEpoch)

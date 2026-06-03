@@ -29,7 +29,8 @@ export function useMapInteractions(
   layersEpoch: number,
   geoData: GeoJsonResponse | undefined,
   createMutateRef: React.RefObject<((args: { lat: number; lng: number }) => void) | undefined>,
-  measureMode: boolean
+  measureMode: boolean,
+  applyMeasureRef: React.MutableRefObject<(map: maplibregl.Map) => void>
 ) {
   const queryClient = useQueryClient()
   const selectedRecordNumber = useUiStore((s) => s.selectedRecordNumber)
@@ -188,6 +189,10 @@ export function useMapInteractions(
       map.off('mouseout', onMouseOut)
     }
   }, [map])
+
+  useEffect(() => {
+    applyMeasureRef.current = applyMeasureToMap
+  }, [applyMeasureToMap, applyMeasureRef])
 
   useEffect(() => {
     if (!map) return

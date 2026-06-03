@@ -14,6 +14,12 @@ export interface MapRestoreContext {
   osmTreesVisible: boolean
 }
 
+export interface MapRuntimeSyncCallbacks {
+  updateTrees: (map: maplibregl.Map) => void
+  updateMeasure?: (map: maplibregl.Map) => void
+  onLayersRestored?: () => void
+}
+
 export function restoreMapLayers(
   map: maplibregl.Map,
   ctx: MapRestoreContext,
@@ -25,5 +31,18 @@ export function restoreMapLayers(
     ensureOsmTreesLayer(map)
     setOsmTreesVisibility(map, ctx.osmTreesVisible)
     onComplete?.()
+  })
+}
+
+/** Obnoví custom vrstvy po load/setStyle a znovu naplní zdroje stromů a měření. */
+export function restoreAndSyncMapRuntime(
+  map: maplibregl.Map,
+  ctx: MapRestoreContext,
+  sync: MapRuntimeSyncCallbacks
+): void {
+  restoreMapLayers(map, ctx, () => {
+    sync.updateTrees(map)
+    sync.updateMeasure?.(map)
+    sync.onLayersRestored?.()
   })
 }

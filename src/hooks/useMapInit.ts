@@ -3,20 +3,24 @@
 import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import { format } from 'date-fns'
-import { getMapStyle } from '@/lib/map-basemaps'
+import { getMapStyle, type MapStyleKey } from '@/lib/map-basemaps'
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/map-constants'
-import { restoreMapLayers } from '@/lib/map-layer-restore'
+import { restoreAndSyncMapRuntime } from '@/lib/map-layer-restore'
 import { getRestoreContextFromStore } from '@/store/useMapLayerStore'
 import { useMapContext } from '@/components/map/MapContext'
+import type { LayerMode } from '@/components/map/HeatmapToggle'
+import type { SavedMapCamera } from '@/hooks/useMapStyleLifecycle'
 
 export function useMapInit(
   mapContainer: React.RefObject<HTMLDivElement | null>,
   mapRef: React.RefObject<maplibregl.Map | null>,
   updateMapSourceRef: React.RefObject<(map: maplibregl.Map) => void>,
+  applyMeasureRef: React.RefObject<(map: maplibregl.Map) => void>,
   placeModeRef: React.RefObject<boolean>,
   onLayersRestored: () => void,
-  initialMapStyle: import('@/lib/map-basemaps').MapStyleKey,
-  initialLayerMode: import('@/components/map/HeatmapToggle').LayerMode
+  mapStyleRef: React.MutableRefObject<MapStyleKey>,
+  layerModeRef: React.MutableRefObject<LayerMode>,
+  pendingCameraRef: React.MutableRefObject<SavedMapCamera | null>
 ) {
   const { setMap, setBearing } = useMapContext()
   const popupRef = useRef<maplibregl.Popup | null>(null)
@@ -28,7 +32,7 @@ export function useMapInit(
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: getMapStyle(initialMapStyle),
+      style: getMapStyle(mapStyleRef.current),
       center: MAP_CENTER,
       zoom: MAP_ZOOM,
       attributionControl: false,
@@ -87,34 +91,44 @@ export function useMapInit(
       map.off('mouseleave', 'trees-layer', onTreeLayerMouseLeave)
     }
 
-    map.on('load', () => {
-      restoreMapLayers(
+    const syncCustomLayers = () => {
+      const camera = pendingCameraRef.current
+      if (camera) {
+        map.jumpTo(camera)
+        pendingCameraRef.current = null
+      }
+
+      restoreAndSyncMapRuntime(
         map,
-        getRestoreContextFromStore(initialMapStyle, initialLayerMode),
-        () => {
-        updateMapSourceRef.current(map)
-        attachTreeHover()
-        onLayersRestored()
-        setMap(map)
+        getRestoreContextFromStore(mapStyleRef.current, layerModeRef.current),
+        {
+          updateTrees: (m) => updateMapSourceRef.current(m),
+          updateMeasure: (m) => applyMeasureRef.current(m),
+          onLayersRestored,
         }
       )
 
-      map.on('moveend', () => updateMapSourceRef.current(map))
-      map.on('zoomend', () => updateMapSourceRef.current(map))
-    })
-
-    map.on('style.load', () => {
       detachTreeHover()
       attachTreeHover()
-    })
+    }
+
+    map.on('style.load', syncCustomLayers)
 
     mapRef.current = map
+    setMap(map)
+
+    const onViewChange = () => updateMapSourceRef.current(map)
+    map.on('moveend', onViewChange)
+    map.on('zoomend', onViewChange)
 
     const onRotate = () => setBearing(map.getBearing())
     map.on('rotate', onRotate)
 
     return () => {
+      map.off('style.load', syncCustomLayers)
       map.off('rotate', onRotate)
+      map.off('moveend', onViewChange)
+      map.off('zoomend', onViewChange)
       detachTreeHover()
       popupRef.current?.remove()
       map.remove()
@@ -127,9 +141,11 @@ export function useMapInit(
     setMap,
     setBearing,
     updateMapSourceRef,
+    applyMeasureRef,
     placeModeRef,
     onLayersRestored,
-    initialMapStyle,
-    initialLayerMode,
+    mapStyleRef,
+    layerModeRef,
+    pendingCameraRef,
   ])
 }

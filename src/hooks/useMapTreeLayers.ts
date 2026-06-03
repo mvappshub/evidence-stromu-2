@@ -8,6 +8,7 @@ import { MAP_COLORS } from '@/lib/map-colors'
 import { TREES_HEATMAP_SOURCE_ID, TREES_SOURCE_ID } from '@/lib/map-layer-ids'
 import { applyLayerModeVisibility } from '@/lib/map-tree-layers'
 import type { GeoJsonResponse } from '@/hooks/useMapGeoJson'
+import { usePlantStore } from '@/store/usePlantStore'
 
 export function useMapTreeLayers(
   map: maplibregl.Map | null,
@@ -24,6 +25,8 @@ export function useMapTreeLayers(
 ) {
   const hasFittedBounds = useRef(false)
   const selectedMarkerRef = useRef<maplibregl.Marker | null>(null)
+  const lastFlownToRecordRef = useRef<number | null>(null)
+  const placeMode = usePlantStore((s) => s.placeMode)
 
   const updateMapSource = useCallback(
     (m: maplibregl.Map) => {
@@ -72,20 +75,32 @@ export function useMapTreeLayers(
     map.fitBounds(bounds, { padding: 50, maxZoom: 14, duration: 1000 })
   }, [map, layersEpoch, geoData])
 
+  // Pan only when the user picks a different record (e.g. table row), not on every geo refresh.
   useEffect(() => {
-    if (!map || selectedRecordNumber == null) return
+    if (!map) return
+
+    if (selectedRecordNumber == null) {
+      lastFlownToRecordRef.current = null
+      return
+    }
+
+    if (placeMode) return
+
+    if (lastFlownToRecordRef.current === selectedRecordNumber) return
+
     const feature = geoData?.features?.find(
       (f) => f.properties.recordNumber === selectedRecordNumber
     )
-    if (feature) {
-      const [lng, lat] = feature.geometry.coordinates
-      map.flyTo({
-        center: [lng, lat],
-        zoom: Math.max(map.getZoom(), 14),
-        duration: 800,
-      })
-    }
-  }, [selectedRecordNumber, geoData, map])
+    if (!feature) return
+
+    lastFlownToRecordRef.current = selectedRecordNumber
+    const [lng, lat] = feature.geometry.coordinates
+    map.flyTo({
+      center: [lng, lat],
+      zoom: Math.max(map.getZoom(), 14),
+      duration: 800,
+    })
+  }, [selectedRecordNumber, geoData, map, placeMode])
 
   useEffect(() => {
     if (!map) return

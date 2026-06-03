@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
+import { getOwnedRecordNumbers } from "@/lib/assert-records-owned"
 
 const bulkNoteSchema = z.object({
   recordNumbers: z.array(z.number().int()).min(1, "At least one record number is required"),
@@ -25,20 +26,9 @@ export async function POST(request: NextRequest) {
 
     const { recordNumbers, note } = parsed.data
 
-    // Verify all records belong to the user
-    const records = await db.treeRecord.findMany({
-      where: {
-        recordNumber: { in: recordNumbers },
-        createdById: auth.userId,
-      },
-      select: { recordNumber: true },
-    })
-
-    const ownedNumbers = records.map((r) => r.recordNumber)
-
-    if (ownedNumbers.length === 0) {
-      return NextResponse.json({ error: "No valid records found" }, { status: 404 })
-    }
+    const owned = await getOwnedRecordNumbers(auth.userId, recordNumbers)
+    if (!owned.ok) return owned.response
+    const { ownedNumbers } = owned
 
     const result = await db.treeRecord.updateMany({
       where: { recordNumber: { in: ownedNumbers } },

@@ -3,7 +3,7 @@ import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
 import { deletePhotoFile } from "@/lib/photo-storage"
-import { parseInputDate } from "@/lib/server-date"
+import { updateTreeRecord } from "@/lib/records/update-tree-record"
 
 const updateRecordSchema = z.object({
   speciesLatin: z.string().min(1).optional(),
@@ -58,13 +58,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid record number" }, { status: 400 })
     }
 
-    const existing = await db.treeRecord.findFirst({
-      where: { recordNumber, createdById: auth.userId },
-    })
-    if (!existing) {
-      return NextResponse.json({ error: "Record not found" }, { status: 404 })
-    }
-
     const body = await request.json()
     const parsed = updateRecordSchema.safeParse(body)
 
@@ -75,41 +68,18 @@ export async function PATCH(
       )
     }
 
-    const data: Record<string, unknown> = {}
-    const update = parsed.data
-
-    if (update.speciesLatin !== undefined) data.speciesLatin = update.speciesLatin
-    if (update.plantedAt !== undefined) {
-      const plantedAt = parseInputDate(update.plantedAt)
-      if (!plantedAt) {
-        return NextResponse.json({ error: "Invalid plantedAt date" }, { status: 400 })
-      }
-      data.plantedAt = plantedAt
+    const result = await updateTreeRecord(
+      db,
+      auth.userId,
+      recordNumber,
+      parsed.data
+    )
+    if (!result.ok) {
+      const status = result.code === "not_found" ? 404 : 400
+      return NextResponse.json({ error: result.message }, { status })
     }
-    if (update.lat !== undefined) data.lat = update.lat
-    if (update.lng !== undefined) data.lng = update.lng
-    if (update.locality !== undefined) data.locality = update.locality
-    if (update.note !== undefined) data.note = update.note
-    if (update.photoPath !== undefined) data.photoPath = update.photoPath
 
-    const record = await db.treeRecord.update({
-      where: { recordNumber },
-      data,
-    })
-
-    // Log activity — track what changed
-    const changedFields = Object.keys(data)
-    await db.activityLog.create({
-      data: {
-        action: "update",
-        entityType: "record",
-        entityId: String(recordNumber),
-        details: JSON.stringify({ recordNumber, changedFields }),
-        userId: auth.userId,
-      },
-    })
-
-    return NextResponse.json({ record })
+    return NextResponse.json({ record: result.record })
   } catch (error) {
     console.error("Update record error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

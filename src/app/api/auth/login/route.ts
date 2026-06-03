@@ -1,29 +1,23 @@
 import { NextRequest, NextResponse } from "next/server"
-import { compare } from "bcryptjs"
 import { encode } from "next-auth/jwt"
-import { db } from "@/lib/db"
 import { getAuthSecret, getSessionCookieName, isSecureCookie } from "@/lib/auth-config"
+import { loginUser } from "@/lib/login-user"
 
 const SECRET: string = getAuthSecret()
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { email, password } = body
+    const result = await loginUser(body.email, body.password)
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "Zadejte e-mail a heslo" }, { status: 400 })
-    }
-
-    const user = await db.user.findUnique({ where: { email } })
-    if (!user) {
+    if (!result.ok) {
+      if (result.reason === "missing_credentials") {
+        return NextResponse.json({ error: "Zadejte e-mail a heslo" }, { status: 400 })
+      }
       return NextResponse.json({ error: "Neplatný e-mail nebo heslo" }, { status: 401 })
     }
 
-    const isValid = await compare(password, user.passwordHash)
-    if (!isValid) {
-      return NextResponse.json({ error: "Neplatný e-mail nebo heslo" }, { status: 401 })
-    }
+    const user = result.user
 
     // Create a NextAuth-compatible JWT session token
     const sessionToken = await encode({
@@ -36,12 +30,26 @@ export async function POST(req: NextRequest) {
       secret: SECRET,
     })
 
-    // Set the session cookie as a fallback for non-iframe environments
     const response = NextResponse.json({
       ok: true,
       token: sessionToken, // Include token in body for localStorage-based auth
       user: { id: user.id, email: user.email, name: user.name },
     })
+
+    // Clear stale session cookies (e.g. after NEXTAUTH_SECRET rotation) before setting new.
+    for (const name of [
+      getSessionCookieName(),
+      "__Secure-next-auth.session-token",
+      "next-auth.session-token",
+    ]) {
+      response.cookies.set(name, "", {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: isSecureCookie(),
+        maxAge: 0,
+      })
+    }
 
     response.cookies.set(getSessionCookieName(), sessionToken, {
       httpOnly: true,

@@ -100,6 +100,7 @@ export function useMapRecordMutations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+      queryClient.invalidateQueries({ queryKey: ['records'] })
       toast.success('Pozice aktualizována')
     },
   })

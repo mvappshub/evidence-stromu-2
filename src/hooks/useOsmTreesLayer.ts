@@ -6,7 +6,7 @@ import { useMapLayerStore } from '@/store/useMapLayerStore'
 import { useMapContext } from '@/components/map/MapContext'
 import { runWhenStyleReady } from '@/lib/map-style-ready'
 
-const MAX_BBOX_SPAN = 0.35
+const MAX_BBOX_SPAN = 0.25
 
 export function useOsmTreesLayer(layersEpoch: number) {
   const { map } = useMapContext()

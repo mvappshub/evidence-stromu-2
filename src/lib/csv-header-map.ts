@@ -1,14 +1,6 @@
-/** Canonical import column keys (CSV / JSON import). */
-export const CSV_IMPORT_FIELD_KEYS = [
-  "speciesLatin",
-  "plantedAt",
-  "lat",
-  "lng",
-  "locality",
-  "note",
-] as const
-
-export type CsvImportFieldKey = (typeof CSV_IMPORT_FIELD_KEYS)[number]
+export type { CsvImportFieldKey } from "@/lib/csv-import-fields"
+export { CSV_IMPORT_FIELD_KEYS } from "@/lib/csv-import-fields"
+import type { CsvImportFieldKey } from "@/lib/csv-import-fields"
 
 /**
  * Czech and English CSV header aliases → canonical field key.

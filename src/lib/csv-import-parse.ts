@@ -1,8 +1,6 @@
 import Papa from "papaparse"
-import {
-  resolveCsvHeaderAlias,
-  type CsvImportFieldKey,
-} from "@/lib/csv-header-map"
+import { resolveCsvHeaderAlias } from "@/lib/csv-header-map"
+import type { CsvImportFieldKey } from "@/lib/csv-import-fields"
 
 export type CsvColumnMapping = Record<CsvImportFieldKey, string>
 

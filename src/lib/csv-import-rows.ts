@@ -1,4 +1,4 @@
-import { CSV_IMPORT_FIELD_KEYS } from "@/lib/csv-header-map"
+import { CSV_IMPORT_FIELD_KEYS } from "@/lib/csv-import-fields"
 import type { CsvColumnMapping } from "@/lib/csv-import-parse"
 import type { ImportRowInput } from "@/lib/import-records"
 

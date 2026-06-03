@@ -13,6 +13,7 @@ import {
 import { useUiStore } from '@/store/useUiStore'
 import { usePlantStore } from '@/store/usePlantStore'
 import type { GeoJsonResponse } from '@/hooks/useMapGeoJson'
+import { readTreeMapFeatureProperties } from '@/lib/tree-map-geojson'
 
 function queryLayersIfPresent(
   map: maplibregl.Map,
@@ -134,8 +135,8 @@ export function useMapInteractions(
         'selected-tree-layer',
       ])
       if (treeHits.length > 0) {
-        const rn = treeHits[0].properties?.recordNumber
-        if (rn != null) setSelectedRecordNumber(Number(rn))
+        const rn = readTreeMapFeatureProperties(treeHits[0].properties)?.recordNumber
+        if (rn != null) setSelectedRecordNumber(rn)
       } else {
         setSelectedRecordNumber(null)
       }
@@ -232,16 +233,20 @@ export function useMapInteractions(
   const selectedTreeInfo = useMemo(() => {
     if (selectedRecordNumber == null || !geoData?.features) return null
     const feature = geoData.features.find(
-      (f) => f.properties.recordNumber === selectedRecordNumber
+      (f) =>
+        readTreeMapFeatureProperties(f.properties)?.recordNumber ===
+        selectedRecordNumber
     )
     if (!feature) return null
+    const props = readTreeMapFeatureProperties(feature.properties)
+    if (!props) return null
     return {
-      species: feature.properties.speciesLatin,
-      date: feature.properties.plantedAt
-        ? format(new Date(feature.properties.plantedAt), 'd.M.yyyy')
+      species: props.speciesLatin,
+      date: props.plantedAt
+        ? format(new Date(props.plantedAt), 'd.M.yyyy')
         : '',
-      locality: feature.properties.locality,
-      recordNumber: feature.properties.recordNumber,
+      locality: props.locality,
+      recordNumber: props.recordNumber,
     }
   }, [selectedRecordNumber, geoData])
 

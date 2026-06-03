@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
 import { buildRecordsWhere, parseRecordsFilterParams } from "@/lib/records-query"
+import { treeMapFeatureFromRecord } from "@/lib/tree-map-geojson"
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request)
@@ -23,19 +24,7 @@ export async function GET(request: NextRequest) {
     },
   })
 
-  const features = records.map((r) => ({
-    type: "Feature" as const,
-    geometry: {
-      type: "Point" as const,
-      coordinates: [r.lng, r.lat],
-    },
-    properties: {
-      recordNumber: r.recordNumber,
-      speciesLatin: r.speciesLatin,
-      plantedAt: r.plantedAt,
-      locality: r.locality,
-    },
-  }))
+  const features = records.map((r) => treeMapFeatureFromRecord(r))
 
   return NextResponse.json({
     type: "FeatureCollection",

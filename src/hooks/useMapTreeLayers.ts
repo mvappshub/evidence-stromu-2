@@ -8,6 +8,7 @@ import { MAP_COLORS } from '@/lib/map-colors'
 import { TREES_HEATMAP_SOURCE_ID, TREES_SOURCE_ID } from '@/lib/map-layer-ids'
 import { applyLayerModeVisibility } from '@/lib/map-tree-layers'
 import type { GeoJsonResponse } from '@/hooks/useMapGeoJson'
+import { readTreeMapFeatureProperties } from '@/lib/tree-map-geojson'
 import { usePlantStore } from '@/store/usePlantStore'
 
 export function useMapTreeLayers(
@@ -35,7 +36,9 @@ export function useMapTreeLayers(
         ...f,
         properties: {
           ...f.properties,
-          selected: f.properties.recordNumber === selectedRecordNumber,
+          selected:
+            readTreeMapFeatureProperties(f.properties)?.recordNumber ===
+            selectedRecordNumber,
         },
       }))
       ;(m.getSource(TREES_SOURCE_ID) as maplibregl.GeoJSONSource).setData({
@@ -89,7 +92,9 @@ export function useMapTreeLayers(
     if (lastFlownToRecordRef.current === selectedRecordNumber) return
 
     const feature = geoData?.features?.find(
-      (f) => f.properties.recordNumber === selectedRecordNumber
+      (f) =>
+        readTreeMapFeatureProperties(f.properties)?.recordNumber ===
+        selectedRecordNumber
     )
     if (!feature) return
 
@@ -112,7 +117,9 @@ export function useMapTreeLayers(
     if (selectedRecordNumber == null) return
 
     const feature = geoData?.features?.find(
-      (f) => f.properties.recordNumber === selectedRecordNumber
+      (f) =>
+        readTreeMapFeatureProperties(f.properties)?.recordNumber ===
+        selectedRecordNumber
     )
     if (!feature) return
 

@@ -30,6 +30,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { resolveCsvHeaderAlias, type CsvImportFieldKey } from '@/lib/csv-header-map'
 import { toast } from 'sonner'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -45,34 +46,7 @@ const FIELDS = [
   { key: 'note', label: 'Poznámka', required: false },
 ] as const
 
-type FieldKey = (typeof FIELDS)[number]['key']
-
-// Czech and English header auto-detection
-const HEADER_MAP: Record<string, FieldKey> = {
-  "druh": "speciesLatin",
-  "species": "speciesLatin",
-  "datum výsadby": "plantedAt",
-  "datum_vysadby": "plantedAt",
-  "datum": "plantedAt",
-  "date": "plantedAt",
-  "zem. šířka": "lat",
-  "zem_sirka": "lat",
-  "zem.širka": "lat",
-  "lat": "lat",
-  "latitude": "lat",
-  "zem. délka": "lng",
-  "zem_delka": "lng",
-  "zem.delka": "lng",
-  "lng": "lng",
-  "lon": "lng",
-  "longitude": "lng",
-  "lokalita": "locality",
-  "locality": "locality",
-  "location": "locality",
-  "poznámka": "note",
-  "poznamka": "note",
-  "note": "note",
-}
+type FieldKey = CsvImportFieldKey
 
 interface ImportDialogProps {
   open: boolean
@@ -164,7 +138,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
 
       for (const h of headers) {
         const normalized = h.trim().toLowerCase()
-        const fieldKey = HEADER_MAP[normalized]
+        const fieldKey = resolveCsvHeaderAlias(normalized)
         if (fieldKey && !autoMap[fieldKey]) {
           autoMap[fieldKey] = h
         }

@@ -169,7 +169,7 @@ export function MapOverlays({
       )}
 
       {featureCount === 0 && !isGeoLoading && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+        <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm">
           <div className="text-center space-y-3 max-w-sm px-4">
             <TreePine className="size-8 mx-auto text-muted-foreground" />
             <h3 className="text-base font-medium">Žádné stromy na mapě</h3>

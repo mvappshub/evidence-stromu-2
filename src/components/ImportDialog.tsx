@@ -35,6 +35,7 @@ import {
   createEmptyColumnMapping,
   parseCsvText,
 } from '@/lib/csv-import-parse'
+import { mapCsvRowsToImportInputs } from '@/lib/csv-import-rows'
 import { toast } from 'sonner'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -112,30 +113,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   // ─── Import records one-by-one with progress ──────────────────────────
 
   const runImport = useCallback(async () => {
-    const records: Array<{
-      speciesLatin: string
-      plantedAt: string
-      lat: number
-      lng: number
-      locality?: string | null
-      note?: string | null
-    }> = []
-
-    for (const row of rawData) {
-      const mappedRow: Record<string, string> = {}
-      for (const field of FIELDS) {
-        const csvCol = mapping[field.key]
-        mappedRow[field.key] = csvCol ? (row[csvCol]?.trim() ?? '') : ''
-      }
-      records.push({
-        speciesLatin: mappedRow.speciesLatin,
-        plantedAt: mappedRow.plantedAt,
-        lat: parseFloat(mappedRow.lat.replace(',', '.')),
-        lng: parseFloat(mappedRow.lng.replace(',', '.')),
-        locality: mappedRow.locality || null,
-        note: mappedRow.note || null,
-      })
-    }
+    const records = mapCsvRowsToImportInputs(rawData, mapping)
 
     setImporting(true)
     setImportProgress({ current: 0, total: records.length })

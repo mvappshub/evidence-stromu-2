@@ -43,8 +43,19 @@
 - **.gitignore** — `.playwright-mcp/`, `.next-smoke*`, `.cursor/settings.json`
 - **`.cursor/rules/api-routes-require-auth.mdc`**
 
-## Neprovedeno (NEEDS-APPROVAL)
+## Dávka 7 — N1/N2 produkční pojistky (schváleno)
 
-- N1 rotace `NEXTAUTH_SECRET`
-- N2 default `ALLOW_REGISTRATION=false` v produkci
-- N8 baseline commit mapového WIP
+- **`src/lib/auth-config.ts`:** `isRegistrationAllowed()` — produkce vyžaduje `ALLOW_REGISTRATION=true`; `assertProductionAuthSecret()` odmítne placeholder secret
+- **`src/app/api/register/route.ts`:** používá `isRegistrationAllowed()`
+- **`src/lib/auth-config.test.ts`:** 5 testů
+- **`.env.example`, README`:** rotace secretu + produkční registrace
+- **Příkaz:** `npm run test` → exit 0
+- **Příkaz:** `npm run typecheck` → exit 0
+- **Commit:** (viz git log)
+
+**N1 rotace:** operátor musí v `.env` nastavit nový `openssl rand -base64 32` — kód invaliduje placeholder v produkci; staré JWT z historického leaku je nutné považovat za kompromitovaná.
+
+## Dávka 8 — Mapové WIP
+
+- Map layer restore / style lifecycle / tree layers
+- **Commit:** (viz git log)

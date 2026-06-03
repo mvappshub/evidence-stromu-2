@@ -1,4 +1,4 @@
-# Fáze 4 — Finální report (částečný)
+# Fáze 4 — Finální report
 
 Datum: 2026-06-04
 
@@ -18,14 +18,16 @@ Viz [`01-findings.md`](01-findings.md) — 22+ nálezů včetně SEC-001 (`.env`
 | A8 | README rozšířeno |
 | A9 | `.gitignore` doplněn |
 | A10 | Cursor rule `api-routes-require-auth.mdc` |
+| N2 | Produkce: registrace opt-in (`ALLOW_REGISTRATION=true`) |
+| N1 (částečně) | Produkce: odmítnutí placeholder `NEXTAUTH_SECRET` + dokumentace rotace |
+| N8 | Mapové WIP commitnuto |
 
 ## Co zůstalo a proč
 
 | Položka | Důvod |
 |---------|--------|
-| SEC-001 rotace secret | NEEDS-APPROVAL — provozní akce |
-| SEC-002 registrace default | NEEDS-APPROVAL — mění chování |
-| Mapové WIP (8 souborů) | Necommitnuto — mimo audit scope |
+| SEC-001 rotace secret v `.env` | **Provozní krok** — nastavit nový secret na serveru; kód jen blokuje placeholder |
+| Odstranění `/api` hello | N4 — nepožadováno |
 | Plný `npm run build` | EPERM Prisma na Windows v audit běhu; `next build` OK |
 | ARCH-* refaktory | DO-NOT-FIX |
 

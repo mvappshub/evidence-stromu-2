@@ -74,13 +74,13 @@ Viz [.env.example](.env.example).
 | `DATABASE_URL` | doporučená | SQLite URL |
 | `NEXTAUTH_SECRET` | ano (produkce) | Tajný klíč pro JWT |
 | `NEXTAUTH_URL` | ano (produkce) | Veřejná URL aplikace |
-| `ALLOW_REGISTRATION` | ne | `false` zakáže registraci |
+| `ALLOW_REGISTRATION` | ne | Dev: vypnout=`false`. **Produkce: zapnout jen explicitně `true`** |
 | `DEBUG_PRISMA` | ne | `1` zapne log SQL dotazů |
 
 ### Produkční checklist
 
-- `NEXTAUTH_SECRET` — náhodný řetězec ≥ 32 znaků (po úniku v git historii **rotovat**)
-- `ALLOW_REGISTRATION=false` pokud nechcete veřejnou registraci
+- `NEXTAUTH_SECRET` — nový náhodný řetězec ≥ 32 znaků (`openssl rand -base64 32`). Po úniku v git historii **povinná rotace** (staré přihlášení přestanou platit). Placeholder z `.env.example` v produkci aplikace **odmítne start**.
+- Registrace je v produkci **vypnutá**, dokud nenastavíte `ALLOW_REGISTRATION=true`.
 - `NEXTAUTH_URL` — veřejná URL aplikace
 
 ## Záloha fotek

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { hash } from "bcryptjs"
 import { z } from "zod"
+import { isRegistrationAllowed } from "@/lib/auth-config"
 import { db } from "@/lib/db"
 
 const registerSchema = z.object({
@@ -10,7 +11,7 @@ const registerSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  if (process.env.ALLOW_REGISTRATION === "false") {
+  if (!isRegistrationAllowed()) {
     return NextResponse.json(
       { error: "Registrace je vypnutá" },
       { status: 403 }

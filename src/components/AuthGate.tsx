@@ -100,6 +100,8 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
 
       // Store token and user in auth store (persisted to localStorage)
       if (result.token && result.user) {
+        localStorage.removeItem("auth-token")
+        localStorage.removeItem("auth-user")
         setAuth(result.token, result.user)
         toast.success('Přihlášení úspěšné')
       }

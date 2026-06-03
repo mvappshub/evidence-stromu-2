@@ -1,38 +1,41 @@
 import { NextRequest, NextResponse } from "next/server"
-import { decode } from "next-auth/jwt"
 import { db } from "@/lib/db"
-import { getAuthSecret, getSessionCookieName } from "@/lib/auth-config"
-
-const SECRET: string = getAuthSecret()
+import { getSessionCookieName } from "@/lib/auth-config"
+import { decodeSessionToken } from "@/lib/session-token"
 
 export async function GET(req: NextRequest) {
   try {
-    // Try Bearer token from Authorization header first
     const authHeader = req.headers.get("authorization")
-    let token: string | null = null
+    const bearerToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null
+    const cookieToken = req.cookies.get(getSessionCookieName())?.value ?? null
 
-    if (authHeader?.startsWith("Bearer ")) {
-      token = authHeader.slice(7)
-    }
+    // Try Bearer first; on stale token after secret rotation, fall back to cookie.
+    const candidates = [bearerToken, cookieToken].filter(
+      (token, index, all): token is string =>
+        Boolean(token) && all.indexOf(token) === index
+    )
 
-    // Fallback: try cookie
-    if (!token) {
-      token = req.cookies.get(getSessionCookieName())?.value ?? null
-    }
-
-    if (!token) {
+    if (candidates.length === 0) {
       return NextResponse.json({ error: "No token" }, { status: 401 })
     }
 
-    // Decode and verify the JWT
-    const decoded = await decode({ token, secret: SECRET })
-    if (!decoded?.sub) {
+    let userId: string | null = null
+    for (const token of candidates) {
+      const decoded = await decodeSessionToken(token)
+      if (decoded) {
+        userId = decoded.sub
+        break
+      }
+    }
+
+    if (!userId) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    // Verify user still exists in database
     const user = await db.user.findUnique({
-      where: { id: decoded.sub as string },
+      where: { id: userId },
       select: { id: true, email: true, name: true },
     })
 

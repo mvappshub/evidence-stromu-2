@@ -54,6 +54,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.removeItem(AUTH_TOKEN_KEY)
       localStorage.removeItem(AUTH_USER_KEY)
       set({ token: null, user: null, isAuthenticated: false, isLoading: false })
+      void fetch("/api/auth/logout", { method: "POST" }).catch(() => {})
     }
 
     try {

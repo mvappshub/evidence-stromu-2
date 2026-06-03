@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
+import { buildReminderCreateData, reminderInputFieldsSchema } from "@/lib/reminder-input"
 import {
-  buildReminderCreateData,
   parseReminderCreateDates,
-  reminderInputFieldsSchema,
   validateReminderModeFields,
-} from "@/lib/reminder-input"
+} from "@/lib/reminder-validation"
+
+function reminderValidationResponse(error: { message: string }) {
+  return NextResponse.json({ error: error.message }, { status: 400 })
+}
 
 const bulkReminderSchema = reminderInputFieldsSchema.extend({
   recordNumbers: z.array(z.number().int()).min(1, "At least one record number is required"),
@@ -31,11 +34,17 @@ export async function POST(request: NextRequest) {
     const { recordNumbers, text, mode, intervalNum, intervalUnit, startAt, dueAt } =
       parsed.data
 
-    const modeError = validateReminderModeFields(mode, intervalNum, intervalUnit, dueAt)
-    if (modeError) return modeError
+    const modeResult = validateReminderModeFields(
+      mode,
+      intervalNum,
+      intervalUnit,
+      dueAt
+    )
+    if (!modeResult.ok) return reminderValidationResponse(modeResult.error)
 
-    const dates = parseReminderCreateDates(startAt, dueAt)
-    if (dates instanceof NextResponse) return dates
+    const datesResult = parseReminderCreateDates(startAt, dueAt)
+    if (!datesResult.ok) return reminderValidationResponse(datesResult.error)
+    const dates = datesResult.value
 
     const records = await db.treeRecord.findMany({
       where: {

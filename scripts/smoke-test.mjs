@@ -28,12 +28,21 @@ function assert(name, condition, detail = '') {
 async function main() {
   console.log(`Smoke tests against ${BASE}\n`)
 
+  const isCi = process.env.CI === 'true' || process.env.CI === '1'
+  const smokePassword = process.env.SMOKE_PASSWORD
+  if (isCi && !smokePassword) {
+    console.error(
+      'FAIL: SMOKE_PASSWORD is required when CI=1 (do not rely on default dev password in CI).'
+    )
+    process.exit(1)
+  }
+
   const login = await request('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       email: process.env.SMOKE_EMAIL || 'test@example.com',
-      password: process.env.SMOKE_PASSWORD || 'password123',
+      password: smokePassword || 'password123',
     }),
   })
 

@@ -61,3 +61,9 @@ public/uploads/
 
 # Skills directory (legacy template)
 /skills/
+
+# Local tooling / smoke artifacts
+.playwright-mcp/
+.next-smoke/
+.next-smoke */
+.cursor/settings.json

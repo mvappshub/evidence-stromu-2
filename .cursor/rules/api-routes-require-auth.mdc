@@ -1,0 +1,17 @@
+---
+description: New API routes must authenticate except public auth/register endpoints
+globs: src/app/api/**/route.ts
+alwaysApply: false
+---
+
+# API route authentication
+
+When adding or changing `src/app/api/**/route.ts`:
+
+1. Call `requireAuth(request)` at the start of each handler unless the route is intentionally public.
+2. Public exceptions (no `requireAuth`): `auth/login`, `auth/logout`, `auth/me`, `auth/[...nextauth]`, `register`, and read-only `api/route.ts` health if kept.
+3. Dev-only routes must still use `requireAuth` and guard with `NODE_ENV !== 'production'` (see `api/dev/prisma-studio`).
+4. On auth failure: `if ("error" in auth) return auth.error`.
+5. Scope data to `auth.userId` — never trust client-supplied user ids for ownership.
+
+Do not add new unauthenticated write endpoints without explicit product approval.

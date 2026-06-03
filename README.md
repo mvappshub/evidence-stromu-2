@@ -4,8 +4,10 @@ Webová aplikace pro evidenci výsadby stromů: mapa (MapLibre — mapa, **satel
 
 ## Požadavky
 
-- [Bun](https://bun.sh) nebo Node.js 20+
+- [Bun](https://bun.sh) (doporučeno — lockfile `bun.lock`) nebo Node.js 20+ s `npm`
 - SQLite (souborová databáze v projektu)
+
+CI používá Bun (`/.github/workflows/ci.yml`). Lokálně lze ekvivalentně spouštět `npm run typecheck`, `npm run lint`, `npm run test`.
 
 ## Rychlý start
 
@@ -52,6 +54,9 @@ bun run scripts/seed-data.ts 100 test@example.com password123
 | `bun run build` | Produkční build (standalone) |
 | `bun run start` | Spuštění po buildu |
 | `bun run lint` | ESLint |
+| `bun run typecheck` | Route types (`next typegen`) + `tsc` (bez `.next/dev`) |
+| `bun run test` | Unit testy (Vitest) |
+| `bun run test:smoke` | API smoke testy (vyžaduje běžící `dev`; v CI nastavte `SMOKE_PASSWORD`) |
 | `bun run db:push` | Sync schématu do SQLite (bez historie migrací) |
 | `bun run db:migrate` | Prisma migrace (vývoj) |
 | `bun run db:migrate:deploy` | Aplikovat migrace (produkce) |
@@ -71,6 +76,12 @@ Viz [.env.example](.env.example).
 | `NEXTAUTH_URL` | ano (produkce) | Veřejná URL aplikace |
 | `ALLOW_REGISTRATION` | ne | `false` zakáže registraci |
 | `DEBUG_PRISMA` | ne | `1` zapne log SQL dotazů |
+
+### Produkční checklist
+
+- `NEXTAUTH_SECRET` — náhodný řetězec ≥ 32 znaků (po úniku v git historii **rotovat**)
+- `ALLOW_REGISTRATION=false` pokud nechcete veřejnou registraci
+- `NEXTAUTH_URL` — veřejná URL aplikace
 
 ## Záloha fotek
 

@@ -17,9 +17,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"]
-    if (!allowedTypes.includes(file.type)) {
+    const mimeToExt: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+    }
+    const ext = mimeToExt[file.type]
+    if (!ext) {
       return NextResponse.json(
         { error: "Invalid file type. Allowed: JPEG, PNG, WebP, GIF" },
         { status: 400 }
@@ -34,8 +39,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    const ext = file.name.split(".").pop() || "jpg"
     const filename = `${uuidv4()}.${ext}`
     const filepath = join(process.cwd(), "public", "uploads", filename)
 

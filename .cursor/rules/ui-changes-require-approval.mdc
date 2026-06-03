@@ -1,0 +1,15 @@
+---
+description: UI/UX changes must be proposed and approved before implementation
+alwaysApply: true
+---
+
+# UI changes require approval
+
+Before changing anything visible to the user (layout, labels, icons, colors, spacing, new controls, copy, tooltips, animations):
+
+1. **Describe** what you plan to change and why (brief bullet list).
+2. **Wait** for explicit user approval — do not implement UI tweaks “to help” or for discoverability without consent.
+3. **Default** to matching existing toolbar/panel patterns (icon-only buttons, same sizes as neighbors, no extra text labels unless requested).
+4. **Functional fixes** (bugs, crashes, missing wiring) may proceed without a UI design review, but must not add new visual elements beyond what the approved spec requires.
+
+If the user only asked for backend/logic work, do not change UI at all unless required for the task.

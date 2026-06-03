@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { DateRangePicker } from '@/components/table/DateRangePicker'
+import { recordFiltersToQueryString } from '@/lib/record-filters-client'
 import { PrintView } from '@/components/PrintView'
 
 const PRESET_CHIP =
@@ -52,14 +53,14 @@ export function RecordsTableToolbar(props: RecordsTableToolbarProps) {
         : 'bg-background text-muted-foreground border-border hover:bg-muted',
     )
 
-  const buildExportParams = () => {
-    const params = new URLSearchParams()
-    if (props.searchQuery) params.set('search', props.searchQuery)
-    if (props.filterSpecies) params.set('species', props.filterSpecies)
-    if (props.filterLocality) params.set('locality', props.filterLocality)
-    if (props.dateFrom) params.set('dateFrom', props.dateFrom)
-    if (props.dateTo) params.set('dateTo', props.dateTo)
-    return params
+  const uiFilters = {
+    searchQuery: props.searchQuery,
+    filterSpecies: props.filterSpecies,
+    filterLocality: props.filterLocality,
+    dateFrom: props.dateFrom,
+    dateTo: props.dateTo,
+    hasNoteFilter: props.hasNoteFilter,
+    noReminderFilter: props.noReminderFilter,
   }
 
   return (
@@ -153,9 +154,8 @@ export function RecordsTableToolbar(props: RecordsTableToolbarProps) {
                 size="icon"
                 className="size-7"
                 onClick={() => {
-                  const params = buildExportParams()
-                  params.set('format', 'csv')
-                  window.open(`/api/records/export?${params.toString()}`, '_blank')
+                  const query = recordFiltersToQueryString(uiFilters, { format: 'csv' })
+                  window.open(`/api/records/export?${query}`, '_blank')
                 }}
               >
                 <FileSpreadsheet className="size-3.5" />
@@ -172,9 +172,10 @@ export function RecordsTableToolbar(props: RecordsTableToolbarProps) {
                 size="icon"
                 className="size-7"
                 onClick={() => {
-                  const params = buildExportParams()
-                  params.set('format', 'geojson')
-                  window.open(`/api/records/export?${params.toString()}`, '_blank')
+                  const query = recordFiltersToQueryString(uiFilters, {
+                    format: 'geojson',
+                  })
+                  window.open(`/api/records/export?${query}`, '_blank')
                 }}
               >
                 <FileJson className="size-3.5" />

@@ -21,7 +21,10 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { useRecordsTotalCount } from '@/hooks/use-records-total-count'
-import { hasActiveRecordFilters } from '@/lib/record-filters-client'
+import {
+  hasActiveRecordFilters,
+  recordFiltersToQueryString,
+} from '@/lib/record-filters-client'
 import { BulkActionBar } from '@/components/table/BulkActionBar'
 import { useRecordEditDraft, type RecordsTableMeta } from '@/components/table/use-record-edit-draft'
 import { createRecordsTableColumns } from '@/components/table/records-table-columns'
@@ -61,35 +64,37 @@ export function RecordsTable() {
     setPagination((p) => ({ ...p, page: 0 }))
   }, [])
 
-  const queryParams = useMemo(() => {
-    const params = new URLSearchParams()
-    if (searchQuery) params.set('search', searchQuery)
-    if (filterSpecies) params.set('species', filterSpecies)
-    if (filterLocality) params.set('locality', filterLocality)
-    if (dateFrom) params.set('dateFrom', dateFrom)
-    if (dateTo) params.set('dateTo', dateTo)
-    if (hasNoteFilter) params.set('hasNote', 'true')
-    if (noReminderFilter) params.set('noReminder', 'true')
+  const uiFilters = useMemo(
+    () => ({
+      searchQuery,
+      filterSpecies,
+      filterLocality,
+      dateFrom,
+      dateTo,
+      hasNoteFilter,
+      noReminderFilter,
+    }),
+    [
+      searchQuery,
+      filterSpecies,
+      filterLocality,
+      dateFrom,
+      dateTo,
+      hasNoteFilter,
+      noReminderFilter,
+    ]
+  )
 
+  const queryParams = useMemo(() => {
     const sortField = sorting[0]?.id ?? 'recordNumber'
     const order = sorting[0]?.desc ? 'desc' : 'asc'
-    params.set('sort', sortField)
-    params.set('order', order)
-    params.set('limit', String(pagination.pageSize))
-    params.set('offset', String(pagination.page * pagination.pageSize))
-
-    return params.toString()
-  }, [
-    searchQuery,
-    filterSpecies,
-    filterLocality,
-    dateFrom,
-    dateTo,
-    hasNoteFilter,
-    noReminderFilter,
-    sorting,
-    pagination,
-  ])
+    return recordFiltersToQueryString(uiFilters, {
+      sort: sortField,
+      order,
+      limit: String(pagination.pageSize),
+      offset: String(pagination.page * pagination.pageSize),
+    })
+  }, [uiFilters, sorting, pagination])
 
   const { data, isLoading, isError } = useQuery<RecordsResponse>({
     queryKey: ['records', queryParams],
@@ -131,15 +136,7 @@ export function RecordsTable() {
 
   const { data: totalCount } = useRecordsTotalCount()
 
-  const filtersActive = hasActiveRecordFilters({
-    searchQuery,
-    filterSpecies,
-    filterLocality,
-    dateFrom,
-    dateTo,
-    hasNoteFilter,
-    noReminderFilter,
-  })
+  const filtersActive = hasActiveRecordFilters(uiFilters)
 
   const filteredCount = data?.count ?? 0
   const pageFrom = filteredCount > 0 ? pagination.page * pagination.pageSize + 1 : 0

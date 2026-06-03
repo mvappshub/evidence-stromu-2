@@ -1,29 +1,37 @@
 import type { Prisma } from "@prisma/client"
+import {
+  RECORD_FILTER_SPECS,
+  type RecordsFilterParams,
+} from "@/lib/records-filter-definition"
 import { parseInputDate } from "@/lib/server-date"
 
-export interface RecordsFilterParams {
-  search?: string | null
-  species?: string | null
-  locality?: string | null
-  dateFrom?: string | null
-  dateTo?: string | null
-  hasNote?: boolean
-  noReminder?: boolean
-}
+export type { RecordsFilterParams } from "@/lib/records-filter-definition"
 
 /** Parse filter query params from a URLSearchParams or Request URL. */
 export function parseRecordsFilterParams(
   searchParams: URLSearchParams
 ): RecordsFilterParams {
-  return {
-    search: searchParams.get("search"),
-    species: searchParams.get("species"),
-    locality: searchParams.get("locality"),
-    dateFrom: searchParams.get("dateFrom"),
-    dateTo: searchParams.get("dateTo"),
-    hasNote: searchParams.get("hasNote") === "true",
-    noReminder: searchParams.get("noReminder") === "true",
+  const filters: RecordsFilterParams = {}
+
+  for (const spec of RECORD_FILTER_SPECS) {
+    if (spec.kind === "boolean") {
+      if (spec.apiKey === "hasNote") {
+        filters.hasNote = searchParams.get(spec.queryParam) === "true"
+      }
+      if (spec.apiKey === "noReminder") {
+        filters.noReminder = searchParams.get(spec.queryParam) === "true"
+      }
+      continue
+    }
+    const value = searchParams.get(spec.queryParam)
+    if (spec.apiKey === "search") filters.search = value
+    if (spec.apiKey === "species") filters.species = value
+    if (spec.apiKey === "locality") filters.locality = value
+    if (spec.apiKey === "dateFrom") filters.dateFrom = value
+    if (spec.apiKey === "dateTo") filters.dateTo = value
   }
+
+  return filters
 }
 
 /** Build Prisma where clause for tree records scoped to a user. */
@@ -75,12 +83,29 @@ export function recordsFilterParamsToSearchParams(
   filters: RecordsFilterParams
 ): URLSearchParams {
   const params = new URLSearchParams()
-  if (filters.search) params.set("search", filters.search)
-  if (filters.species) params.set("species", filters.species)
-  if (filters.locality) params.set("locality", filters.locality)
-  if (filters.dateFrom) params.set("dateFrom", filters.dateFrom)
-  if (filters.dateTo) params.set("dateTo", filters.dateTo)
-  if (filters.hasNote) params.set("hasNote", "true")
-  if (filters.noReminder) params.set("noReminder", "true")
+
+  for (const spec of RECORD_FILTER_SPECS) {
+    if (spec.kind === "boolean") {
+      if (spec.apiKey === "hasNote" && filters.hasNote) {
+        params.set(spec.queryParam, "true")
+      }
+      if (spec.apiKey === "noReminder" && filters.noReminder) {
+        params.set(spec.queryParam, "true")
+      }
+      continue
+    }
+    const value =
+      spec.apiKey === "search"
+        ? filters.search
+        : spec.apiKey === "species"
+          ? filters.species
+          : spec.apiKey === "locality"
+            ? filters.locality
+            : spec.apiKey === "dateFrom"
+              ? filters.dateFrom
+              : filters.dateTo
+    if (value) params.set(spec.queryParam, value)
+  }
+
   return params
 }

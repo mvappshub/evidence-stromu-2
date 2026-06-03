@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useUiStore } from '@/store/useUiStore'
+import { recordFiltersToQueryString } from '@/lib/record-filters-client'
 import { openPrintReport } from '@/lib/print-report'
 import { BackupRestoreMenuItems } from '@/components/BackupRestore'
 
@@ -27,17 +28,7 @@ export function DataMenu({ onImport }: DataMenuProps) {
   const hasNoteFilter = useUiStore((s) => s.hasNoteFilter)
   const noReminderFilter = useUiStore((s) => s.noReminderFilter)
 
-  const buildExportParams = useCallback(() => {
-    const params = new URLSearchParams()
-    if (searchQuery) params.set('search', searchQuery)
-    if (filterSpecies) params.set('species', filterSpecies)
-    if (filterLocality) params.set('locality', filterLocality)
-    if (dateFrom) params.set('dateFrom', dateFrom)
-    if (dateTo) params.set('dateTo', dateTo)
-    if (hasNoteFilter) params.set('hasNote', 'true')
-    if (noReminderFilter) params.set('noReminder', 'true')
-    return params
-  }, [
+  const uiFilters = {
     searchQuery,
     filterSpecies,
     filterLocality,
@@ -45,24 +36,15 @@ export function DataMenu({ onImport }: DataMenuProps) {
     dateTo,
     hasNoteFilter,
     noReminderFilter,
-  ])
+  }
 
   const handlePrint = () => {
-    openPrintReport({
-      searchQuery,
-      filterSpecies,
-      filterLocality,
-      dateFrom,
-      dateTo,
-      hasNoteFilter,
-      noReminderFilter,
-    })
+    openPrintReport(uiFilters)
   }
 
   const handleExport = (format: 'csv' | 'geojson') => {
-    const params = buildExportParams()
-    params.set('format', format)
-    window.open(`/api/records/export?${params.toString()}`, '_blank')
+    const query = recordFiltersToQueryString(uiFilters, { format })
+    window.open(`/api/records/export?${query}`, '_blank')
   }
 
   return (

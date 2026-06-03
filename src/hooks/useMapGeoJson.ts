@@ -3,8 +3,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useUiStore } from '@/store/useUiStore'
-import { recordsFilterParamsToSearchParams } from '@/lib/records-query'
-import { uiFiltersToRecordsParams } from '@/lib/record-filters-client'
+import { recordFiltersToQueryString } from '@/lib/record-filters-client'
 
 export interface GeoJsonFeature {
   type: 'Feature'
@@ -33,18 +32,15 @@ export function useMapGeoJson() {
   const noReminderFilter = useUiStore((s) => s.noReminderFilter)
 
   const queryString = useMemo(() => {
-    const params = recordsFilterParamsToSearchParams(
-      uiFiltersToRecordsParams({
-        searchQuery,
-        filterSpecies,
-        filterLocality,
-        dateFrom,
-        dateTo,
-        hasNoteFilter,
-        noReminderFilter,
-      })
-    )
-    return params.toString()
+    return recordFiltersToQueryString({
+      searchQuery,
+      filterSpecies,
+      filterLocality,
+      dateFrom,
+      dateTo,
+      hasNoteFilter,
+      noReminderFilter,
+    })
   }, [
     searchQuery,
     filterSpecies,

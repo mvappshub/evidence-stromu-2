@@ -1,21 +1,23 @@
 import { format } from 'date-fns'
 import { cs } from 'date-fns/locale'
 import type { TreeRecord } from '@/lib/types'
-import type { UiRecordFilters } from '@/lib/record-filters-client'
-import { uiFiltersToRecordsParams } from '@/lib/record-filters-client'
-import { recordsFilterParamsToSearchParams } from '@/lib/records-query'
+import {
+  formatActiveRecordFilterLabels,
+  recordFiltersToQueryString,
+  type UiRecordFilters,
+} from '@/lib/record-filters-client'
 
 /** Open a print window with filtered records (same filters as table/map). */
 export async function openPrintReport(ui: UiRecordFilters): Promise<void> {
-  const filterParams = uiFiltersToRecordsParams(ui)
-  const params = recordsFilterParamsToSearchParams(filterParams)
-  params.set('limit', '5000')
-  params.set('offset', '0')
-  params.set('sort', 'recordNumber')
-  params.set('order', 'desc')
+  const recordsQuery = recordFiltersToQueryString(ui, {
+    limit: '5000',
+    offset: '0',
+    sort: 'recordNumber',
+    order: 'desc',
+  })
 
   const [recordsRes, statsRes] = await Promise.all([
-    fetch(`/api/records?${params.toString()}`),
+    fetch(`/api/records?${recordsQuery}`),
     fetch('/api/records/stats'),
   ])
 
@@ -29,15 +31,9 @@ export async function openPrintReport(ui: UiRecordFilters): Promise<void> {
 
   const now = format(new Date(), 'd. MMMM yyyy', { locale: cs })
 
-  const filters: string[] = []
-  if (ui.searchQuery) filters.push(`Hledání: "${ui.searchQuery}"`)
-  if (ui.filterSpecies) filters.push(`Druh: ${ui.filterSpecies}`)
-  if (ui.filterLocality) filters.push(`Lokalita: ${ui.filterLocality}`)
-  if (ui.dateFrom) filters.push(`Od: ${ui.dateFrom}`)
-  if (ui.dateTo) filters.push(`Do: ${ui.dateTo}`)
-  if (ui.hasNoteFilter) filters.push('S poznámkou')
-  if (ui.noReminderFilter) filters.push('Bez připomínky')
-  const filterText = filters.length > 0 ? filters.join(' · ') : 'Žádný filtr'
+  const filterLabels = formatActiveRecordFilterLabels(ui)
+  const filterText =
+    filterLabels.length > 0 ? filterLabels.join(' · ') : 'Žádný filtr'
 
   const html = `<!DOCTYPE html>
 <html lang="cs">

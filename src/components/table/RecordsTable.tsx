@@ -32,6 +32,10 @@ import { RecordsTableToolbar } from '@/components/table/RecordsTableToolbar'
 import { RecordsTablePagination } from '@/components/table/RecordsTablePagination'
 import { ImportDialog } from '@/components/ImportDialog'
 import { useUiStore } from '@/store/useUiStore'
+import {
+  getRecordsTablePresetToggle,
+  isRecordsTablePresetActive,
+} from '@/lib/records-table-presets'
 import type { RecordsResponse } from '@/lib/types'
 
 export function RecordsTable() {
@@ -202,48 +206,35 @@ export function RecordsTable() {
 
   const totalPages = Math.ceil((data?.count ?? 0) / pagination.pageSize)
 
-  const today = new Date()
-  const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]
-  const thisYearStart = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0]
-  const last30DaysStart = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split('T')[0]
-  const todayStr = today.toISOString().split('T')[0]
-
-  const isPresetActive = (preset: string) => {
-    if (preset === 'thisMonth') return dateFrom === thisMonthStart && dateTo === todayStr
-    if (preset === 'thisYear') return dateFrom === thisYearStart && dateTo === todayStr
-    if (preset === 'last30') return dateFrom === last30DaysStart && dateTo === todayStr
-    if (preset === 'noReminder') return noReminderFilter
-    if (preset === 'hasNote') return hasNoteFilter
-    return false
+  const presetState = {
+    dateFrom,
+    dateTo,
+    hasNoteFilter,
+    noReminderFilter,
   }
 
+  const isPresetActive = (preset: string) =>
+    isRecordsTablePresetActive(preset, presetState)
+
   const togglePreset = (preset: string) => {
-    const isActive = isPresetActive(preset)
-    if (preset === 'thisMonth') {
-      if (isActive) clearDateRange()
-      else {
-        setDateFrom(thisMonthStart)
-        setDateTo(todayStr)
-      }
+    const result = getRecordsTablePresetToggle(preset, presetState)
+    if (!result) return
+
+    switch (result.action) {
+      case 'clearDateRange':
+        clearDateRange()
+        break
+      case 'setDateRange':
+        setDateFrom(result.dateFrom)
+        setDateTo(result.dateTo)
+        break
+      case 'setHasNoteFilter':
+        setHasNoteFilter(result.value)
+        break
+      case 'setNoReminderFilter':
+        setNoReminderFilter(result.value)
+        break
     }
-    if (preset === 'thisYear') {
-      if (isActive) clearDateRange()
-      else {
-        setDateFrom(thisYearStart)
-        setDateTo(todayStr)
-      }
-    }
-    if (preset === 'last30') {
-      if (isActive) clearDateRange()
-      else {
-        setDateFrom(last30DaysStart)
-        setDateTo(todayStr)
-      }
-    }
-    if (preset === 'noReminder') setNoReminderFilter(!isActive)
-    if (preset === 'hasNote') setHasNoteFilter(!isActive)
     resetPage()
   }
 

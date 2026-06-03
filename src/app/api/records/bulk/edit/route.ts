@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
+import { parseInputDate } from "@/lib/server-date"
 
 const bulkEditSchema = z.object({
   recordNumbers: z.array(z.number()).min(1),
@@ -31,7 +32,13 @@ export async function POST(request: NextRequest) {
     const updateData: Record<string, unknown> = {}
     if (speciesLatin !== undefined) updateData.speciesLatin = speciesLatin
     if (locality !== undefined) updateData.locality = locality || null
-    if (plantedAt !== undefined) updateData.plantedAt = new Date(plantedAt)
+    if (plantedAt !== undefined) {
+      const plantedAtDate = parseInputDate(plantedAt)
+      if (!plantedAtDate) {
+        return NextResponse.json({ error: "Invalid plantedAt date" }, { status: 400 })
+      }
+      updateData.plantedAt = plantedAtDate
+    }
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: "No fields to update" }, { status: 400 })

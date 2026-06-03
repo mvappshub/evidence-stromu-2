@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/api-auth'
+import { readPhotoBackupPayload } from '@/lib/photo-storage'
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request)
@@ -20,12 +21,8 @@ export async function GET(request: NextRequest) {
       select: { name: true, email: true },
     })
 
-    const backup = {
-      version: 1,
-      timestamp: new Date().toISOString(),
-      recordCount: records.length,
-      user: user ? { name: user.name, email: user.email } : null,
-      records: records.map((r) => ({
+    const recordsWithPhotos = await Promise.all(
+      records.map(async (r) => ({
         recordNumber: r.recordNumber,
         speciesLatin: r.speciesLatin,
         plantedAt: r.plantedAt.toISOString(),
@@ -33,6 +30,7 @@ export async function GET(request: NextRequest) {
         lng: r.lng,
         locality: r.locality,
         photoPath: r.photoPath,
+        photo: await readPhotoBackupPayload(r.photoPath),
         note: r.note,
         createdAt: r.createdAt.toISOString(),
         reminders: r.reminders.map((rem) => ({
@@ -45,7 +43,15 @@ export async function GET(request: NextRequest) {
           nextDueAt: rem.nextDueAt.toISOString(),
           active: rem.active,
         })),
-      })),
+      }))
+    )
+
+    const backup = {
+      version: 2,
+      timestamp: new Date().toISOString(),
+      recordCount: records.length,
+      user: user ? { name: user.name, email: user.email } : null,
+      records: recordsWithPhotos,
     }
 
     return NextResponse.json(backup)

@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
 import { db } from "@/lib/db"
+import { getAuthSecret, getSessionCookieName, isSecureCookie } from "@/lib/auth-config"
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -37,19 +38,16 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: { signIn: "/" },
-  secret: process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production",
-  // Force SameSite=Lax (not None) and secure=false for widest compatibility
-  // The Caddy proxy forwards requests, so cookies set on the proxy domain
-  // will be sent back correctly as long as SameSite=Lax
-  useSecureCookies: process.env.NODE_ENV === "production",
+  secret: getAuthSecret(),
+  useSecureCookies: isSecureCookie(),
   cookies: {
     sessionToken: {
-      name: "next-auth.session-token",
+      name: getSessionCookieName(),
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: false,
+        secure: isSecureCookie(),
       },
     },
     callbackUrl: {
@@ -58,16 +56,18 @@ export const authOptions: NextAuthOptions = {
         httpOnly: false,
         sameSite: "lax",
         path: "/",
-        secure: false,
+        secure: isSecureCookie(),
       },
     },
     csrfToken: {
-      name: "next-auth.csrf-token",
+      name: isSecureCookie()
+        ? "__Host-next-auth.csrf-token"
+        : "next-auth.csrf-token",
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: false,
+        secure: isSecureCookie(),
       },
     },
     pkceCodeVerifier: {
@@ -76,7 +76,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: false,
+        secure: isSecureCookie(),
       },
     },
   },

@@ -161,8 +161,8 @@ export function BackupRestoreProvider({ children }: { children: ReactNode }) {
             <AlertDialogDescription className="space-y-2">
               <span className="block">Nahradí se všechna stávající data.</span>
               <span className="block text-xs text-muted-foreground">
-                Fotografie zálohujte zvlášť ve složce{' '}
-                <code className="text-[10px]">public/uploads/</code>.
+                Nové zálohy už obsahují i fotografie. U starších JSON záloh bez
+                vložených fotek se obrázky neobnoví.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>

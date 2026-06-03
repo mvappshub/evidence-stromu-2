@@ -1,6 +1,6 @@
 # Evidence výsadby stromů
 
-Webová aplikace pro evidenci výsadby stromů: mapa (MapLibre), tabulka záznamů, připomínky údržby, import/export CSV a GeoJSON, záloha dat.
+Webová aplikace pro evidenci výsadby stromů: mapa (MapLibre — mapa, **satelit**, **ČÚZK ortofoto**, topo, tmavý režim), tabulka záznamů, připomínky údržby, import/export CSV a GeoJSON, záloha dat.
 
 ## Požadavky
 

@@ -3,6 +3,7 @@ import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
 import { calculateNextDueAt } from "@/lib/reminder-utils"
+import { parseInputDate } from "@/lib/server-date"
 
 const createReminderSchema = z.object({
   recordNumber: z.number().int("Record number is required"),
@@ -45,6 +46,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const parsedStartAt = startAt ? parseInputDate(startAt) : null
+    if (startAt && !parsedStartAt) {
+      return NextResponse.json({ error: "Invalid startAt date" }, { status: 400 })
+    }
+
+    const parsedDueAt = dueAt ? parseInputDate(dueAt) : null
+    if (dueAt && !parsedDueAt) {
+      return NextResponse.json({ error: "Invalid dueAt date" }, { status: 400 })
+    }
+
     // Verify the record belongs to the user
     const record = await db.treeRecord.findFirst({
       where: { recordNumber, createdById: auth.userId },
@@ -55,10 +66,10 @@ export async function POST(request: NextRequest) {
 
     const nextDueAt = calculateNextDueAt(
       mode,
-      startAt ? new Date(startAt) : null,
+      parsedStartAt,
       intervalNum ?? null,
       intervalUnit ?? null,
-      dueAt ? new Date(dueAt) : null
+      parsedDueAt
     )
 
     const reminder = await db.reminder.create({
@@ -67,8 +78,8 @@ export async function POST(request: NextRequest) {
         mode,
         intervalNum: intervalNum ?? null,
         intervalUnit: intervalUnit ?? null,
-        startAt: startAt ? new Date(startAt) : null,
-        dueAt: dueAt ? new Date(dueAt) : null,
+        startAt: parsedStartAt,
+        dueAt: parsedDueAt,
         nextDueAt,
         recordNumber,
       },

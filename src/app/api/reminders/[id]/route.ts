@@ -3,6 +3,7 @@ import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
 import { calculateNextDueAt } from "@/lib/reminder-utils"
+import { parseInputDate } from "@/lib/server-date"
 
 const updateReminderSchema = z.object({
   text: z.string().min(1).optional(),
@@ -46,13 +47,30 @@ export async function PATCH(
 
     const update = parsed.data
     const data: Record<string, unknown> = {}
+    const parsedStartAt = update.startAt !== undefined && update.startAt !== null
+      ? parseInputDate(update.startAt)
+      : update.startAt === null
+        ? null
+        : undefined
+    if (update.startAt !== undefined && update.startAt !== null && !parsedStartAt) {
+      return NextResponse.json({ error: "Invalid startAt date" }, { status: 400 })
+    }
+
+    const parsedDueAt = update.dueAt !== undefined && update.dueAt !== null
+      ? parseInputDate(update.dueAt)
+      : update.dueAt === null
+        ? null
+        : undefined
+    if (update.dueAt !== undefined && update.dueAt !== null && !parsedDueAt) {
+      return NextResponse.json({ error: "Invalid dueAt date" }, { status: 400 })
+    }
 
     if (update.text !== undefined) data.text = update.text
     if (update.mode !== undefined) data.mode = update.mode
     if (update.intervalNum !== undefined) data.intervalNum = update.intervalNum
     if (update.intervalUnit !== undefined) data.intervalUnit = update.intervalUnit
-    if (update.startAt !== undefined) data.startAt = update.startAt ? new Date(update.startAt) : null
-    if (update.dueAt !== undefined) data.dueAt = update.dueAt ? new Date(update.dueAt) : null
+    if (update.startAt !== undefined) data.startAt = parsedStartAt ?? null
+    if (update.dueAt !== undefined) data.dueAt = parsedDueAt ?? null
     if (update.active !== undefined) data.active = update.active
 
     // Determine if we need to recalculate nextDueAt
@@ -68,10 +86,10 @@ export async function PATCH(
       const intervalNum = update.intervalNum !== undefined ? update.intervalNum : existing.intervalNum
       const intervalUnit = update.intervalUnit !== undefined ? update.intervalUnit as "day" | "week" | "month" | "year" : existing.intervalUnit as "day" | "week" | "month" | "year"
       const startAtValue = update.startAt !== undefined
-        ? (update.startAt ? new Date(update.startAt) : null)
+        ? (parsedStartAt ?? null)
         : existing.startAt
       const dueAtValue = update.dueAt !== undefined
-        ? (update.dueAt ? new Date(update.dueAt) : null)
+        ? (parsedDueAt ?? null)
         : existing.dueAt
 
       data.nextDueAt = calculateNextDueAt(mode, startAtValue, intervalNum, intervalUnit, dueAtValue)

@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack -p 3000 2>&1 | tee dev.log",
+    "dev": "next dev --webpack -p 3000",
     "build": "prisma generate && next build --webpack && node -e \"const fs=require('fs');fs.mkdirSync('.next/standalone/.next',{recursive:true});fs.cpSync('.next/static','.next/standalone/.next/static',{recursive:true,force:true});fs.cpSync('public','.next/standalone/public',{recursive:true,force:true});\"",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
@@ -68,7 +68,6 @@
     "react-resizable-panels": "^3.0.3",
     "sharp": "^0.34.3",
     "sonner": "^2.0.6",
-    "supercluster": "^8.0.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",

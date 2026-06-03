@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { compare } from "bcryptjs"
 import { encode } from "next-auth/jwt"
 import { db } from "@/lib/db"
+import { getAuthSecret, getSessionCookieName, isSecureCookie } from "@/lib/auth-config"
 
-const SECRET = process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production"
+const SECRET: string = getAuthSecret()
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,11 +43,11 @@ export async function POST(req: NextRequest) {
       user: { id: user.id, email: user.email, name: user.name },
     })
 
-    response.cookies.set("next-auth.session-token", sessionToken, {
+    response.cookies.set(getSessionCookieName(), sessionToken, {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      secure: false,
+      secure: isSecureCookie(),
       maxAge: 30 * 24 * 60 * 60, // 30 days
     })
 

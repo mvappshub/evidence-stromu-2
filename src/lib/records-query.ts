@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client"
+import { parseInputDate } from "@/lib/server-date"
 
 export interface RecordsFilterParams {
   search?: string | null
@@ -51,9 +52,12 @@ export function buildRecordsWhere(
     ]
   }
   if (dateFrom || dateTo) {
+    const from = dateFrom ? parseInputDate(dateFrom) : null
+    const to = dateTo ? parseInputDate(dateTo) : null
+
     where.plantedAt = {
-      ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
-      ...(dateTo ? { lte: new Date(dateTo) } : {}),
+      ...(from ? { gte: from } : {}),
+      ...(to ? { lte: to } : {}),
     }
   }
   if (hasNote) {

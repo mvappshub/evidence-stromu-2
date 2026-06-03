@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+import type { ImperativePanelHandle } from 'react-resizable-panels'
 import { AuthGate } from '@/components/AuthGate'
 import { AppShell } from '@/components/AppShell'
 import { MapView } from '@/components/map/MapView'
@@ -10,49 +12,78 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from 'next-themes'
 import { useUiStore } from '@/store/useUiStore'
+import type { ViewMode } from '@/lib/types'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { MapProvider } from '@/components/map/MapContext'
 import { BackupRestoreProvider } from '@/components/BackupRestore'
 
+function MapPanel() {
+  return (
+    <div className="relative w-full h-full min-h-0">
+      <MapView />
+      <PlantContextBar />
+    </div>
+  )
+}
+
+function applyViewModeLayout(
+  viewMode: ViewMode,
+  mapPanel: ImperativePanelHandle | null,
+  listPanel: ImperativePanelHandle | null
+) {
+  if (viewMode === 'map') {
+    mapPanel?.resize(100)
+    listPanel?.resize(0)
+    return
+  }
+  if (viewMode === 'list') {
+    mapPanel?.resize(0)
+    listPanel?.resize(100)
+    return
+  }
+  mapPanel?.resize(55)
+  listPanel?.resize(45)
+}
+
 function WorkArea() {
   const viewMode = useUiStore((s) => s.viewMode)
   const isMobile = useIsMobile()
+  const mapPanelRef = useRef<ImperativePanelHandle>(null)
+  const listPanelRef = useRef<ImperativePanelHandle>(null)
 
-  // On mobile, use vertical split for "both" mode
-  if (viewMode === 'map') {
-    return (
-      <div className="flex-1 min-h-0">
-        <div className="relative w-full h-full">
-          <MapView />
-          <PlantContextBar />
-        </div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    applyViewModeLayout(viewMode, mapPanelRef.current, listPanelRef.current)
+  }, [viewMode])
 
-  if (viewMode === 'list') {
-    return (
-      <div className="flex-1 min-h-0">
-        <RecordsTable />
-      </div>
-    )
-  }
+  const showHandle = viewMode === 'both'
 
-  // Both view
   return (
     <div className="flex-1 min-h-0">
       <ResizablePanelGroup
         direction={isMobile ? 'vertical' : 'horizontal'}
         className="w-full h-full"
       >
-        <ResizablePanel defaultSize={55} minSize={30}>
-          <div className="relative w-full h-full">
-            <MapView />
-            <PlantContextBar />
-          </div>
+        <ResizablePanel
+          ref={mapPanelRef}
+          id="map-panel"
+          order={1}
+          defaultSize={55}
+          minSize={0}
+          collapsible
+          className={viewMode === 'list' ? 'hidden' : undefined}
+        >
+          <MapPanel />
         </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={45} minSize={25}>
+        {showHandle ? <ResizableHandle withHandle /> : null}
+        <ResizablePanel
+          ref={listPanelRef}
+          id="list-panel"
+          order={2}
+          defaultSize={45}
+          minSize={0}
+          collapsible
+          className={viewMode === 'map' ? 'hidden' : undefined}
+        >
           <div className="flex flex-col h-full min-h-0 border-l">
             <RecordsTable />
           </div>

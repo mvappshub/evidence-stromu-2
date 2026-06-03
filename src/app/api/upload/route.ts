@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid"
 import { writeFile } from "fs/promises"
 import { join } from "path"
 import { requireAuth } from "@/lib/api-auth"
+import { ensureUploadsDir } from "@/lib/photo-storage"
 
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(request)
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
     const filename = `${uuidv4()}.${ext}`
     const filepath = join(process.cwd(), "public", "uploads", filename)
 
+    await ensureUploadsDir()
     const bytes = await file.arrayBuffer()
     await writeFile(filepath, Buffer.from(bytes))
 

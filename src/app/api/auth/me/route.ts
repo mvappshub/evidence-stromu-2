@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { decode } from "next-auth/jwt"
 import { db } from "@/lib/db"
+import { getAuthSecret, getSessionCookieName } from "@/lib/auth-config"
 
-const SECRET = process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production"
+const SECRET: string = getAuthSecret()
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     // Fallback: try cookie
     if (!token) {
-      token = req.cookies.get("next-auth.session-token")?.value ?? null
+      token = req.cookies.get(getSessionCookieName())?.value ?? null
     }
 
     if (!token) {

@@ -6,7 +6,11 @@ import type { MapStyleKey } from './MapStyleSwitcher'
 import { HeatmapToggle } from './HeatmapToggle'
 import type { LayerMode } from './HeatmapToggle'
 import { MapLegend } from './MapLegend'
+import { MapPlaceSearch } from './MapPlaceSearch'
+import { MapLayerPanel } from './MapLayerPanel'
+import { MapIdentifyCard } from './MapIdentifyCard'
 import { formatDistance } from '@/lib/haversine'
+import type { ParcelIdentifyResult } from '@/lib/wms-feature-info'
 
 export interface SelectedTreeInfo {
   recordNumber: number
@@ -31,6 +35,9 @@ export interface MapOverlaysProps {
   flashMarkers: Array<{ id: number; x: number; y: number }>
   gridVisible: boolean
   selectedTreeInfo: SelectedTreeInfo | null
+  parcelInfo?: ParcelIdentifyResult | null
+  identifyLoading?: boolean
+  onCloseIdentify?: () => void
 }
 
 export function MapOverlays({
@@ -49,15 +56,27 @@ export function MapOverlays({
   flashMarkers,
   gridVisible,
   selectedTreeInfo,
+  parcelInfo = null,
+  identifyLoading = false,
+  onCloseIdentify,
 }: MapOverlaysProps) {
   return (
     <>
       {isGeoLoading && <div className="map-loading-shimmer" />}
 
+      <MapPlaceSearch />
+
+      <MapIdentifyCard
+        parcelInfo={parcelInfo}
+        loading={identifyLoading}
+        onClose={() => onCloseIdentify?.()}
+      />
+
       <div className="absolute top-1 right-1 z-10 flex items-center gap-px bg-toolbar border border-border p-px">
         <MapStyleSwitcher currentStyle={mapStyle} onStyleChange={onStyleChange} />
         <HeatmapToggle mode={layerMode} onToggle={onLayerModeToggle} />
-        <MapLegend layerMode={layerMode} />
+        <MapLegend layerMode={layerMode} mapStyle={mapStyle} />
+        <MapLayerPanel />
         <button
           type="button"
           onClick={onToggleMeasureMode}
@@ -162,7 +181,7 @@ export function MapOverlays({
       )}
 
       {selectedTreeInfo && (
-        <div className="absolute top-14 left-3 z-10 mini-info-panel slide-up-info max-w-[220px]">
+        <div className="absolute top-10 left-1 z-10 mini-info-panel slide-up-info max-w-[220px]">
           <div className="flex items-center gap-2 mb-1">
             <span className="font-mono text-xs text-primary font-semibold">
               #{selectedTreeInfo.recordNumber}

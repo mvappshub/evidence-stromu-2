@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Layers } from 'lucide-react'
+import { Map } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -9,67 +9,10 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { MAP_STYLE_OPTIONS, type MapStyleKey } from '@/lib/map-basemaps'
 
-export type MapStyleKey = 'osm' | 'topo' | 'dark'
-
-interface MapStyleOption {
-  key: MapStyleKey
-  label: string
-  description: string
-}
-
-const MAP_STYLES: MapStyleOption[] = [
-  { key: 'osm', label: 'Standardní', description: 'OpenStreetMap' },
-  { key: 'topo', label: 'Topografická', description: 'OpenTopoMap' },
-  { key: 'dark', label: 'Tmavá', description: 'CartoDB Dark' },
-]
-
-export function getMapStyle(key: MapStyleKey) {
-  switch (key) {
-    case 'osm':
-      return {
-        version: 8,
-        sources: {
-          osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            maxzoom: 19,
-          },
-        },
-        layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
-      }
-    case 'topo':
-      return {
-        version: 8,
-        sources: {
-          topo: {
-            type: 'raster',
-            tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
-            maxzoom: 17,
-          },
-        },
-        layers: [{ id: 'topo', type: 'raster', source: 'topo' }],
-      }
-    case 'dark':
-      return {
-        version: 8,
-        sources: {
-          dark: {
-            type: 'raster',
-            tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'],
-            tileSize: 256,
-            attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-            maxzoom: 19,
-          },
-        },
-        layers: [{ id: 'dark', type: 'raster', source: 'dark' }],
-      }
-  }
-}
+export type { MapStyleKey } from '@/lib/map-basemaps'
+export { getMapStyle } from '@/lib/map-basemaps'
 
 interface MapStyleSwitcherProps {
   currentStyle: MapStyleKey
@@ -87,15 +30,16 @@ export function MapStyleSwitcher({ currentStyle, onStyleChange, className }: Map
           variant="ghost"
           size="icon"
           className="size-6 rounded-none"
-          title="Styl mapy"
+          title="Podklad mapy"
         >
-          <Layers className="size-3" />
+          <Map className="size-3" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className={cn("w-48 p-1 style-switcher-fade-in", className)}>
-        {MAP_STYLES.map((style) => (
+      <PopoverContent align="end" className={cn('w-52 p-1 style-switcher-fade-in', className)}>
+        {MAP_STYLE_OPTIONS.map((style) => (
           <button
             key={style.key}
+            type="button"
             className={cn(
               'w-full text-left px-3 py-2 rounded-sm text-sm transition-colors',
               currentStyle === style.key

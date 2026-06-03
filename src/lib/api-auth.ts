@@ -2,8 +2,9 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { decode } from "next-auth/jwt"
 import { NextRequest, NextResponse } from "next/server"
+import { getAuthSecret } from "@/lib/auth-config"
 
-const SECRET = process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production"
+const SECRET: string = getAuthSecret()
 
 export async function requireAuth(req?: NextRequest) {
   // Strategy 1: Try Bearer token from Authorization header

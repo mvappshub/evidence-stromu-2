@@ -7,14 +7,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { MAP_COLORS } from '@/lib/map-colors'
+import { MAP_COLORS, MAP_COLORS_AERIAL } from '@/lib/map-colors'
+import { isAerialBasemap, type MapStyleKey } from '@/lib/map-basemaps'
 import type { LayerMode } from './HeatmapToggle'
 
 interface MapLegendProps {
   layerMode: LayerMode
+  mapStyle: MapStyleKey
 }
 
-export function MapLegend({ layerMode }: MapLegendProps) {
+export function MapLegend({ layerMode, mapStyle }: MapLegendProps) {
+  const colors = isAerialBasemap(mapStyle) ? MAP_COLORS_AERIAL : MAP_COLORS
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -32,22 +35,13 @@ export function MapLegend({ layerMode }: MapLegendProps) {
         {layerMode === 'points' ? (
           <ul className="space-y-1 text-muted-foreground">
             <li className="flex items-center gap-2">
-              <span className="size-2 rounded-full shrink-0" style={{ background: MAP_COLORS.point }} />
+              <span className="size-2 rounded-full shrink-0" style={{ background: colors.point }} />
               bod
             </li>
             <li className="flex items-center gap-2">
               <span
-                className="inline-flex size-3.5 items-center justify-center rounded-full text-[7px] font-mono text-[#1e1e1e] shrink-0"
-                style={{ background: MAP_COLORS.cluster[1] }}
-              >
-                n
-              </span>
-              shluk
-            </li>
-            <li className="flex items-center gap-2">
-              <span
                 className="size-2 rounded-full ring-1 shrink-0"
-                style={{ background: MAP_COLORS.point, outlineColor: MAP_COLORS.pointSelectedStroke, outlineWidth: 2 }}
+                style={{ background: colors.point, outlineColor: colors.pointSelectedStroke, outlineWidth: 2 }}
               />
               vybraný
             </li>
@@ -58,7 +52,7 @@ export function MapLegend({ layerMode }: MapLegendProps) {
             <div
               className="h-1.5 border border-border"
               style={{
-                background: `linear-gradient(to right, transparent, ${MAP_COLORS.point}88, ${MAP_COLORS.point})`,
+                background: `linear-gradient(to right, transparent, ${colors.point}88, ${colors.point})`,
               }}
             />
           </div>

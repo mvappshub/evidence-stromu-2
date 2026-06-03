@@ -3,6 +3,7 @@ import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
 import { deletePhotoFile } from "@/lib/photo-storage"
+import { parseInputDate } from "@/lib/server-date"
 
 const updateRecordSchema = z.object({
   speciesLatin: z.string().min(1).optional(),
@@ -78,7 +79,13 @@ export async function PATCH(
     const update = parsed.data
 
     if (update.speciesLatin !== undefined) data.speciesLatin = update.speciesLatin
-    if (update.plantedAt !== undefined) data.plantedAt = new Date(update.plantedAt)
+    if (update.plantedAt !== undefined) {
+      const plantedAt = parseInputDate(update.plantedAt)
+      if (!plantedAt) {
+        return NextResponse.json({ error: "Invalid plantedAt date" }, { status: 400 })
+      }
+      data.plantedAt = plantedAt
+    }
     if (update.lat !== undefined) data.lat = update.lat
     if (update.lng !== undefined) data.lng = update.lng
     if (update.locality !== undefined) data.locality = update.locality

@@ -3,6 +3,7 @@ import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
 import { buildRecordsWhere, parseRecordsFilterParams } from "@/lib/records-query"
+import { parseInputDate } from "@/lib/server-date"
 
 const createRecordSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -21,8 +22,10 @@ export async function GET(request: NextRequest) {
   const where = buildRecordsWhere(auth.userId, filters)
   const sort = searchParams.get("sort") || "createdAt"
   const order = searchParams.get("order") || "desc"
-  const limit = parseInt(searchParams.get("limit") || "50", 10)
-  const offset = parseInt(searchParams.get("offset") || "0", 10)
+  const parsedLimit = parseInt(searchParams.get("limit") || "50", 10)
+  const parsedOffset = parseInt(searchParams.get("offset") || "0", 10)
+  const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 500) : 50
+  const offset = Number.isFinite(parsedOffset) ? Math.max(parsedOffset, 0) : 0
 
   const allowedSortFields = ["createdAt", "plantedAt", "speciesLatin", "recordNumber"]
   const sortField = allowedSortFields.includes(sort) ? sort : "createdAt"
@@ -58,13 +61,20 @@ export async function POST(request: NextRequest) {
     }
 
     const { lat, lng, speciesLatin, plantedAt, locality } = parsed.data
+    const plantedAtDate = parseInputDate(plantedAt)
+    if (!plantedAtDate) {
+      return NextResponse.json(
+        { error: "Validation failed", details: [{ path: ["plantedAt"], message: "Invalid plantedAt date" }] },
+        { status: 400 }
+      )
+    }
 
     const record = await db.treeRecord.create({
       data: {
         lat,
         lng,
         speciesLatin,
-        plantedAt: new Date(plantedAt),
+        plantedAt: plantedAtDate,
         locality: locality || null,
         createdById: auth.userId,
       },

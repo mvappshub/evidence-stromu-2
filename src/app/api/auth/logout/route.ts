@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
+import { getSessionCookieName, isSecureCookie } from "@/lib/auth-config"
 
 export async function POST() {
   const response = NextResponse.json({ ok: true })
 
   const cookieNames = [
-    "next-auth.session-token",
+    getSessionCookieName(),
     "__Secure-next-auth.session-token",
     "next-auth.csrf-token",
     "__Host-next-auth.csrf-token",
@@ -16,7 +17,7 @@ export async function POST() {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecureCookie(),
       maxAge: 0,
     })
   }

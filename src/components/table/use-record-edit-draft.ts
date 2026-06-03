@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useUiStore } from '@/store/useUiStore'
@@ -31,16 +31,36 @@ function toDraft(record: TreeRecord): RecordEditDraft {
 export function useRecordEditDraft(record: TreeRecord | null) {
   const queryClient = useQueryClient()
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
-  const [draft, setDraft] = useState<RecordEditDraft | null>(null)
-
-  useEffect(() => {
-    if (record) setDraft(toDraft(record))
-    else setDraft(null)
-  }, [record])
+  const recordNumber = record?.recordNumber ?? null
+  const [draftState, setDraftState] = useState<{
+    recordNumber: number | null
+    draft: RecordEditDraft | null
+  }>(() => ({
+    recordNumber,
+    draft: record ? toDraft(record) : null,
+  }))
+  const draft =
+    draftState.recordNumber === recordNumber
+      ? draftState.draft
+      : record
+        ? toDraft(record)
+        : null
 
   const patchField = useCallback(<K extends keyof RecordEditDraft>(key: K, value: RecordEditDraft[K]) => {
-    setDraft((d) => (d ? { ...d, [key]: value } : d))
-  }, [])
+    setDraftState((state) => {
+      const currentDraft =
+        state.recordNumber === recordNumber
+          ? state.draft
+          : record
+            ? toDraft(record)
+            : null
+
+      return {
+        recordNumber,
+        draft: currentDraft ? { ...currentDraft, [key]: value } : currentDraft,
+      }
+    })
+  }, [record, recordNumber])
 
   const saveMutation = useMutation({
     mutationFn: async () => {

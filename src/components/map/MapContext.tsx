@@ -5,7 +5,6 @@ import {
   useCallback,
   useContext,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -21,23 +20,21 @@ interface MapContextValue {
 const MapContext = createContext<MapContextValue | null>(null)
 
 export function MapProvider({ children }: { children: ReactNode }) {
-  const mapRef = useRef<maplibregl.Map | null>(null)
+  const [map, setMapInstance] = useState<maplibregl.Map | null>(null)
   const [bearing, setBearing] = useState(0)
 
-  const setMap = useCallback((map: maplibregl.Map | null) => {
-    mapRef.current = map
+  const setMap = useCallback((next: maplibregl.Map | null) => {
+    setMapInstance(next)
   }, [])
 
   const value = useMemo(
     () => ({
-      get map() {
-        return mapRef.current
-      },
+      map,
       setMap,
       bearing,
       setBearing,
     }),
-    [setMap, bearing]
+    [map, setMap, bearing]
   )
 
   return <MapContext.Provider value={value}>{children}</MapContext.Provider>

@@ -29,7 +29,9 @@
 |---------------|----------------------------------|-----------------------------------|
 | Engine        | `maplibre-gl`                    | `MapView.tsx`                     |
 | Clustery      | `supercluster`                   | ruční index + GeoJSON source      |
-| Podklad       | raster OSM / OpenTopoMap / Carto | `MapStyleSwitcher.tsx`            |
+| Podklad       | OSM, satelit (Esri), ČÚZK ortofoto, topo, dark | `map-basemaps.ts` |
+| Vyhledávání   | Photon (OSM) → flyTo, bbox ČR | `MapPlaceSearch.tsx` |
+| Vizuál bodů   | kontrastní paleta na leteckých podkladech | `map-tree-layer-paints.ts` |
 | Geoman        | ne                               | po zrušení ploch volitelné        |
 | Street View   | ne                               | volitelné                         |
 | Měření        | vlastní (GeoJSON + haversine)    | ne Geoman                         |
@@ -229,7 +231,27 @@ Kompletní seznam: https://maplibre.org/maplibre-gl-js/docs/plugins/
 
 ---
 
-## 5. Rozšíření relevantní pro Evidence stromů (nápady)
+## 5. Vizuální vylepšení mapy (prioritizace, 2026-06)
+
+Zaměření: **jak mapa vypadá**, ne nové GIS funkce.
+
+| Nápad | Přínos pro vizuál | Náklady | Verdikt |
+|-------|-------------------|---------|---------|
+| Satelit + ortofoto ČÚZK | vysoký | nízké (raster, bez klíče) | **hotovo** — `map-basemaps.ts` |
+| Kontrast bodů na leteckém podkladu | vysoký | nízké | **hotovo** — `MAP_COLORS_AERIAL` |
+| Hybrid satelit + popisky OSM (2 vrstvy, labels 40 % opacity) | střední | střední | zvážit později |
+| `maplibre-transition` při přepnutí podkladu | nízký | nízké | spíš ne |
+| `maplibregl-minimap` | nízký | střední (clutter UI) | ne |
+| `maplibre-gl-export` / screenshot mapy | střední (výstupy) | střední | až na požádání |
+| Vlastní symbol místo kruhu (ikona stromu) | střední | střední (sprite, scale) | volitelné |
+| Terén hillshade (`raster-dem`) | nízký u bodů | střední | ne |
+| MapTiler vector + styly | vysoký vzhled mapy | API klíč, platba | ne bez rozpočtu |
+
+**Satelit vs. ortofoto:** Esri World Imagery = celý svět, obecně starší rozlišení mimo města. ČÚZK ortofoto = jen ČR, nejlepší pro přesné umístění stromu. Pro výsadbu v ČR preferovat **Ortofoto ČR**, satelit jako doplňek mimo CR nebo rychlý náhled.
+
+---
+
+## 6. Rozšíření relevantní pro Evidence stromů (nápady)
 
 | Potřeba | Možné rozšíření |
 |---------|------------------|
@@ -242,9 +264,240 @@ Kompletní seznam: https://maplibre.org/maplibre-gl-js/docs/plugins/
 
 ---
 
+## 7. Proveditelnost vrstev pro terénní rozhodování (výzkum 2026-06-02)
+
+Cíl: u každé požadované vrstvy ověřit **zdroj dat**, **integraci do MapLibre**, **právní podmínky**, **co aplikace reálně umí říct uživateli** a **odhad náročnosti**.
+
+### Shrnutí (implementovat / ne)
+
+| Vrstva | Lze v MapLibre? | Vhodný zdroj (ČR) | Vlastnictví / právní jistota | Verdikt |
+|--------|-----------------|-------------------|------------------------------|---------|
+| Ortofoto / podklad | **Ano** (hotovo) | ČÚZK `ORTOFOTO_WM`, Esri, OSM | veřejné prohlížení, attribution | **Hotovo** |
+| Parcely (hranice, č. parcely) | **Ano** | ČÚZK KM WMS/WMTS | **Ne** vlastník v mapě | **Ano — overlay + klik** |
+| Vlastnictví | **Ne** jako mapová vrstva | Katastr (Nahlížení / DKM) | osobní údaje, jiný produkt | **Ne v této app** |
+| Komunikace / chodníky | **Ano** | IS DMVS DI WMS, OSM vektor | veřejné DTM / OSM | **Ano — overlay** |
+| Inženýrské sítě | **Částečně** | IS DMVS TI WMS (`dtm_ti_ver`) | agregace krajů, ne 100 % sítí | **Ano s výhradami** |
+| Existující stromy (cizí) | **Ano** | OSM Overpass `natural=tree` | neúplná data | **Ano — reference** |
+| Existující stromy (vaše) | **Ano** (hotovo) | vlastní GeoJSON API | plná kontrola | **Rozšířit logikou** |
+| Zóny správy / obce | **Ano** | RÚIAN (WMS / ArcGIS / VFR) | CC-BY 4.0 otevřená data | **Ano — polygon + pole** |
+
+---
+
+### 1. Ortofoto / podkladová mapa
+
+**Stav v projektu:** implementováno (`map-basemaps.ts`: OSM, satelit Esri, ortofoto ČÚZK, topo, dark) + Photon vyhledávání.
+
+**Technicky:** raster `type: 'raster'` + `tiles[]`, stejný model jako současné podklady.
+
+**Limity:** ČÚZK ortofoto od zoomu 6; satelit Esri není „vlastnictví pozemku“. Pro právní jistotu polohy v ČR: **ortofoto ČÚZK + katastrální mapa**.
+
+**Závěr:** splněno.
+
+---
+
+### 2. Parcely / vlastnictví
+
+#### 2a. Hranice parcel a katastrální mapa — **LZE**
+
+**Zdroj:** ČÚZK katastrální mapa (KM), veřejná bez registrace.
+
+| Typ služby | URL (ověřeno) | CORS z prohlížeče |
+|------------|----------------|-------------------|
+| WMS (doporučeno pro MapLibre) | `https://services.cuzk.gov.cz/wms/local-km-wms.asp` | `Access-Control-Allow-Origin: *` |
+| WMTS Google řada | `https://services.cuzk.gov.cz/wmts/local-km-wmts-google.asp` | `*` (tile REST: `.../rest/WMTS/{Style}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}`) |
+
+**Vrstvy WMS (z GetCapabilities):** např. `hranice_parcel`, `obrazy_parcel`, `parcelni_cisla`, `DEF_PARCELY`, `VB` (věcná břemena).
+
+**Integrace MapLibre** (oficiální vzor: [Add a WMS source](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-wms-source/)):
+
+```javascript
+tiles: [
+  'https://services.cuzk.gov.cz/wms/local-km-wms.asp?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=hranice_parcel&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256'
+]
+```
+
+**Klik na parcelu:** WMS `GetFeatureInfo` na stejné službě → číslo parcely, katastrální území (atributy dle služby). Vyžaduje implementaci dotazu z pixelu (ne jen dlaždice).
+
+**Podmínky:** [Podmínky poskytování síťových služeb ČÚZK](https://www.cuzk.gov.cz/English/Practical-Information/Conditions-of-Provision-for-Spatial-Data-and-Netwo/Conditions-for-Provision-of-CUZK-Network-Services.aspx) — attribution, zákaz zneužití hromadného stahování.
+
+**Náročnost:** střední (1 přepínatelná vrstva + volitelně GetFeatureInfo).
+
+#### 2b. Vlastník / „smím tu sázet?“ — **NELZE jako volná mapová vrstva**
+
+Veřejná WMS/WMTS KM **nezobrazuje jména vlastníků**. To je vědomé (GDPR, katastrální zákon).
+
+| Potřeba | Realistický kanál |
+|---------|-------------------|
+| Vlastník parcely | Nahlížení do katastru (placený účet), úřední výpis, notář |
+| Veřejný pozemek vs. soukromý | částečně odvoditelné z DKM + kontext, ne spolehlivě automaticky |
+| Právní souhlas | mimo rozsah GIS app |
+
+**Co aplikace může:** po kliku ukázat **č. parcely + k.ú.** a text „vlastníka ověřte v katastru / u investora“. Automatické „ano/ne sázet“ **nedávat** bez právního zdroje.
+
+**Závěr:** parcely **ano**, vlastnictví **ne** (jen odkaz / ruční poznámka v záznamu).
+
+---
+
+### 3. Komunikace a chodníky
+
+#### 3a. Viditelnost na mapě — **už částečně**
+
+Podklad OSM / topo silnice zobrazuje. Není to analytická vrstva (vzdálenost, kolize).
+
+#### 3b. Samostatná vrstva + dotaz — **LZE**
+
+**Zdroj (preferovaný pro ČR):** IS DMVS — dopravní infrastruktura, veřejná WMS, **CORS `*`**.
+
+| Služba | URL |
+|--------|-----|
+| Dopravní infrastruktura | `https://dmvs.cuzk.gov.cz/api/wms/dtm_di_ver?service=WMS` |
+| Podskupiny (z capabilities) | `siln_dopr`, `dr_dopr`, `vod_dopr`, `let_dopr`, … |
+
+Stejný WMS pattern `{bbox-epsg-3857}` jako u KM. `GetFeatureInfo` pro typ komunikace.
+
+**Alternativa:** OSM Overpass / vektor z OSM (`highway=*`, `footway`) — celostátní, ale nekonzistentní u chodníků v obcích.
+
+**Analýza vzdálenosti (kolize):** ne WMS, ale **vlastní kód** — Turf.js `pointToLineDistance` na GeoJSON silnic stažených pro bbox (Overpass nebo WFS). Spouštět při vkládání stromu: varování „&lt; 2 m od okraje vozovky“.
+
+**Náročnost:** overlay střední; varování při kliku střední–vyšší.
+
+---
+
+### 4. Inženýrské sítě
+
+#### Realita v ČR
+
+**Neexistuje** jedna bezplatná celostátní vrstva všech podzemních sítí všech operátorů v reálném čase. Data jsou u správců (ČEZ Distribuce, Plyn, vodárny, města) a v **krajských DTM**.
+
+#### Co **lze** implementovat
+
+**IS DMVS — technická infrastruktura (agregace krajů):**
+
+| Služba | URL | CORS |
+|--------|-----|------|
+| WMS TI | `https://dmvs.cuzk.gov.cz/api/wms/dtm_ti_ver?service=WMS` | `*` |
+| WMTS TI | `https://dmvs.cuzk.gov.cz/api/wmts/dtm_ti_ver?service=WMTS` | ověřit stejně |
+
+`GetFeatureInfo` → typ sítě, správce (dle DTM modelu). Mapový portál: https://dmvs.cuzk.gov.cz/mapovy-portal
+
+**Limity DTM TI:**
+- pokrytí a aktualizace závisí na kraji / VSP,
+- ne všechny sítě, ne všechny hloubky,
+- **není náhrada** za výkopový řád nebo dotaz u operátora (ČEZ geoportál vyžaduje často přihlášení pro projektanty).
+
+**ČEZ Distribuce:** https://geoportal.cezdistribuce.cz/ — spíš žádosti a dokumentace, ne volný tile layer pro všechny.
+
+**Závěr:** vrstvu **ano s výrazným disclaimerem**; automatické „místo zamítnuto kvůli plynovodu“ **ne** bez oficiálního API a kompletních dat.
+
+**Náročnost:** střední (WMS overlay + GetFeatureInfo); právní text v UI povinný.
+
+---
+
+### 5. Existující stromy
+
+#### 5a. Vaše evidence — **hotovo, chybí logika**
+
+Data: `TreeRecord` + GeoJSON API. Chybí:
+- kontrola duplicity při `POST` (bod do X m od existujícího),
+- zvýraznění konfliktu na mapě.
+
+**Implementace:** čistě backend/frontend (haversine / Turf), **bez externí služby**.
+
+#### 5b. Cizí stromy (OSM) — **LZE jako referenční vrstva**
+
+**Zdroj:** Overpass API `node["natural"="tree"](bbox)` — https://wiki.openstreetmap.org/wiki/Overpass_API
+
+| Aspekt | Detail |
+|--------|--------|
+| CORS | veřejné instance (komoot photon má `*`; overpass-api.de typicky ano) |
+| Pokrytí | města lepší, venkov řídké, duplicity s vašimi body |
+| Výkon | dotaz po bbox při pohybu mapy, debounce, cache; max ~10k prvků rozumně |
+
+**Integrace:** fetch → GeoJSON source → `circle` layer (jiná barva než vaše stromy). **Nepřepisovat** jako oficiální stav — label „OSM (neúplné)“.
+
+**Municipální katastry zeleně:** jednotlivé obce (Praha, Brno…) mají vlastní WFS/API — **nelze** jeden celostátní plugin; integrace per město až na požadavku.
+
+**Náročnost:** duplicity **nízká**; OSM overlay **střední**.
+
+---
+
+### 6. Zóny správy / městské části
+
+#### Zobrazení hranic — **LZE**
+
+| Zdroj | URL / formát | Licence |
+|-------|--------------|---------|
+| RÚIAN WMS | `https://ags.cuzk.gov.cz/arcgis/services/RUIAN/MapServer/WMSServer` (viz geoportál) | veřejná služba |
+| ArcGIS REST obce | `https://ags.cuzk.cz/arcgis/rest/services/RUIAN/MapServer/12` (vrstva Obec, polygon) | dotaz `geometry` + `spatialRel` |
+| Stažení hranic | https://services.cuzk.gov.cz/shp/stat/ (obce, ORP, okresy) | **CC-BY 4.0** (NKOD / RÚIAN VFR) |
+
+**Integrace:**
+- **Rychlé:** WMS hranice obcí jako raster overlay.
+- **Kvalitní:** jednou za měsíc import SHP/VFR do SQLite nebo bbox dotaz na ArcGIS → přiřazení `obec_kod` k záznamu.
+
+#### Reporting / odpovědnost — **LZE v aplikaci, ne jen na mapě**
+
+Rozšíření datového modelu (volitelné pole): `obecKod`, `mop`, `spravniObvod` — doplnění při uložení bodu (point-in-polygon).
+
+**Photon** (už máte) doplní text `locality`, ale **nenahradí** oficiální kód obce pro exporty pro úřad.
+
+**MČ Praha:** v RÚIAN jako MOMC; pro Prahu specifické členění použít vrstvu MOMC, ne jen obec.
+
+**Náročnost:** WMS overlay **nízká**; automatické přiřazení zóny při save **střední**.
+
+---
+
+### Technický architektonický model (všechny WMS vrstvy)
+
+```
+[MapLibre mapa]
+  ├─ basemap (raster)           ← hotovo
+  ├─ overlay WMS (KM, DTM…)     ← raster source + {bbox-epsg-3857}
+  ├─ vaše stromy (GeoJSON)      ← hotovo
+  └─ OSM stromy (GeoJSON)       ← fetch Overpass per bbox
+
+[API route /api/geocode/...]    ← volitelný proxy pro WFS/Overpass (rate limit, skrýt URL)
+```
+
+**Proč proxy:** Overpass a některé služby mají limity; server-side cache sníží riziko blokace z jedné IP uživatele.
+
+**setStyle() problém:** při změně basemap dnes znovu přidáváte GeoJSON vrstvy — WMS overlay je nutné přidat stejným hookem (`style.load`) nebo **nepoužívat full setStyle**, jen měnit basemap layer (refactor).
+
+---
+
+### Doporučené pořadí implementace (po výzkumu)
+
+| Pořadí | Vrstva / funkce | Proč |
+|--------|-----------------|------|
+| 1 | Duplicita vlastních bodů | žádný externí zdroj, nejvyšší UX value |
+| 2 | Katastr `hranice_parcel` WMS + GetFeatureInfo | právně relevantní poloha, CORS OK |
+| 3 | DMVS `dtm_di_ver` (silnice/chodníky) | kolize s provozem |
+| 4 | DMVS `dtm_ti_ver` + disclaimer | sítě s výhradou |
+| 5 | RÚIAN obec/MOMC + pole v DB | reporting |
+| 6 | OSM stromy (Overpass) | reference, ne pravda |
+
+---
+
+### Co vědomě neimplementovat
+
+- **Vlastník parcely** v mapě
+- **Automatické právní „povoleno/zakázáno“**
+- **Google Photorealistic 3D Tiles** (EEA omezení, jiný renderer, nesmysl pro bodovou evidenci)
+- **Jedna celostátní vrstva všech sítí** — neexistuje
+
+---
+
 ## Odkazy
 
 - https://maplibre.org/maplibre-gl-js/docs/plugins/
+- https://maplibre.org/maplibre-gl-js/docs/examples/add-a-wms-source/
+- https://wms.cuzk.gov.cz/ (přehled WMS/WMTS ČÚZK)
+- https://services.cuzk.gov.cz/wms/local-km-wms.asp
+- https://dmvs.cuzk.gov.cz/ (DTM / TI / DI)
+- https://dtmwiki.cuzk.gov.cz/02_sprava/02_vydej_dat/03_poskytovani_dat
+- https://developers.google.com/maps/comms/eea/map-tiles (EEA — 3D/satellite tiles)
+- https://wiki.openstreetmap.org/wiki/Overpass_API
+- https://data.gov.cz/ (RÚIAN otevřená data)
 - https://maplibre.org/maplibre-style-spec/sources/
 - https://geoman.io/blog/the-state-of-the-maplibre-plugin-ecosystem
 - https://docs.protomaps.com/basemaps/maplibre
@@ -255,4 +508,4 @@ Kompletní seznam: https://maplibre.org/maplibre-gl-js/docs/plugins/
 
 ---
 
-*Vygenerováno: červen 2026*
+*Vygenerováno: červen 2026 · sekce 7 doplněna 2026-06-02 (proveditelnost vrstev, ověření CORS/URL)*

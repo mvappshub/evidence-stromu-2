@@ -5,7 +5,6 @@ import { cs } from 'date-fns/locale'
 import { ArrowUpDown, Loader2, Save, Trash2 } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   AlertDialog,
@@ -21,6 +20,7 @@ import {
 import { CoordCell } from '@/components/table/CoordCell'
 import { ReminderCell } from '@/components/table/ReminderCell'
 import { RecordPhotoButton } from '@/components/table/RecordPhotoButton'
+import { RecordsTableEditInput } from '@/components/table/RecordsTableEditInput'
 import type { RecordsTableMeta } from '@/components/table/use-record-edit-draft'
 import type { TreeRecord } from '@/lib/types'
 
@@ -133,12 +133,11 @@ export function createRecordsTableColumns({
         const meta = table.options.meta as RecordsTableMeta | undefined
         if (meta?.isEditing(row.original.recordNumber) && meta.draft) {
           return (
-            <Input
+            <RecordsTableEditInput
+              meta={meta}
+              field="plantedAt"
               type="date"
               className="h-7 w-[118px] font-mono text-[11px]"
-              value={meta.draft.plantedAt}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => meta.patchField('plantedAt', e.target.value)}
             />
           )
         }
@@ -167,11 +166,10 @@ export function createRecordsTableColumns({
         const meta = table.options.meta as RecordsTableMeta | undefined
         if (meta?.isEditing(row.original.recordNumber) && meta.draft) {
           return (
-            <Input
+            <RecordsTableEditInput
+              meta={meta}
+              field="speciesLatin"
               className="h-7 w-full min-w-[140px] font-mono italic text-[11px]"
-              value={meta.draft.speciesLatin}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => meta.patchField('speciesLatin', e.target.value)}
             />
           )
         }
@@ -200,12 +198,11 @@ export function createRecordsTableColumns({
         const meta = table.options.meta as RecordsTableMeta | undefined
         if (meta?.isEditing(row.original.recordNumber) && meta.draft) {
           return (
-            <Input
+            <RecordsTableEditInput
+              meta={meta}
+              field="locality"
               className="h-7 w-full min-w-[100px] text-[11px]"
               placeholder="lokalita"
-              value={meta.draft.locality}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => meta.patchField('locality', e.target.value)}
             />
           )
         }
@@ -236,12 +233,11 @@ export function createRecordsTableColumns({
         const meta = table.options.meta as RecordsTableMeta | undefined
         if (meta?.isEditing(row.original.recordNumber) && meta.draft) {
           return (
-            <Input
+            <RecordsTableEditInput
+              meta={meta}
+              field="note"
               className="h-7 w-full min-w-[160px] text-[11px]"
               placeholder="poznámka"
-              value={meta.draft.note}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => meta.patchField('note', e.target.value)}
             />
           )
         }

@@ -46,7 +46,10 @@ export function useMapGeoJson() {
     queryKey: ['records-geojson', queryString],
     queryFn: async () => {
       const res = await fetch(`/api/records/geojson?${queryString}`)
-      if (!res.ok) throw new Error('Failed to fetch geojson')
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || `geojson ${res.status}`)
+      }
       return res.json()
     },
   })

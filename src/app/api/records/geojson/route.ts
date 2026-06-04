@@ -8,26 +8,31 @@ export async function GET(request: NextRequest) {
   const auth = await requireAuth(request)
   if ("error" in auth) return auth.error
 
-  const { searchParams } = new URL(request.url)
-  const filters = parseRecordsFilterParams(searchParams)
-  const where = buildRecordsWhere(auth.userId, filters)
+  try {
+    const { searchParams } = new URL(request.url)
+    const filters = parseRecordsFilterParams(searchParams)
+    const where = buildRecordsWhere(auth.userId, filters)
 
-  const records = await db.treeRecord.findMany({
-    where,
-    select: {
-      recordNumber: true,
-      speciesLatin: true,
-      plantedAt: true,
-      locality: true,
-      lat: true,
-      lng: true,
-    },
-  })
+    const records = await db.treeRecord.findMany({
+      where,
+      select: {
+        recordNumber: true,
+        speciesLatin: true,
+        plantedAt: true,
+        locality: true,
+        lat: true,
+        lng: true,
+      },
+    })
 
-  const features = records.map((r) => treeMapFeatureFromRecord(r))
+    const features = records.map((r) => treeMapFeatureFromRecord(r))
 
-  return NextResponse.json({
-    type: "FeatureCollection",
-    features,
-  })
+    return NextResponse.json({
+      type: "FeatureCollection",
+      features,
+    })
+  } catch (err) {
+    console.error("[geojson]", err)
+    return NextResponse.json({ error: "geojson failed" }, { status: 500 })
+  }
 }

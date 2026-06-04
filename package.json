@@ -18,7 +18,11 @@
     "db:check": "node scripts/check-db.mjs",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
-    "test:smoke": "node scripts/smoke-test.mjs"
+    "test:smoke": "node scripts/smoke-test.mjs",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "eslint"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -86,6 +90,8 @@
     "bun-types": "^1.3.4",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5",

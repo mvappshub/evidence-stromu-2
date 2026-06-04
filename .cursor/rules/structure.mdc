@@ -1,0 +1,30 @@
+---
+description: Struktura kódu — SRP, pojmenování, limity délky (always apply)
+alwaysApply: true
+---
+
+# Struktura a odpovědnost souborů
+
+## Jedna věc na soubor
+
+Každý soubor má **jednu hlavní odpovědnost** (jeden důvod ke změně). Nemíchej v jednom modulu validaci, business pravidla, přístup k datům a UI (JSX, barvy, layout).
+
+## Pojmenování
+
+Vyhni se generickým názvům bez domény: `utils`, `helpers`, `manager`, `common`. Preferuj **co** modul dělá: `csv-import-parse`, `record-filters-client`, `tree-map-geojson`.
+
+## Délka (~400 řádků)
+
+ESLint varuje při `max-lines` 400 (bez prázdných řádků a komentářů). Přibližně u té hranice se zeptej: nedělá soubor **dvě různé věci**? Pokud ano, naplánuj rozpad — ne „jen trochu uklidit“.
+
+## Rozšiřování chování
+
+Nová varianta chování = **nový kus** (funkce, modul, malá komponenta), ne další `else if` do existující 200řádkové funkce. Registr/filtry preferuj před jedním obřím `switch`.
+
+## Konstanty a DRY
+
+Magické konstanty (práh, URL, limity) do pojmenovaného configu nebo konstant v doménovém modulu. Sdílená logika jen tam, kde jde o **stejnou znalost** — ne abstrakce „pro jistotu“.
+
+## Lint pojistky (warn)
+
+`max-lines-per-function` ~80, `complexity` ~15 — signál ke zvážení extrakce, ne automatický refaktor při každém commitu.

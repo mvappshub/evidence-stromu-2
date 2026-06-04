@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { ImportRowInput, ImportResult } from "@/lib/import-records"
+import { invalidateRecordsDomain } from "@/lib/query-invalidation"
 
 export const IMPORT_RECORDS_HTTP_ERROR = "ImportRecordsHttpError"
 
@@ -36,13 +37,13 @@ export function useImportRecords() {
         errors: result.errors ?? [],
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["records"] })
-      queryClient.invalidateQueries({ queryKey: ["records-geojson"] })
-      queryClient.invalidateQueries({ queryKey: ["records-filters"] })
-      queryClient.invalidateQueries({ queryKey: ["records-count"] })
-      queryClient.invalidateQueries({ queryKey: ["records-stats"] })
-      queryClient.invalidateQueries({ queryKey: ["activity-log"] })
+    onSuccess: async () => {
+      await invalidateRecordsDomain(queryClient, {
+        includeCount: true,
+        includeFilters: true,
+        includeStats: true,
+        includeActivityLog: true,
+      })
     },
   })
 }

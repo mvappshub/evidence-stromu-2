@@ -2,19 +2,15 @@
 
 import { useEffect } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
-import { initAuthInterceptor } from '@/lib/auth-interceptor'
 
 /**
- * Initializes auth state and fetch interceptor.
+ * Initializes auth state from the cookie-backed session.
  * Must be rendered early in the component tree.
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const hydrate = useAuthStore((s) => s.hydrate)
 
   useEffect(() => {
-    // Initialize the fetch interceptor first
-    initAuthInterceptor()
-    // Then hydrate auth state from localStorage
     void hydrate()
   }, [hydrate])
 

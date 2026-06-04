@@ -32,7 +32,6 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json({
       ok: true,
-      token: sessionToken, // Include token in body for localStorage-based auth
       user: { id: user.id, email: user.email, name: user.name },
     })
 

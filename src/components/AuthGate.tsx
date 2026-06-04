@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAuthActions } from '@/hooks/useAuthActions'
 
 const loginSchema = z.object({
   email: z.string().email('Zadejte platný e-mail'),
@@ -48,7 +49,8 @@ function getPasswordStrength(password: string): { label: string; color: string; 
 }
 
 function AuthGateInner({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, setAuth, logout } = useAuthStore()
+  const { isAuthenticated, isLoading } = useAuthStore()
+  const { login, register } = useAuthActions()
   const [loginLoading, setLoginLoading] = useState(false)
   const [registerLoading, setRegisterLoading] = useState(false)
   const [showLoginPassword, setShowLoginPassword] = useState(false)
@@ -85,28 +87,10 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
   const onLogin = async (data: LoginForm) => {
     setLoginLoading(true)
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.email, password: data.password }),
-      })
-
-      const result = await res.json()
-
-      if (!res.ok) {
-        toast.error(result.error || 'Neplatný e-mail nebo heslo')
-        return
-      }
-
-      // Store token and user in auth store (persisted to localStorage)
-      if (result.token && result.user) {
-        localStorage.removeItem("auth-token")
-        localStorage.removeItem("auth-user")
-        setAuth(result.token, result.user)
-        toast.success('Přihlášení úspěšné')
-      }
-    } catch {
-      toast.error('Chyba při přihlášení')
+      await login({ email: data.email, password: data.password })
+      toast.success('Přihlášení úspěšné')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Chyba při přihlášení')
     } finally {
       setLoginLoading(false)
     }
@@ -115,39 +99,10 @@ function AuthGateInner({ children }: { children: React.ReactNode }) {
   const onRegister = async (data: RegisterForm) => {
     setRegisterLoading(true)
     try {
-      const res = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.email, password: data.password, name: data.name }),
-      })
-
-      if (!res.ok) {
-        const body = await res.json()
-        if (res.status === 409) {
-          toast.error('Tento e-mail je již registrován')
-        } else {
-          toast.error(body.error || 'Chyba při registraci')
-        }
-        return
-      }
-
+      await register({ name: data.name, email: data.email, password: data.password })
       toast.success('Registrace úspěšná')
-
-      // Auto sign in after registration using custom login endpoint
-      const loginRes = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.email, password: data.password }),
-      })
-
-      if (loginRes.ok) {
-        const loginResult = await loginRes.json()
-        if (loginResult.token && loginResult.user) {
-          setAuth(loginResult.token, loginResult.user)
-        }
-      }
-    } catch {
-      toast.error('Chyba při registraci')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Chyba při registraci')
     } finally {
       setRegisterLoading(false)
     }

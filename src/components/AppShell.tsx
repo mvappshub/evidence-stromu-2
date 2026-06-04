@@ -23,6 +23,7 @@ import { DataMenu } from '@/components/DataMenu'
 import { ToolsMenu } from '@/components/ToolsMenu'
 import { useTheme } from 'next-themes'
 import type { ViewMode } from '@/lib/types'
+import { useAuthActions } from '@/hooks/useAuthActions'
 
 const viewModes: { mode: ViewMode; icon: typeof Map; label: string }[] = [
   { mode: 'map', icon: Map, label: 'Mapa' },
@@ -33,7 +34,8 @@ const viewModes: { mode: ViewMode; icon: typeof Map; label: string }[] = [
 export function AppShell() {
   const viewMode = useUiStore((s) => s.viewMode)
   const setViewMode = useUiStore((s) => s.setViewMode)
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
+  const { logoutWithToast } = useAuthActions()
   const { theme, setTheme } = useTheme()
   const [importOpen, setImportOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -114,10 +116,7 @@ export function AppShell() {
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-[11px]"
-              onClick={async () => {
-                await fetch('/api/auth/logout', { method: 'POST' })
-                logout()
-              }}
+              onClick={() => void logoutWithToast()}
             >
               <LogOut className="size-3 mr-2" />
               Odhlásit

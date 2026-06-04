@@ -29,6 +29,20 @@ export function useMapTreeLayers(
   const lastFlownToRecordRef = useRef<number | null>(null)
   const placeMode = usePlantStore((s) => s.placeMode)
 
+  const fitMapToGeoData = useCallback(
+    (m: maplibregl.Map) => {
+      if (hasFittedBounds.current || !geoData?.features?.length) return
+      if (!m.getSource(TREES_SOURCE_ID)) return
+      hasFittedBounds.current = true
+      const bounds = new maplibregl.LngLatBounds()
+      geoData.features.forEach((f) => {
+        bounds.extend(f.geometry.coordinates as [number, number])
+      })
+      m.fitBounds(bounds, { padding: 50, maxZoom: 14, duration: 1000 })
+    },
+    [geoData]
+  )
+
   const updateMapSource = useCallback(
     (m: maplibregl.Map) => {
       if (!m.getSource(TREES_SOURCE_ID)) return
@@ -45,8 +59,9 @@ export function useMapTreeLayers(
         type: 'FeatureCollection',
         features,
       })
+      fitMapToGeoData(m)
     },
-    [geoData, selectedRecordNumber]
+    [geoData, selectedRecordNumber, fitMapToGeoData]
   )
 
   useEffect(() => {
@@ -55,28 +70,59 @@ export function useMapTreeLayers(
 
   useEffect(() => {
     if (!map) return
-    if (!map.getSource(TREES_HEATMAP_SOURCE_ID)) return
-    const heatmapData = geoData ?? { type: 'FeatureCollection', features: [] }
-    ;(map.getSource(TREES_HEATMAP_SOURCE_ID) as maplibregl.GeoJSONSource).setData(
-      heatmapData as GeoJSON.FeatureCollection
-    )
+
+    const pushHeatmapData = () => {
+      if (!map.getSource(TREES_HEATMAP_SOURCE_ID)) return false
+      const heatmapData = geoData ?? { type: 'FeatureCollection', features: [] }
+      ;(map.getSource(TREES_HEATMAP_SOURCE_ID) as maplibregl.GeoJSONSource).setData(
+        heatmapData as GeoJSON.FeatureCollection
+      )
+      return true
+    }
+
+    if (pushHeatmapData()) return
+
+    const onReady = () => {
+      pushHeatmapData()
+    }
+    map.on('idle', onReady)
+    map.on('style.load', onReady)
+    return () => {
+      map.off('idle', onReady)
+      map.off('style.load', onReady)
+    }
   }, [map, layersEpoch, geoData])
 
   useEffect(() => {
-    if (!map || !map.getSource(TREES_SOURCE_ID)) return
-    updateMapSource(map)
+    if (!map) return
+
+    const pushTreeData = () => {
+      if (!map.getSource(TREES_SOURCE_ID)) return false
+      updateMapSource(map)
+      return true
+    }
+
+    if (pushTreeData()) return
+
+    const onReady = () => {
+      pushTreeData()
+    }
+    map.on('idle', onReady)
+    map.on('style.load', onReady)
+    return () => {
+      map.off('idle', onReady)
+      map.off('style.load', onReady)
+    }
   }, [map, layersEpoch, geoData, selectedRecordNumber, updateMapSource])
 
   useEffect(() => {
-    if (hasFittedBounds.current) return
-    if (!map || !geoData?.features?.length) return
-    hasFittedBounds.current = true
-    const bounds = new maplibregl.LngLatBounds()
-    geoData.features.forEach((f) => {
-      bounds.extend(f.geometry.coordinates as [number, number])
-    })
-    map.fitBounds(bounds, { padding: 50, maxZoom: 14, duration: 1000 })
-  }, [map, layersEpoch, geoData])
+    hasFittedBounds.current = false
+  }, [layersEpoch])
+
+  useEffect(() => {
+    if (!map) return
+    fitMapToGeoData(map)
+  }, [map, layersEpoch, geoData, fitMapToGeoData])
 
   // Pan only when the user picks a different record (e.g. table row), not on every geo refresh.
   useEffect(() => {

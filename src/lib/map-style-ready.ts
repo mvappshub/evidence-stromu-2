@@ -1,18 +1,32 @@
 import type maplibregl from 'maplibre-gl'
 
-/** Spustí callback až je styl mapy připravený pro addSource/addLayer. */
+/**
+ * Spustí callback až lze bezpečně volat addSource/addLayer.
+ * Volání z handleru `style.load` může proběhnout dřív, než `isStyleLoaded()` vrátí true —
+ * proto po signálu vždy callback spustíme (s jedním opakováním na `idle` při výjimce).
+ */
 export function runWhenStyleReady(map: maplibregl.Map, fn: () => void): void {
+  const invoke = () => {
+    try {
+      fn()
+    } catch {
+      map.once('idle', fn)
+    }
+  }
+
   if (map.isStyleLoaded()) {
-    fn()
+    invoke()
     return
   }
 
-  const run = () => {
-    map.off('load', run)
-    map.off('style.load', run)
-    if (map.isStyleLoaded()) fn()
+  const onSignal = () => {
+    map.off('load', onSignal)
+    map.off('style.load', onSignal)
+    map.off('idle', onSignal)
+    invoke()
   }
 
-  map.once('load', run)
-  map.once('style.load', run)
+  map.once('load', onSignal)
+  map.once('style.load', onSignal)
+  map.once('idle', onSignal)
 }

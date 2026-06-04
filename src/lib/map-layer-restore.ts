@@ -2,6 +2,8 @@ import type maplibregl from 'maplibre-gl'
 import type { MapStyleKey } from '@/lib/map-basemaps'
 import type { LayerMode } from '@/lib/map-types'
 import type { MapOverlayId } from '@/lib/map-wms-definitions'
+import { ensureRadarLayer, setRadarVisibility } from '@/lib/map-radar-layer'
+import { getCachedRadarTileUrl } from '@/lib/rainviewer-radar-cache'
 import { ensureOsmTreesLayer, setOsmTreesVisibility } from '@/lib/map-osm-trees-layer'
 import { syncWmsOverlaysNow } from '@/lib/map-wms-runtime'
 import { ensureTreeStack } from '@/lib/map-tree-layers'
@@ -11,6 +13,7 @@ export interface MapRestoreContext {
   layerMode: LayerMode
   overlayVisibility: Record<MapOverlayId, boolean>
   osmTreesVisible: boolean
+  radarVisible: boolean
 }
 
 export interface MapRuntimeSyncCallbacks {
@@ -26,6 +29,13 @@ function runTreeStackRestore(
 ): void {
   ensureTreeStack(map, ctx.mapStyle, ctx.layerMode)
   syncWmsOverlaysNow(map, ctx.overlayVisibility)
+  const radarTileUrl = getCachedRadarTileUrl()
+  if (ctx.radarVisible && radarTileUrl) {
+    ensureRadarLayer(map, radarTileUrl)
+    setRadarVisibility(map, true)
+  } else {
+    setRadarVisibility(map, false)
+  }
   ensureOsmTreesLayer(map)
   setOsmTreesVisibility(map, ctx.osmTreesVisible)
   onComplete?.()

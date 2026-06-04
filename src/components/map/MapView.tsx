@@ -19,6 +19,7 @@ import {
 import type { MapStyleKey } from '@/lib/map-basemaps'
 import { useMapOverlayLayers } from '@/hooks/useMapOverlayLayers'
 import { useOsmTreesLayer } from '@/hooks/useOsmTreesLayer'
+import { useRainviewerRadarLayer } from '@/hooks/useRainviewerRadarLayer'
 import { useMapIdentify } from '@/hooks/useMapIdentify'
 import { usePlantStore } from '@/store/usePlantStore'
 
@@ -105,6 +106,7 @@ export function MapView() {
     pendingCameraRef
   )
   useMapOverlayLayers()
+  useRainviewerRadarLayer(layersEpoch)
   useOsmTreesLayer(layersEpoch)
   const { parcelInfo, setParcelInfo, identifyLoading } = useMapIdentify()
 

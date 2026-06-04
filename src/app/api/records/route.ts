@@ -3,6 +3,7 @@ import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
 import { buildRecordsWhere, parseRecordsFilterParams } from "@/lib/records-query"
+import { enrichRecordLocationFromCoords } from "@/lib/records/enrich-record-location"
 import { parseInputDate } from "@/lib/server-date"
 
 const createRecordSchema = z.object({
@@ -69,13 +70,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const enriched = await enrichRecordLocationFromCoords(lng, lat, {
+      fillLocality: !locality,
+    })
+
     const record = await db.treeRecord.create({
       data: {
         lat,
         lng,
         speciesLatin,
         plantedAt: plantedAtDate,
-        locality: locality || null,
+        locality: locality || enriched.locality || null,
+        orpKod: enriched.orpKod ?? null,
         createdById: auth.userId,
       },
     })

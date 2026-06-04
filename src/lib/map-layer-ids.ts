@@ -1,4 +1,7 @@
-/** Pořadí vrstev: WMS overlays → OSM → stromy → měření */
+/** Pořadí vrstev: WMS overlays → radar → OSM → stromy → měření */
+
+export const RADAR_SOURCE_ID = 'rainviewer-radar'
+export const RADAR_LAYER_ID = 'rainviewer-radar-layer'
 
 export const TREES_LAYER_ID = 'trees-layer'
 export const SELECTED_TREE_LAYER_ID = 'selected-tree-layer'

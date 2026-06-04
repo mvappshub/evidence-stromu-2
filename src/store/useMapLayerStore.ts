@@ -14,14 +14,17 @@ const DEFAULT_OVERLAY_VISIBILITY: Record<MapOverlayId, boolean> = {
 interface MapLayerState {
   overlayVisibility: Record<MapOverlayId, boolean>
   osmTreesVisible: boolean
+  radarVisible: boolean
   toggleOverlay: (id: MapOverlayId) => void
   setOverlay: (id: MapOverlayId, visible: boolean) => void
   toggleOsmTrees: () => void
+  toggleRadar: () => void
 }
 
 export const useMapLayerStore = create<MapLayerState>((set) => ({
   overlayVisibility: { ...DEFAULT_OVERLAY_VISIBILITY },
   osmTreesVisible: false,
+  radarVisible: false,
   toggleOverlay: (id) =>
     set((state) => ({
       overlayVisibility: {
@@ -34,12 +37,13 @@ export const useMapLayerStore = create<MapLayerState>((set) => ({
       overlayVisibility: { ...state.overlayVisibility, [id]: visible },
     })),
   toggleOsmTrees: () => set((state) => ({ osmTreesVisible: !state.osmTreesVisible })),
+  toggleRadar: () => set((state) => ({ radarVisible: !state.radarVisible })),
 }))
 
 export function getRestoreContextFromStore(
   mapStyle: MapStyleKey,
   layerMode: LayerMode
 ): MapRestoreContext {
-  const { overlayVisibility, osmTreesVisible } = useMapLayerStore.getState()
-  return { mapStyle, layerMode, overlayVisibility, osmTreesVisible }
+  const { overlayVisibility, osmTreesVisible, radarVisible } = useMapLayerStore.getState()
+  return { mapStyle, layerMode, overlayVisibility, osmTreesVisible, radarVisible }
 }

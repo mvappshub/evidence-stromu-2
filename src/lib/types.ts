@@ -5,6 +5,7 @@ export interface TreeRecord {
   lat: number
   lng: number
   locality: string | null
+  orpKod: number | null
   photoPath: string | null
   note: string | null
   createdById: string

@@ -33,6 +33,7 @@ const recordSchema = z.object({
   lat: z.number(),
   lng: z.number(),
   locality: z.string().nullable().optional(),
+  orpKod: z.number().int().nullable().optional(),
   photoPath: z.string().nullable().optional(),
   photo: backupPhotoSchema.nullable().optional(),
   note: z.string().nullable().optional(),

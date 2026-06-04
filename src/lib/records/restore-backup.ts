@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client"
+import { enrichRecordLocationFromCoords } from "@/lib/records/enrich-record-location"
 
 type BackupPhoto = {
   fileName: string
@@ -22,6 +23,7 @@ type BackupRecord = {
   lat: number
   lng: number
   locality?: string | null
+  orpKod?: number | null
   photoPath?: string | null
   photo?: BackupPhoto | null
   note?: string | null
@@ -126,12 +128,23 @@ export function createRestoreBackupService({
             }
           })
 
+          let orpKod = rec.orpKod ?? null
+          let locality = rec.locality ?? null
+          if (orpKod == null) {
+            const enriched = await enrichRecordLocationFromCoords(rec.lng, rec.lat, {
+              fillLocality: !locality,
+            })
+            orpKod = enriched.orpKod ?? null
+            if (!locality && enriched.locality) locality = enriched.locality
+          }
+
           return {
             speciesLatin: rec.speciesLatin,
             plantedAt,
             lat: rec.lat,
             lng: rec.lng,
-            locality: rec.locality ?? null,
+            locality,
+            orpKod,
             photoPath: restoredPhotoPath,
             note: rec.note ?? null,
             reminders,
@@ -153,6 +166,7 @@ export function createRestoreBackupService({
               lat: rec.lat,
               lng: rec.lng,
               locality: rec.locality,
+              orpKod: rec.orpKod,
               photoPath: rec.photoPath,
               note: rec.note,
               createdById: authUserId,

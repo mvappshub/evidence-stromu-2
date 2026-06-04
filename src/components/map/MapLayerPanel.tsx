@@ -12,6 +12,8 @@ export function MapLayerPanel() {
   const toggleOverlay = useMapLayerStore((s) => s.toggleOverlay)
   const osmTreesVisible = useMapLayerStore((s) => s.osmTreesVisible)
   const toggleOsmTrees = useMapLayerStore((s) => s.toggleOsmTrees)
+  const radarVisible = useMapLayerStore((s) => s.radarVisible)
+  const toggleRadar = useMapLayerStore((s) => s.toggleRadar)
 
   return (
     <Popover>
@@ -42,6 +44,15 @@ export function MapLayerPanel() {
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
+              checked={radarVisible}
+              onChange={toggleRadar}
+              className="rounded border-border"
+            />
+            <span>Radar srážek</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
               checked={osmTreesVisible}
               onChange={toggleOsmTrees}
               className="rounded border-border"
@@ -52,8 +63,19 @@ export function MapLayerPanel() {
         <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
           Technické sítě: náhled DTM — ne všechny sítě, nezávazné.
         </p>
+        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+          Radar: orientační snímek srážek (max. zoom radaru); ne podrobný ortofoto.
+        </p>
         <p className="text-[10px] text-muted-foreground mt-2 border-t border-border pt-2">
-          © ČÚZK · DMVS · OpenStreetMap
+          © ČÚZK · DMVS · OpenStreetMap ·{' '}
+          <a
+            href="https://www.rainviewer.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+          >
+            RainViewer
+          </a>
         </p>
       </PopoverContent>
     </Popover>

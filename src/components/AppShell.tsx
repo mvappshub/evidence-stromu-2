@@ -24,6 +24,7 @@ import { ToolsMenu } from '@/components/ToolsMenu'
 import { useTheme } from 'next-themes'
 import type { ViewMode } from '@/lib/types'
 import { useAuthActions } from '@/hooks/useAuthActions'
+import { WeatherTitlebarControls } from '@/components/weather/WeatherTitlebarControls'
 
 const viewModes: { mode: ViewMode; icon: typeof Map; label: string }[] = [
   { mode: 'map', icon: Map, label: 'Mapa' },
@@ -70,6 +71,8 @@ export function AppShell() {
             </button>
           ))}
         </div>
+
+        <WeatherTitlebarControls />
 
         <div className="flex-1 min-w-2" />
 

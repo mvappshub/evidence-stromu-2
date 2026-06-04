@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         lat: r.lat,
         lng: r.lng,
         locality: r.locality,
+        orpKod: r.orpKod,
         photoPath: r.photoPath,
         photo: await readPhotoBackupPayload(r.photoPath),
         note: r.note,

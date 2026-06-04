@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client"
+import { enrichRecordLocationFromCoords } from "@/lib/records/enrich-record-location"
 import { parseInputDate } from "@/lib/server-date"
 
 export type UpdateTreeRecordInput = {
@@ -7,6 +8,7 @@ export type UpdateTreeRecordInput = {
   lat?: number
   lng?: number
   locality?: string | null
+  orpKod?: number | null
   note?: string | null
   photoPath?: string | null
 }
@@ -49,6 +51,21 @@ export async function updateTreeRecord(
   if (update.lat !== undefined) data.lat = update.lat
   if (update.lng !== undefined) data.lng = update.lng
   if (update.locality !== undefined) data.locality = update.locality
+  if (update.orpKod !== undefined) data.orpKod = update.orpKod
+
+  const coordsChanged =
+    update.lat !== undefined || update.lng !== undefined
+  if (coordsChanged) {
+    const lng = update.lng ?? existing.lng
+    const lat = update.lat ?? existing.lat
+    const enriched = await enrichRecordLocationFromCoords(lng, lat, {
+      fillLocality: update.locality === undefined && !existing.locality,
+    })
+    if (enriched.orpKod !== undefined) data.orpKod = enriched.orpKod
+    if (enriched.locality !== undefined && update.locality === undefined) {
+      data.locality = enriched.locality
+    }
+  }
   if (update.note !== undefined) data.note = update.note
   if (update.photoPath !== undefined) data.photoPath = update.photoPath
 

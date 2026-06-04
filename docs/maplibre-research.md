@@ -1,7 +1,8 @@
-# MapLibre — ekosystém technologií a kombinací
+# MapLibre — ekosystém a nápady pro mapu
 
-> Přehled pro projekt Evidence stromů.  
-> Zdroje: [oficiální katalog pluginů](https://maplibre.org/maplibre-gl-js/docs/plugins/), dokumentace MapLibre / Protomaps / OpenMapTiles, blog Geoman (2025).
+Referenční přehled (ne specifikace implementace). Aktuální podklady v kódu: `src/lib/map-basemaps.ts` (OSM, ortofoto ČÚZK, topo, dark).
+
+Zdroje: [katalog pluginů MapLibre](https://maplibre.org/maplibre-gl-js/docs/plugins/), dokumentace MapLibre / Protomaps / OpenMapTiles.
 
 ---
 
@@ -29,11 +30,11 @@
 |---------------|----------------------------------|-----------------------------------|
 | Engine        | `maplibre-gl`                    | `MapView.tsx`                     |
 | Clustery      | `supercluster`                   | ruční index + GeoJSON source      |
-| Podklad       | OSM, satelit (Esri), ČÚZK ortofoto, topo, dark | `map-basemaps.ts` |
-| Vyhledávání   | Photon (OSM) → flyTo, bbox ČR | `MapPlaceSearch.tsx` |
-| Vizuál bodů   | kontrastní paleta na leteckých podkladech | `map-tree-layer-paints.ts` |
-| Geoman        | ne                               | po zrušení ploch volitelné        |
-| Street View   | ne                               | volitelné                         |
+| Podklad       | OSM, ČÚZK ortofoto, topo, dark   | `map-basemaps.ts`                 |
+| OSM stromy    | Overpass přes `/api/map/osm-trees` | referenční vrstva, ne oficiální stav |
+| Vyhledávání   | Photon → flyTo, bbox ČR          | `MapPlaceSearch.tsx`              |
+| Vizuál bodů   | kontrast na ortofotu             | `map-tree-layer-paints.ts`        |
+| Geoman        | ne                               | volitelné                         |
 | Měření        | vlastní (GeoJSON + haversine)    | ne Geoman                         |
 
 ---
@@ -237,7 +238,7 @@ Zaměření: **jak mapa vypadá**, ne nové GIS funkce.
 
 | Nápad | Přínos pro vizuál | Náklady | Verdikt |
 |-------|-------------------|---------|---------|
-| Satelit + ortofoto ČÚZK | vysoký | nízké (raster, bez klíče) | **hotovo** — `map-basemaps.ts` |
+| Ortofoto ČÚZK | vysoký | nízké (WMS raster) | **hotovo** — `map-basemaps.ts` |
 | Kontrast bodů na leteckém podkladu | vysoký | nízké | **hotovo** — `MAP_COLORS_AERIAL` |
 | Hybrid satelit + popisky OSM (2 vrstvy, labels 40 % opacity) | střední | střední | zvážit později |
 | `maplibre-transition` při přepnutí podkladu | nízký | nízké | spíš ne |
@@ -247,7 +248,7 @@ Zaměření: **jak mapa vypadá**, ne nové GIS funkce.
 | Terén hillshade (`raster-dem`) | nízký u bodů | střední | ne |
 | MapTiler vector + styly | vysoký vzhled mapy | API klíč, platba | ne bez rozpočtu |
 
-**Satelit vs. ortofoto:** Esri World Imagery = celý svět, obecně starší rozlišení mimo města. ČÚZK ortofoto = jen ČR, nejlepší pro přesné umístění stromu. Pro výsadbu v ČR preferovat **Ortofoto ČR**, satelit jako doplňek mimo CR nebo rychlý náhled.
+**Ortofoto ČÚZK:** jen ČR, nejlepší pro přesné umístění stromu v terénu. OSM/topo pro kontext komunikací a popisků.
 
 ---
 
@@ -285,7 +286,7 @@ Cíl: u každé požadované vrstvy ověřit **zdroj dat**, **integraci do MapLi
 
 ### 1. Ortofoto / podkladová mapa
 
-**Stav v projektu:** implementováno (`map-basemaps.ts`: OSM, satelit Esri, ortofoto ČÚZK, topo, dark) + Photon vyhledávání.
+**Stav v projektu:** implementováno (`map-basemaps.ts`: OSM, ortofoto ČÚZK, topo, dark) + Photon vyhledávání + OSM stromy přes API proxy.
 
 **Technicky:** raster `type: 'raster'` + `tiles[]`, stejný model jako současné podklady.
 
@@ -403,21 +404,13 @@ Data: `TreeRecord` + GeoJSON API. Chybí:
 
 **Implementace:** čistě backend/frontend (haversine / Turf), **bez externí služby**.
 
-#### 5b. Cizí stromy (OSM) — **LZE jako referenční vrstva**
+#### 5b. Cizí stromy (OSM) — **implementováno (referenční vrstva)**
 
-**Zdroj:** Overpass API `node["natural"="tree"](bbox)` — https://wiki.openstreetmap.org/wiki/Overpass_API
+**Zdroj:** Overpass `natural=tree` v bbox — serverová route `GET /api/map/osm-trees` (limity bbox a počtu prvků).
 
-| Aspekt | Detail |
-|--------|--------|
-| CORS | veřejné instance (komoot photon má `*`; overpass-api.de typicky ano) |
-| Pokrytí | města lepší, venkov řídké, duplicity s vašimi body |
-| Výkon | dotaz po bbox při pohybu mapy, debounce, cache; max ~10k prvků rozumně |
+**Integrace:** GeoJSON source na mapě, jiná barva než vlastní záznamy. Data jsou neúplná — nepřepisují evidenci uživatele.
 
-**Integrace:** fetch → GeoJSON source → `circle` layer (jiná barva než vaše stromy). **Nepřepisovat** jako oficiální stav — label „OSM (neúplné)“.
-
-**Municipální katastry zeleně:** jednotlivé obce (Praha, Brno…) mají vlastní WFS/API — **nelze** jeden celostátní plugin; integrace per město až na požadavku.
-
-**Náročnost:** duplicity **nízká**; OSM overlay **střední**.
+**Municipální katastry zeleně:** per obec, celostátní vrstva neexistuje.
 
 ---
 
@@ -474,7 +467,7 @@ Rozšíření datového modelu (volitelné pole): `obecKod`, `mop`, `spravniObvo
 | 3 | DMVS `dtm_di_ver` (silnice/chodníky) | kolize s provozem |
 | 4 | DMVS `dtm_ti_ver` + disclaimer | sítě s výhradou |
 | 5 | RÚIAN obec/MOMC + pole v DB | reporting |
-| 6 | OSM stromy (Overpass) | reference, ne pravda |
+| 6 | OSM stromy | **hotovo** — rozšířit jen UX/disclaimer |
 
 ---
 

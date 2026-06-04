@@ -7,7 +7,7 @@ Webová aplikace pro evidenci výsadby stromů: mapa (MapLibre — mapa, **satel
 - [Bun](https://bun.sh) (doporučeno — lockfile `bun.lock`) nebo Node.js 20+ s `npm`
 - SQLite (souborová databáze v projektu)
 
-CI používá Bun (`/.github/workflows/ci.yml`). Lokálně lze ekvivalentně spouštět `npm run typecheck`, `npm run lint`, `npm run test`.
+CI používá Bun (`/.github/workflows/ci.yml`). Lokálně: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run build`.
 
 ## Rychlý start
 

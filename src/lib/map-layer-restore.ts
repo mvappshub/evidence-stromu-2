@@ -1,6 +1,6 @@
 import type maplibregl from 'maplibre-gl'
 import type { MapStyleKey } from '@/lib/map-basemaps'
-import type { LayerMode } from '@/components/map/HeatmapToggle'
+import type { LayerMode } from '@/lib/map-types'
 import type { MapOverlayId } from '@/lib/map-wms-definitions'
 import { ensureOsmTreesLayer, setOsmTreesVisibility } from '@/lib/map-osm-trees-layer'
 import { syncWmsOverlaysNow } from '@/lib/map-wms-runtime'

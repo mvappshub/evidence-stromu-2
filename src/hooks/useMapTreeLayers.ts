@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
-import type { LayerMode } from '@/components/map/HeatmapToggle'
+import type { LayerMode } from '@/lib/map-types'
 import type { MapStyleKey } from '@/lib/map-basemaps'
 import { MAP_COLORS } from '@/lib/map-colors'
 import { TREES_HEATMAP_SOURCE_ID, TREES_SOURCE_ID } from '@/lib/map-layer-ids'

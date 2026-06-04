@@ -1,4 +1,7 @@
 import { create } from 'zustand'
+import type { LayerMode } from '@/lib/map-types'
+import type { MapStyleKey } from '@/lib/map-basemaps'
+import type { MapRestoreContext } from '@/lib/map-layer-restore'
 import type { MapOverlayId } from '@/lib/map-wms-definitions'
 
 const DEFAULT_OVERLAY_VISIBILITY: Record<MapOverlayId, boolean> = {
@@ -34,9 +37,9 @@ export const useMapLayerStore = create<MapLayerState>((set) => ({
 }))
 
 export function getRestoreContextFromStore(
-  mapStyle: import('@/lib/map-basemaps').MapStyleKey,
-  layerMode: import('@/components/map/HeatmapToggle').LayerMode
-): import('@/lib/map-layer-restore').MapRestoreContext {
+  mapStyle: MapStyleKey,
+  layerMode: LayerMode
+): MapRestoreContext {
   const { overlayVisibility, osmTreesVisible } = useMapLayerStore.getState()
   return { mapStyle, layerMode, overlayVisibility, osmTreesVisible }
 }

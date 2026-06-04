@@ -8,7 +8,7 @@ import { MAP_CENTER, MAP_ZOOM } from '@/lib/map-constants'
 import { restoreAndSyncMapRuntime } from '@/lib/map-layer-restore'
 import { getRestoreContextFromStore } from '@/store/useMapLayerStore'
 import { useMapContext } from '@/components/map/MapContext'
-import type { LayerMode } from '@/components/map/HeatmapToggle'
+import type { LayerMode } from '@/lib/map-types'
 import type { SavedMapCamera } from '@/hooks/useMapStyleLifecycle'
 import { readTreeMapFeatureProperties } from '@/lib/tree-map-geojson'
 

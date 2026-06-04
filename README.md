@@ -94,3 +94,4 @@ Automatické logy z iterací AI agentů: [docs/archive/](docs/archive/) — **ne
 ## Hosting skripty
 
 Složka `.zscripts/` obsahuje skripty z původního cloud prostředí. Pro lokální vývoj používejte `bun run dev` přímo.
+

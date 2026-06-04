@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/command'
 import { useUiStore } from '@/store/useUiStore'
 import type { TreeRecord, Reminder } from '@/lib/types'
+import { invalidateRecordsDomain } from '@/lib/query-invalidation'
 
 interface FilterData {
   species: string[]
@@ -86,15 +87,14 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
     setFilterSpecies(species)
     setViewMode('list')
     onOpenChange(false)
-    // Invalidate to refresh table data
-    queryClient.invalidateQueries({ queryKey: ['records'] })
+    void invalidateRecordsDomain(queryClient)
   }, [setFilterSpecies, setViewMode, onOpenChange, queryClient])
 
   const handleSelectLocality = useCallback((locality: string) => {
     setFilterLocality(locality)
     setViewMode('list')
     onOpenChange(false)
-    queryClient.invalidateQueries({ queryKey: ['records'] })
+    void invalidateRecordsDomain(queryClient)
   }, [setFilterLocality, setViewMode, onOpenChange, queryClient])
 
   return (

@@ -2,15 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
+import { getOwnedRecordNumbers } from "@/lib/assert-records-owned"
 import { buildReminderCreateData, reminderInputFieldsSchema } from "@/lib/reminder-input"
-import {
-  parseReminderCreateDates,
-  validateReminderModeFields,
-} from "@/lib/reminder-validation"
-
-function reminderValidationResponse(error: { message: string }) {
-  return NextResponse.json({ error: error.message }, { status: 400 })
-}
+import { validateReminderForCreate } from "@/lib/reminder-create-validation"
 
 const bulkReminderSchema = reminderInputFieldsSchema.extend({
   recordNumbers: z.array(z.number().int()).min(1, "At least one record number is required"),
@@ -31,38 +25,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { recordNumbers, text, mode, intervalNum, intervalUnit, startAt, dueAt } =
-      parsed.data
+    const { recordNumbers, ...reminderInput } = parsed.data
 
-    const modeResult = validateReminderModeFields(
-      mode,
-      intervalNum,
-      intervalUnit,
-      dueAt
-    )
-    if (!modeResult.ok) return reminderValidationResponse(modeResult.error)
+    const validated = validateReminderForCreate(reminderInput)
+    if (!validated.ok) return validated.response
+    const { fields, dates } = validated
 
-    const datesResult = parseReminderCreateDates(startAt, dueAt)
-    if (!datesResult.ok) return reminderValidationResponse(datesResult.error)
-    const dates = datesResult.value
+    const owned = await getOwnedRecordNumbers(auth.userId, recordNumbers)
+    if (!owned.ok) return owned.response
+    const { ownedNumbers } = owned
 
-    const records = await db.treeRecord.findMany({
-      where: {
-        recordNumber: { in: recordNumbers },
-        createdById: auth.userId,
-      },
-      select: { recordNumber: true },
-    })
-
-    const ownedNumbers = records.map((r) => r.recordNumber)
-
-    if (ownedNumbers.length === 0) {
-      return NextResponse.json({ error: "No valid records found" }, { status: 404 })
-    }
-
-    const reminderFields = { text, mode, intervalNum, intervalUnit, startAt, dueAt }
     const remindersData = ownedNumbers.map((recordNumber) =>
-      buildReminderCreateData(reminderFields, dates, recordNumber)
+      buildReminderCreateData(fields, dates, recordNumber)
     )
 
     const result = await db.reminder.createMany({ data: remindersData })
@@ -75,8 +49,8 @@ export async function POST(request: NextRequest) {
         details: JSON.stringify({
           recordNumbers: ownedNumbers,
           bulkAction: "reminder",
-          text: text.slice(0, 100),
-          mode,
+          text: fields.text.slice(0, 100),
+          mode: fields.mode,
           count: result.count,
         }),
         userId: auth.userId,

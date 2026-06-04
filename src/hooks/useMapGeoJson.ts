@@ -4,22 +4,13 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useUiStore } from '@/store/useUiStore'
 import { recordFiltersToQueryString } from '@/lib/record-filters-client'
+import type { TreeMapGeoJsonCollection } from '@/lib/tree-map-geojson'
 
-export interface GeoJsonFeature {
-  type: 'Feature'
-  geometry: { type: 'Point'; coordinates: [number, number] }
-  properties: {
-    recordNumber: number
-    speciesLatin: string
-    plantedAt: string
-    locality: string | null
-  }
-}
-
-export interface GeoJsonResponse {
-  type: 'FeatureCollection'
-  features: GeoJsonFeature[]
-}
+export type { TreeMapGeoJsonCollection as GeoJsonResponse } from '@/lib/tree-map-geojson'
+export type {
+  TreeMapGeoJsonFeature as GeoJsonFeature,
+  TreeMapGeoJsonCollection,
+} from '@/lib/tree-map-geojson'
 
 /** Shared GeoJSON query — same filters as RecordsTable / export. */
 export function useMapGeoJson() {
@@ -51,11 +42,14 @@ export function useMapGeoJson() {
     noReminderFilter,
   ])
 
-  return useQuery<GeoJsonResponse>({
+  return useQuery<TreeMapGeoJsonCollection>({
     queryKey: ['records-geojson', queryString],
     queryFn: async () => {
       const res = await fetch(`/api/records/geojson?${queryString}`)
-      if (!res.ok) throw new Error('Failed to fetch geojson')
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || `geojson ${res.status}`)
+      }
       return res.json()
     },
   })

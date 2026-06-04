@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { usePlantStore } from '@/store/usePlantStore'
 import { lookupObecByPoint } from '@/lib/ruian-locality'
+import { invalidateRecordsDomain } from '@/lib/query-invalidation'
 
 export function useMapRecordMutations() {
   const queryClient = useQueryClient()
@@ -70,8 +71,7 @@ export function useMapRecordMutations() {
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
-      queryClient.invalidateQueries({ queryKey: ['records'] })
+      await invalidateRecordsDomain(queryClient)
     },
     onError: (error) => {
       toast.error('Chyba', {
@@ -99,8 +99,7 @@ export function useMapRecordMutations() {
       return res.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
-      queryClient.invalidateQueries({ queryKey: ['records'] })
+      void invalidateRecordsDomain(queryClient)
       toast.success('Pozice aktualizována')
     },
   })

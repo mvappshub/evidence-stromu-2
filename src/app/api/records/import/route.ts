@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import Papa from "papaparse"
 import { z } from "zod"
 import { requireAuth } from "@/lib/api-auth"
+import { normalizeCsvHeader } from "@/lib/csv-header-map"
 import { importTreeRecords, type ImportRowInput } from "@/lib/import-records"
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -19,35 +20,6 @@ const importRecordSchema = z.object({
 const jsonImportSchema = z.object({
   records: z.array(importRecordSchema).max(MAX_RECORDS),
 })
-
-const HEADER_MAP: Record<string, string> = {
-  druh: "speciesLatin",
-  species: "speciesLatin",
-  "datum výsadby": "plantedAt",
-  datum_vysadby: "plantedAt",
-  date: "plantedAt",
-  "zem. šířka": "lat",
-  zem_sirka: "lat",
-  "zem.širka": "lat",
-  lat: "lat",
-  latitude: "lat",
-  "zem. délka": "lng",
-  zem_delka: "lng",
-  "zem.delka": "lng",
-  lng: "lng",
-  lon: "lng",
-  longitude: "lng",
-  lokalita: "locality",
-  locality: "locality",
-  location: "locality",
-  poznámka: "note",
-  poznamka: "note",
-  note: "note",
-}
-
-function normalizeHeader(h: string): string {
-  return HEADER_MAP[h.trim().toLowerCase()] ?? h.trim().toLowerCase()
-}
 
 function parseCoord(val: string): number {
   return parseFloat(val.replace(",", "."))
@@ -135,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const mappedHeaders = headers.map(normalizeHeader)
+  const mappedHeaders = headers.map(normalizeCsvHeader)
 
   if (
     !mappedHeaders.includes("speciesLatin") ||

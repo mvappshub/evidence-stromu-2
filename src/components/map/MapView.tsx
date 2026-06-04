@@ -43,7 +43,13 @@ export function MapView() {
     setLayersEpoch((n) => n + 1)
   }, [])
 
-  const { data: geoData, isLoading: isGeoLoading } = useMapGeoJson()
+  const {
+    data: geoData,
+    isLoading: isGeoLoading,
+    isError: isGeoError,
+    error: geoError,
+    refetch: refetchGeoJson,
+  } = useMapGeoJson()
   const { createMutateRef, updateMutateRef } = useMapRecordMutations()
 
   const { mapStyle, handleStyleChange } = useMapStyleLifecycle(
@@ -120,6 +126,9 @@ export function MapView() {
 
       <MapOverlays
         isGeoLoading={isGeoLoading}
+        isGeoError={isGeoError}
+        geoError={geoError}
+        onGeoRetry={() => void refetchGeoJson()}
         featureCount={geoData?.features?.length ?? 0}
         mapStyle={mapStyle}
         onStyleChange={handleStyleChange}

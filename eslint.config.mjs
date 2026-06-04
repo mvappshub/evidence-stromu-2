@@ -51,6 +51,21 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-useless-escape": "off",
   },
 }, {
+  files: ["src/**/*.{js,jsx,ts,tsx}"],
+  rules: {
+    // Pojistky délky / složitosti (warn — neblokují build; kandidáti na SRP rozpad)
+    // ~400 ř.: většina souborů je pod 300; orchestrátory (ImportDialog, RecordsTable) ~400–500
+    "max-lines": [
+      "warn",
+      { max: 400, skipBlankLines: true, skipComments: true },
+    ],
+    "max-lines-per-function": [
+      "warn",
+      { max: 80, skipBlankLines: true, skipComments: true, IIFEs: true },
+    ],
+    complexity: ["warn", { max: 15 }],
+  },
+}, {
   ignores: ["node_modules/**", ".next/**", ".next-smoke/**", ".next-smoke /**", ".next-smoke*/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
 }];
 

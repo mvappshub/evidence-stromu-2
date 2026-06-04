@@ -67,3 +67,4 @@ public/uploads/
 .next-smoke/
 .next-smoke */
 .cursor/settings.json
+package-lock.json

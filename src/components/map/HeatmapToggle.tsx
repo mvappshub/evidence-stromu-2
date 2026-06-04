@@ -8,8 +8,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import type { LayerMode } from '@/lib/map-types'
 
-export type LayerMode = 'points' | 'heatmap'
+export type { LayerMode } from '@/lib/map-types'
 
 interface HeatmapToggleProps {
   mode: LayerMode

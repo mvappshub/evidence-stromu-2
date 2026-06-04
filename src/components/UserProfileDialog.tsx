@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Loader2, User, Lock, Mail, Save } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuthActions } from '@/hooks/useAuthActions'
 
 const nameSchema = z.object({
   name: z.string().min(1, 'Zadejte jméno'),
@@ -36,7 +37,8 @@ type NameForm = z.infer<typeof nameSchema>
 type PasswordForm = z.infer<typeof passwordSchema>
 
 export function UserProfileDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const { user, setAuth, token } = useAuthStore()
+  const { user } = useAuthStore()
+  const { updateProfileName } = useAuthActions()
   const [nameLoading, setNameLoading] = useState(false)
   const [passwordLoading, setPasswordLoading] = useState(false)
 
@@ -63,9 +65,8 @@ export function UserProfileDialog({ open, onOpenChange }: { open: boolean; onOpe
         toast.error(result.error || 'Chyba při aktualizaci jména')
         return
       }
-      // Update auth store with new name
-      if (token && result.user) {
-        setAuth(token, result.user)
+      if (result.user) {
+        updateProfileName(result.user)
       }
       toast.success('Jméno aktualizováno')
     } catch {

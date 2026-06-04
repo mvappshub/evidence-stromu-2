@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useUiStore } from '@/store/useUiStore'
 import type { TreeRecord } from '@/lib/types'
+import { invalidateRecordsDomain } from '@/lib/query-invalidation'
 
 export type RecordEditDraft = {
   speciesLatin: string
@@ -81,10 +82,10 @@ export function useRecordEditDraft(record: TreeRecord | null) {
       if (!res.ok) throw new Error('Save failed')
       return res.json()
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['records'] })
-      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
-      if (record) queryClient.invalidateQueries({ queryKey: ['record', record.recordNumber] })
+    onSuccess: async () => {
+      await invalidateRecordsDomain(queryClient, {
+        includeRecord: record?.recordNumber ?? null,
+      })
       toast.success(`#${record?.recordNumber} uloženo`)
     },
     onError: () => toast.error('Uložení se nezdařilo'),
@@ -96,9 +97,8 @@ export function useRecordEditDraft(record: TreeRecord | null) {
       const res = await fetch(`/api/records/${record.recordNumber}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Delete failed')
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['records'] })
-      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
+    onSuccess: async () => {
+      await invalidateRecordsDomain(queryClient)
       setSelectedRecordNumber(null)
       toast.success('Záznam smazán')
     },

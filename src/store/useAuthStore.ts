@@ -9,40 +9,27 @@ interface AuthUser {
 }
 
 interface AuthState {
-  token: string | null
   user: AuthUser | null
   isAuthenticated: boolean
   isLoading: boolean
 
-  setAuth: (token: string, user: AuthUser) => void
-  logout: () => void
+  setAuth: (user: AuthUser) => void
+  clearAuth: () => void
   setLoading: (loading: boolean) => void
   hydrate: () => Promise<void>
 }
 
-const AUTH_TOKEN_KEY = 'auth-token'
-const AUTH_USER_KEY = 'auth-user'
-
 export const useAuthStore = create<AuthState>((set) => ({
-  token: null,
   user: null,
   isAuthenticated: false,
-  isLoading: true, // Start with loading=true to prevent flash
+  isLoading: true,
 
-  setAuth: (token, user) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(AUTH_TOKEN_KEY, token)
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
-    }
-    set({ token, user, isAuthenticated: true, isLoading: false })
+  setAuth: (user) => {
+    set({ user, isAuthenticated: true, isLoading: false })
   },
 
-  logout: () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(AUTH_TOKEN_KEY)
-      localStorage.removeItem(AUTH_USER_KEY)
-    }
-    set({ token: null, user: null, isAuthenticated: false, isLoading: false })
+  clearAuth: () => {
+    set({ user: null, isAuthenticated: false, isLoading: false })
   },
 
   setLoading: (loading) => set({ isLoading: loading }),
@@ -50,35 +37,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   hydrate: async () => {
     if (typeof window === 'undefined') return
 
-    const clearSession = () => {
-      localStorage.removeItem(AUTH_TOKEN_KEY)
-      localStorage.removeItem(AUTH_USER_KEY)
-      set({ token: null, user: null, isAuthenticated: false, isLoading: false })
-      void fetch("/api/auth/logout", { method: "POST" }).catch(() => {})
-    }
-
     try {
-      const token = localStorage.getItem(AUTH_TOKEN_KEY)
-      if (!token) {
-        clearSession()
-        return
-      }
-
-      const res = await fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await fetch('/api/auth/me')
 
       if (!res.ok) {
-        clearSession()
+        set({ user: null, isAuthenticated: false, isLoading: false })
         return
       }
 
       const data = (await res.json()) as { user: AuthUser }
-      localStorage.setItem(AUTH_TOKEN_KEY, token)
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user))
-      set({ token, user: data.user, isAuthenticated: true, isLoading: false })
+      set({ user: data.user, isAuthenticated: true, isLoading: false })
     } catch {
-      clearSession()
+      set({ user: null, isAuthenticated: false, isLoading: false })
     }
   },
 }))

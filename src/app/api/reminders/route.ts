@@ -3,14 +3,7 @@ import { z } from "zod"
 import { db } from "@/lib/db"
 import { requireAuth } from "@/lib/api-auth"
 import { buildReminderCreateData, reminderInputFieldsSchema } from "@/lib/reminder-input"
-import {
-  parseReminderCreateDates,
-  validateReminderModeFields,
-} from "@/lib/reminder-validation"
-
-function reminderValidationResponse(error: { message: string }) {
-  return NextResponse.json({ error: error.message }, { status: 400 })
-}
+import { validateReminderForCreate } from "@/lib/reminder-create-validation"
 
 const createReminderSchema = reminderInputFieldsSchema.extend({
   recordNumber: z.number().int("Record number is required"),
@@ -31,20 +24,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { recordNumber, text, mode, intervalNum, intervalUnit, startAt, dueAt } =
-      parsed.data
+    const { recordNumber, ...reminderInput } = parsed.data
 
-    const modeResult = validateReminderModeFields(
-      mode,
-      intervalNum,
-      intervalUnit,
-      dueAt
-    )
-    if (!modeResult.ok) return reminderValidationResponse(modeResult.error)
-
-    const datesResult = parseReminderCreateDates(startAt, dueAt)
-    if (!datesResult.ok) return reminderValidationResponse(datesResult.error)
-    const dates = datesResult.value
+    const validated = validateReminderForCreate(reminderInput)
+    if (!validated.ok) return validated.response
+    const { fields, dates } = validated
 
     const record = await db.treeRecord.findFirst({
       where: { recordNumber, createdById: auth.userId },
@@ -54,11 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const reminder = await db.reminder.create({
-      data: buildReminderCreateData(
-        { text, mode, intervalNum, intervalUnit, startAt, dueAt },
-        dates,
-        recordNumber
-      ),
+      data: buildReminderCreateData(fields, dates, recordNumber),
     })
 
     await db.activityLog.create({
@@ -66,7 +46,11 @@ export async function POST(request: NextRequest) {
         action: "create",
         entityType: "reminder",
         entityId: reminder.id,
-        details: JSON.stringify({ recordNumber, text: text.slice(0, 100), mode }),
+        details: JSON.stringify({
+          recordNumber,
+          text: fields.text.slice(0, 100),
+          mode: fields.mode,
+        }),
         userId: auth.userId,
       },
     })

@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
-import Papa from 'papaparse'
-import { useQueryClient } from '@tanstack/react-query'
 import {
   Upload,
   FileSpreadsheet,
@@ -30,277 +27,39 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-type Step = 'upload' | 'preview' | 'mapping' | 'importing' | 'results'
-
-const FIELDS = [
-  { key: 'speciesLatin', label: 'Druh', required: true },
-  { key: 'plantedAt', label: 'Datum výsadby', required: true },
-  { key: 'lat', label: 'Zem. šířka', required: true },
-  { key: 'lng', label: 'Zem. délka', required: true },
-  { key: 'locality', label: 'Lokalita', required: false },
-  { key: 'note', label: 'Poznámka', required: false },
-] as const
-
-type FieldKey = (typeof FIELDS)[number]['key']
-
-// Czech and English header auto-detection
-const HEADER_MAP: Record<string, FieldKey> = {
-  "druh": "speciesLatin",
-  "species": "speciesLatin",
-  "datum výsadby": "plantedAt",
-  "datum_vysadby": "plantedAt",
-  "datum": "plantedAt",
-  "date": "plantedAt",
-  "zem. šířka": "lat",
-  "zem_sirka": "lat",
-  "zem.širka": "lat",
-  "lat": "lat",
-  "latitude": "lat",
-  "zem. délka": "lng",
-  "zem_delka": "lng",
-  "zem.delka": "lng",
-  "lng": "lng",
-  "lon": "lng",
-  "longitude": "lng",
-  "lokalita": "locality",
-  "locality": "locality",
-  "location": "locality",
-  "poznámka": "note",
-  "poznamka": "note",
-  "note": "note",
-}
+import {
+  FIELDS,
+} from '@/lib/csv-import-fields'
+import { useImportDialogState, type ImportDialogStep } from '@/hooks/useImportDialogState'
 
 interface ImportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────
-
 export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
-  const queryClient = useQueryClient()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const abortRef = useRef(false)
+  const {
+    fileInputRef,
+    step,
+    setStep,
+    file,
+    rawHeaders,
+    rawData,
+    mapping,
+    setMapping,
+    importResult,
+    dragOver,
+    setDragOver,
+    importProgress,
+    importing,
+    requiredFieldsMapped,
+    handleFileDrop,
+    handleFileSelect,
+    runImport,
+    handleOpenChange,
+  } = useImportDialogState(onOpenChange)
 
-  // State
-  const [step, setStep] = useState<Step>('upload')
-  const [file, setFile] = useState<File | null>(null)
-  const [rawHeaders, setRawHeaders] = useState<string[]>([])
-  const [rawData, setRawData] = useState<Record<string, string>[]>([])
-  const [mapping, setMapping] = useState<Record<FieldKey, string>>({
-    speciesLatin: '',
-    plantedAt: '',
-    lat: '',
-    lng: '',
-    locality: '',
-    note: '',
-  })
-  const [importResult, setImportResult] = useState<{
-    imported: number
-    skipped: number
-    errors: string[]
-  } | null>(null)
-  const [dragOver, setDragOver] = useState(false)
-  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 })
-  const [importing, setImporting] = useState(false)
-
-  // ─── File handling ──────────────────────────────────────────────────────
-
-  const processFile = useCallback((f: File) => {
-    setFile(f)
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const text = (e.target?.result as string).replace(/^\uFEFF/, '')
-      
-      // Try semicolon first, then comma, then auto-detect
-      let result = Papa.parse(text, {
-        header: true,
-        delimiter: ';',
-        skipEmptyLines: true,
-      })
-
-      let headers = result.meta.fields ?? []
-      let data = result.data as Record<string, string>[]
-
-      if (headers.length <= 1 && text.includes(',')) {
-        const commaResult = Papa.parse(text, {
-          header: true,
-          delimiter: ',',
-          skipEmptyLines: true,
-        })
-        if ((commaResult.meta.fields ?? []).length > headers.length) {
-          headers = commaResult.meta.fields ?? []
-          data = commaResult.data as Record<string, string>[]
-        }
-      }
-
-      if (headers.length <= 1) {
-        const autoResult = Papa.parse(text, {
-          header: true,
-          skipEmptyLines: true,
-        })
-        if ((autoResult.meta.fields ?? []).length > headers.length) {
-          headers = autoResult.meta.fields ?? []
-          data = autoResult.data as Record<string, string>[]
-        }
-      }
-
-      setRawHeaders(headers)
-      setRawData(data)
-
-      // Auto-detect mapping
-      const autoMap: Record<FieldKey, string> = {
-        speciesLatin: '',
-        plantedAt: '',
-        lat: '',
-        lng: '',
-        locality: '',
-        note: '',
-      }
-
-      for (const h of headers) {
-        const normalized = h.trim().toLowerCase()
-        const fieldKey = HEADER_MAP[normalized]
-        if (fieldKey && !autoMap[fieldKey]) {
-          autoMap[fieldKey] = h
-        }
-      }
-
-      setMapping(autoMap)
-      setStep('preview')
-    }
-    reader.readAsText(f, 'utf-8')
-  }, [])
-
-  const handleFileDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOver(false)
-    const f = e.dataTransfer.files[0]
-    if (f && (f.name.endsWith('.csv') || f.type === 'text/csv')) {
-      processFile(f)
-    }
-  }, [processFile])
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (f) processFile(f)
-  }, [processFile])
-
-  // ─── Import records one-by-one with progress ──────────────────────────
-
-  const runImport = useCallback(async () => {
-    const records: Array<{
-      speciesLatin: string
-      plantedAt: string
-      lat: number
-      lng: number
-      locality?: string | null
-      note?: string | null
-    }> = []
-
-    for (const row of rawData) {
-      const mappedRow: Record<string, string> = {}
-      for (const field of FIELDS) {
-        const csvCol = mapping[field.key]
-        mappedRow[field.key] = csvCol ? (row[csvCol]?.trim() ?? '') : ''
-      }
-      records.push({
-        speciesLatin: mappedRow.speciesLatin,
-        plantedAt: mappedRow.plantedAt,
-        lat: parseFloat(mappedRow.lat.replace(',', '.')),
-        lng: parseFloat(mappedRow.lng.replace(',', '.')),
-        locality: mappedRow.locality || null,
-        note: mappedRow.note || null,
-      })
-    }
-
-    setImporting(true)
-    setImportProgress({ current: 0, total: records.length })
-    setStep('importing')
-
-    try {
-      const res = await fetch('/api/records/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records }),
-      })
-
-      const result = await res.json()
-
-      if (!res.ok) {
-        toast.error('Import selhal', {
-          description: result.error || 'Chyba serveru',
-        })
-        setStep('mapping')
-        setImporting(false)
-        return
-      }
-
-      setImportProgress({ current: records.length, total: records.length })
-      setImportResult({
-        imported: result.imported ?? 0,
-        skipped: result.skipped ?? 0,
-        errors: result.errors ?? [],
-      })
-      setStep('results')
-
-      queryClient.invalidateQueries({ queryKey: ['records'] })
-      queryClient.invalidateQueries({ queryKey: ['records-geojson'] })
-      queryClient.invalidateQueries({ queryKey: ['records-filters'] })
-      queryClient.invalidateQueries({ queryKey: ['records-count'] })
-      queryClient.invalidateQueries({ queryKey: ['records-stats'] })
-      queryClient.invalidateQueries({ queryKey: ['activity-log'] })
-
-      if ((result.imported ?? 0) > 0) {
-        toast.success('Import dokončen', {
-          description: `Importováno ${result.imported} z ${records.length} záznamů`,
-        })
-      }
-    } catch {
-      toast.error('Import selhal', { description: 'Chyba sítě' })
-      setStep('mapping')
-    } finally {
-      setImporting(false)
-    }
-  }, [rawData, mapping, queryClient])
-
-  // ─── Mapping validation ────────────────────────────────────────────────
-
-  const requiredFieldsMapped = FIELDS.filter((f) => f.required).every(
-    (f) => mapping[f.key] !== ''
-  )
-
-  // ─── Reset ──────────────────────────────────────────────────────────────
-
-  const reset = useCallback(() => {
-    abortRef.current = true
-    setStep('upload')
-    setFile(null)
-    setRawHeaders([])
-    setRawData([])
-    setMapping({
-      speciesLatin: '',
-      plantedAt: '',
-      lat: '',
-      lng: '',
-      locality: '',
-      note: '',
-    })
-    setImportResult(null)
-    setImporting(false)
-    setImportProgress({ current: 0, total: 0 })
-  }, [])
-
-  const handleOpenChange = useCallback((nextOpen: boolean) => {
-    if (!nextOpen) reset()
-    onOpenChange(nextOpen)
-  }, [reset, onOpenChange])
-
-  // ─── Render ──────────────────────────────────────────────────────────────
+  const steps: ImportDialogStep[] = ['upload', 'preview', 'mapping', 'importing', 'results']
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -321,7 +80,7 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
 
         {/* Step indicator */}
         <div className="flex items-center gap-1 text-xs">
-          {(['upload', 'preview', 'mapping', 'importing', 'results'] as Step[]).map((s, i) => (
+          {steps.map((s, i) => (
             <div key={s} className="flex items-center gap-1">
               {i > 0 && <ArrowRight className="size-3 text-muted-foreground" />}
               <span

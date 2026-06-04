@@ -1,6 +1,6 @@
 'use client'
 
-import { TreePine, Ruler, X } from 'lucide-react'
+import { Ruler, X } from 'lucide-react'
 import { MapStyleSwitcher } from './MapStyleSwitcher'
 import type { MapStyleKey } from './MapStyleSwitcher'
 import { HeatmapToggle } from './HeatmapToggle'
@@ -21,6 +21,9 @@ export interface SelectedTreeInfo {
 
 export interface MapOverlaysProps {
   isGeoLoading: boolean
+  isGeoError: boolean
+  geoError: Error | null
+  onGeoRetry: () => void
   featureCount: number
   mapStyle: MapStyleKey
   onStyleChange: (style: MapStyleKey) => void
@@ -42,6 +45,9 @@ export interface MapOverlaysProps {
 
 export function MapOverlays({
   isGeoLoading,
+  isGeoError,
+  geoError,
+  onGeoRetry,
   featureCount,
   mapStyle,
   onStyleChange,
@@ -168,15 +174,23 @@ export function MapOverlays({
         </div>
       )}
 
-      {featureCount === 0 && !isGeoLoading && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm">
-          <div className="text-center space-y-3 max-w-sm px-4">
-            <TreePine className="size-8 mx-auto text-muted-foreground" />
-            <h3 className="text-base font-medium">Žádné stromy na mapě</h3>
-            <p className="text-sm text-muted-foreground">
-              Zapněte <strong>Vkládat</strong> dole a klikněte na mapu pro nový záznam. Zkratky: <kbd className="px-1 rounded border bg-muted text-[10px] font-mono">?</kbd>
-            </p>
+      {!isGeoLoading && (isGeoError || featureCount === 0) && (
+        <div className="pointer-events-none absolute top-12 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-1">
+          <div
+            className="bg-toolbar border border-border px-3 py-1.5 text-xs text-center text-foreground shadow-sm"
+            title={isGeoError && geoError?.message ? geoError.message : undefined}
+          >
+            {isGeoError ? 'Načtení stromů selhalo' : 'Žádné stromy na mapě'}
           </div>
+          {isGeoError && (
+            <button
+              type="button"
+              onClick={onGeoRetry}
+              className="pointer-events-auto bg-toolbar border border-border px-2 py-1 text-xs text-foreground hover:bg-accent"
+            >
+              Zkusit znovu
+            </button>
+          )}
         </div>
       )}
 

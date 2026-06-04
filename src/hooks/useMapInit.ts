@@ -8,8 +8,9 @@ import { MAP_CENTER, MAP_ZOOM } from '@/lib/map-constants'
 import { restoreAndSyncMapRuntime } from '@/lib/map-layer-restore'
 import { getRestoreContextFromStore } from '@/store/useMapLayerStore'
 import { useMapContext } from '@/components/map/MapContext'
-import type { LayerMode } from '@/components/map/HeatmapToggle'
+import type { LayerMode } from '@/lib/map-types'
 import type { SavedMapCamera } from '@/hooks/useMapStyleLifecycle'
+import { readTreeMapFeatureProperties } from '@/lib/tree-map-geojson'
 
 export function useMapInit(
   mapContainer: React.RefObject<HTMLDivElement | null>,
@@ -45,10 +46,12 @@ export function useMapInit(
     const onTreeLayerMouseMove = (e: maplibregl.MapLayerMouseEvent) => {
       if (!e.features?.length) return
       const feat = e.features[0]
-      const props = feat.properties!
+      const props = readTreeMapFeatureProperties(feat.properties)
+      if (!props) return
+
       map.getCanvas().style.cursor = placeModeRef.current ? 'crosshair' : 'pointer'
 
-      const recordNumber = Number(props.recordNumber)
+      const recordNumber = props.recordNumber
       if (popupRecordNumberRef.current === recordNumber) return
       popupRecordNumberRef.current = recordNumber
 
@@ -56,7 +59,9 @@ export function useMapInit(
         number,
         number,
       ]
-      const date = props.plantedAt ? format(new Date(props.plantedAt), 'd.M.yyyy') : ''
+      const date = props.plantedAt
+        ? format(new Date(props.plantedAt), 'd.M.yyyy')
+        : ''
       const locality = props.locality ? `<br/>📍 ${props.locality}` : ''
 
       popupRef.current?.remove()

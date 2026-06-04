@@ -14,6 +14,7 @@ export function useMapIdentify() {
   const parcelsVisible = useMapLayerStore((s) => s.overlayVisibility.parcels)
   const placeMode = usePlantStore((s) => s.placeMode)
   const measureMode = usePlantStore((s) => s.measureMode)
+  const linePlaceMode = usePlantStore((s) => s.linePlaceMode)
   const [parcelInfo, setParcelInfo] = useState<ParcelIdentifyResult | null>(null)
   const [identifyLoading, setIdentifyLoading] = useState(false)
 
@@ -21,7 +22,7 @@ export function useMapIdentify() {
     if (!map) return
 
     const handleClick = async (e: maplibregl.MapMouseEvent) => {
-      if (placeMode || measureMode || !parcelsVisible) return
+      if (placeMode || measureMode || linePlaceMode || !parcelsVisible) return
 
       const treeLayerIds = TREE_LAYER_IDS.filter((id) => map.getLayer(id))
       if (treeLayerIds.length > 0) {
@@ -42,7 +43,7 @@ export function useMapIdentify() {
     return () => {
       map.off('click', handleClick)
     }
-  }, [map, parcelsVisible, placeMode, measureMode])
+  }, [map, parcelsVisible, placeMode, measureMode, linePlaceMode])
 
   return { parcelInfo, setParcelInfo, identifyLoading }
 }

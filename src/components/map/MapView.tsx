@@ -28,6 +28,7 @@ export function MapView() {
   const mapRef = useRef<maplibregl.Map | null>(null)
   const updateMapSourceRef = useRef<(map: maplibregl.Map) => void>(() => {})
   const applyMeasureRef = useRef<(map: maplibregl.Map) => void>(() => {})
+  const applyLinePlaceRef = useRef<(map: maplibregl.Map) => void>(() => {})
   const mapStyleRef = useRef<MapStyleKey>('osm')
   const layerModeRef = useRef<LayerMode>('points')
   const pendingCameraRef = useRef<SavedMapCamera | null>(null)
@@ -38,6 +39,7 @@ export function MapView() {
   const [layerMode, setLayerMode] = useState<LayerMode>('points')
   const selectedRecordNumber = useUiStore((s) => s.selectedRecordNumber)
   const measureMode = usePlantStore((s) => s.measureMode)
+  const linePlaceMode = usePlantStore((s) => s.linePlaceMode)
   const toggleMeasureMode = usePlantStore((s) => s.toggleMeasureMode)
 
   const bumpLayersEpoch = useCallback(() => {
@@ -91,7 +93,9 @@ export function MapView() {
     geoData,
     createMutateRef,
     measureMode,
-    applyMeasureRef
+    linePlaceMode,
+    applyMeasureRef,
+    applyLinePlaceRef
   )
 
   useMapInit(
@@ -99,6 +103,7 @@ export function MapView() {
     mapRef,
     updateMapSourceRef,
     applyMeasureRef,
+    applyLinePlaceRef,
     placeModeRef,
     bumpLayersEpoch,
     mapStyleRef,

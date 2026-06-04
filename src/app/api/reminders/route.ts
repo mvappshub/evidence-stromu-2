@@ -41,19 +41,6 @@ export async function POST(request: NextRequest) {
       data: buildReminderCreateData(fields, dates, recordNumber),
     })
 
-    await db.activityLog.create({
-      data: {
-        action: "create",
-        entityType: "reminder",
-        entityId: reminder.id,
-        details: JSON.stringify({
-          recordNumber,
-          text: fields.text.slice(0, 100),
-          mode: fields.mode,
-        }),
-        userId: auth.userId,
-      },
-    })
 
     return NextResponse.json({ reminder }, { status: 201 })
   } catch (error) {

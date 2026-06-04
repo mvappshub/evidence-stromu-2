@@ -103,17 +103,5 @@ export async function importTreeRecords(
     imported += chunk.length
   }
 
-  if (imported > 0) {
-    await db.activityLog.create({
-      data: {
-        action: "create",
-        entityType: "record",
-        entityId: "import",
-        details: JSON.stringify({ imported, skipped }),
-        userId,
-      },
-    })
-  }
-
   return { imported, skipped, errors: errors.slice(0, 100) }
 }

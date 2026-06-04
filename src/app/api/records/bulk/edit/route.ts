@@ -52,17 +52,6 @@ export async function POST(request: NextRequest) {
       data: updateData,
     })
 
-    // Log activity
-    await db.activityLog.create({
-      data: {
-        action: "update",
-        entityType: "record",
-        entityId: recordNumbers.join(","),
-        details: JSON.stringify({ recordNumbers, bulkAction: "edit", changedFields: Object.keys(updateData), count: result.count }),
-        userId: auth.userId,
-      },
-    })
-
     return NextResponse.json({ updated: result.count })
   } catch (error) {
     console.error("Bulk edit error:", error)

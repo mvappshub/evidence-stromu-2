@@ -16,6 +16,11 @@ export const MEASURE_LINE_LAYER_ID = 'measure-line-layer'
 export const MEASURE_POINTS_LAYER_ID = 'measure-points-layer'
 export const MEASURE_SOURCE_ID = 'measure-source'
 
+export const LINE_PLACE_SOURCE_ID = 'line-place-source'
+export const LINE_PLACE_LINE_LAYER_ID = 'line-place-line-layer'
+export const LINE_PLACE_VERTEX_LAYER_ID = 'line-place-vertex-layer'
+export const LINE_PLACE_PREVIEW_LAYER_ID = 'line-place-preview-layer'
+
 export const TREES_SOURCE_ID = 'trees-source'
 export const TREES_HEATMAP_SOURCE_ID = 'trees-source-heatmap'
 

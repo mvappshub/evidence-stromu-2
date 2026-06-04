@@ -1,29 +1,36 @@
 /** Map layer colors — data only, separate from UI chrome (DevTools link-blue scale). */
 export const MAP_COLORS = {
-  cluster: ['#8b949e', '#6e7681', '#484f58', '#30363d'] as const,
-  point: '#58a6ff',
-  pointSelectedStroke: '#d29922',
+  cluster: ['#86efac', '#4ade80', '#22c55e', '#166534'] as const,
+  point: '#166534',
+  pointSelectedStroke: '#fbbf24',
   heatmap: [
     'rgba(0,0,0,0)',
-    'rgba(88,166,255,0.2)',
-    'rgba(88,166,255,0.45)',
-    'rgba(88,166,255,0.7)',
-    'rgba(56,139,253,0.9)',
-    'rgba(31,111,235,0.95)',
+    'rgba(34,197,94,0.2)',
+    'rgba(34,197,94,0.45)',
+    'rgba(22,163,74,0.7)',
+    'rgba(21,128,61,0.9)',
+    'rgba(22,101,52,0.95)',
   ] as const,
 } as const
 
-/** Vyšší kontrast na ortofoto / satelitu (zelený podklad vs. modré body). */
+/** Vyšší kontrast na ortofoto / satelitu. */
 export const MAP_COLORS_AERIAL = {
-  cluster: ['#fde68a', '#fbbf24', '#f59e0b', '#d97706'] as const,
-  point: '#fef08a',
-  pointSelectedStroke: '#1e293b',
+  cluster: ['#bbf7d0', '#4ade80', '#15803d', '#14532d'] as const,
+  point: '#15803d',
+  pointSelectedStroke: '#ffffff',
   heatmap: [
     'rgba(0,0,0,0)',
-    'rgba(254,240,138,0.35)',
-    'rgba(251,191,36,0.55)',
-    'rgba(245,158,11,0.75)',
-    'rgba(217,119,6,0.9)',
-    'rgba(180,83,9,0.95)',
+    'rgba(74,222,128,0.35)',
+    'rgba(34,197,94,0.55)',
+    'rgba(22,163,74,0.75)',
+    'rgba(21,128,61,0.9)',
+    'rgba(20,83,45,0.95)',
   ] as const,
+} as const
+
+/** Náhled řady / vkládání po čáře na mapě */
+export const MAP_LINE_PLACE = {
+  line: '#16a34a',
+  previewPoint: '#166534',
+  vertex: '#22c55e',
 } as const

@@ -182,16 +182,6 @@ export function createRestoreBackupService({
         return count
       })
 
-      await db.activityLog.create({
-        data: {
-          action: "create",
-          entityType: "record",
-          entityId: "restore",
-          details: JSON.stringify({ restored: restoredCount }),
-          userId: authUserId,
-        },
-      })
-
       const restoredPhotoPaths = new Set(
         preparedRecords
           .map((record) => record.photoPath)

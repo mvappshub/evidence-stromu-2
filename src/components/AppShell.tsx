@@ -14,8 +14,7 @@ import { useUiStore } from '@/store/useUiStore'
 import { MaintenanceBell } from '@/components/MaintenanceBell'
 import { KeyboardShortcuts } from '@/components/KeyboardShortcuts'
 import { StatisticsPanel } from '@/components/StatisticsPanel'
-import { SpeciesDetailPanel } from '@/components/SpeciesDetailPanel'
-import { ActivityLog } from '@/components/ActivityLog'
+import { SpeciesCatalogPanel } from '@/components/SpeciesCatalogPanel'
 import { ImportDialog } from '@/components/ImportDialog'
 import { GlobalSearch } from '@/components/GlobalSearch'
 import { UserProfileDialog } from '@/components/UserProfileDialog'
@@ -43,7 +42,6 @@ export function AppShell() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
   const [speciesOpen, setSpeciesOpen] = useState(false)
-  const [activityOpen, setActivityOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
 
   return (
@@ -88,11 +86,12 @@ export function AppShell() {
 
         <MaintenanceBell />
 
-        <DataMenu onImport={() => setImportOpen(true)} />
+        <DataMenu
+          onImport={() => setImportOpen(true)}
+          onOpenSpecies={() => setSpeciesOpen(true)}
+        />
         <ToolsMenu
           onOpenStats={() => setStatsOpen(true)}
-          onOpenSpecies={() => setSpeciesOpen(true)}
-          onOpenActivity={() => setActivityOpen(true)}
           onOpenShortcuts={() => setShortcutsOpen(true)}
         />
 
@@ -129,8 +128,7 @@ export function AppShell() {
       </header>
 
       <StatisticsPanel open={statsOpen} onOpenChange={setStatsOpen} />
-      <SpeciesDetailPanel open={speciesOpen} onOpenChange={setSpeciesOpen} />
-      <ActivityLog open={activityOpen} onOpenChange={setActivityOpen} />
+      <SpeciesCatalogPanel open={speciesOpen} onOpenChange={setSpeciesOpen} />
       <KeyboardShortcuts
         open={shortcutsOpen}
         onOpenChange={setShortcutsOpen}

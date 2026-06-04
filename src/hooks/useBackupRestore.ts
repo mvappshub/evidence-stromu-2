@@ -55,7 +55,7 @@ export function useBackupRestore(
         includeCount: true,
         includeFilters: true,
         includeStats: true,
-        includeActivityLog: true,
+        includeSpeciesCatalog: true,
       })
       toast.success('Data obnovena', { description: `${data.restored} záznamů` })
       onRestoreSettled()

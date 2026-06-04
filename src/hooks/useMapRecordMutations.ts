@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { usePlantStore } from '@/store/usePlantStore'
 import { lookupObecByPoint } from '@/lib/ruian-locality'
 import { invalidateRecordsDomain } from '@/lib/query-invalidation'
+import { buildLinePlaceRecords } from '@/lib/line-place-actions'
 
 export function useMapRecordMutations() {
   const queryClient = useQueryClient()
@@ -104,6 +105,39 @@ export function useMapRecordMutations() {
     },
   })
 
+  const createLineBulkMutation = useMutation({
+    mutationFn: async (preview: { lat: number; lng: number }[]) => {
+      const records = buildLinePlaceRecords(preview)
+      const res = await fetch('/api/records/bulk/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error ?? 'Hromadné vložení se nezdařilo')
+      }
+      return data as { createdCount: number; recordNumbers: number[]; errors: string[] }
+    },
+    onSuccess: async (data) => {
+      const last = data.recordNumbers[data.recordNumbers.length - 1]
+      if (last != null) setLastInsertedRecordNumber(last)
+      if (activeSpecies) addToRecentSpecies(activeSpecies)
+      toast.success(`Vloženo ${data.createdCount} stromů`)
+      if (data.errors?.length > 0) {
+        toast.warning(`${data.errors.length} záznamů se nepodařilo vložit`)
+      }
+      usePlantStore.getState().resetLinePlace()
+      usePlantStore.getState().setLinePlaceMode(false)
+      await invalidateRecordsDomain(queryClient)
+    },
+    onError: (error) => {
+      toast.error('Chyba', {
+        description: error instanceof Error ? error.message : 'Hromadné vložení se nezdařilo',
+      })
+    },
+  })
+
   const createMutateRef = useRef(createMutation.mutate)
   const updateMutateRef = useRef(updateMutation.mutate)
   useEffect(() => {
@@ -113,5 +147,10 @@ export function useMapRecordMutations() {
     updateMutateRef.current = updateMutation.mutate
   }, [updateMutation.mutate])
 
-  return { createMutateRef, updateMutateRef, updateMutation }
+  return {
+    createMutateRef,
+    updateMutateRef,
+    updateMutation,
+    createLineBulkMutation,
+  }
 }

@@ -19,6 +19,7 @@ export interface MapRestoreContext {
 export interface MapRuntimeSyncCallbacks {
   updateTrees: (map: maplibregl.Map) => void
   updateMeasure?: (map: maplibregl.Map) => void
+  updateLinePlace?: (map: maplibregl.Map) => void
   onLayersRestored?: () => void
 }
 
@@ -65,6 +66,7 @@ export function restoreAndSyncMapRuntime(
   restoreMapLayers(map, ctx, () => {
     sync.updateTrees(map)
     sync.updateMeasure?.(map)
+    sync.updateLinePlace?.(map)
     sync.onLayersRestored?.()
   })
 }

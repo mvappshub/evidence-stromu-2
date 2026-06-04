@@ -42,7 +42,7 @@ export function useImportRecords() {
         includeCount: true,
         includeFilters: true,
         includeStats: true,
-        includeActivityLog: true,
+        includeSpeciesCatalog: true,
       })
     },
   })

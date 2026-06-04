@@ -4,7 +4,7 @@ type RecordsInvalidationOptions = {
   includeCount?: boolean
   includeFilters?: boolean
   includeStats?: boolean
-  includeActivityLog?: boolean
+  includeSpeciesCatalog?: boolean
   includeRecord?: number | null
 }
 
@@ -16,7 +16,7 @@ export async function invalidateRecordsDomain(
     includeCount = false,
     includeFilters = false,
     includeStats = false,
-    includeActivityLog = false,
+    includeSpeciesCatalog = false,
     includeRecord = null,
   } = options
 
@@ -34,8 +34,8 @@ export async function invalidateRecordsDomain(
   if (includeStats) {
     invalidations.push(queryClient.invalidateQueries({ queryKey: ["records-stats"] }))
   }
-  if (includeActivityLog) {
-    invalidations.push(queryClient.invalidateQueries({ queryKey: ["activity-log"] }))
+  if (includeSpeciesCatalog) {
+    invalidations.push(queryClient.invalidateQueries({ queryKey: ["species-catalog"] }))
   }
   if (includeRecord != null) {
     invalidations.push(

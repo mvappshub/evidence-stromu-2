@@ -11,7 +11,11 @@ export async function GET(request: NextRequest) {
   const filters = parseRecordsFilterParams(searchParams)
   const baseWhere = buildRecordsWhere(auth.userId, filters)
 
-  const [speciesRaw, localityRaw] = await Promise.all([
+  const [catalogSpecies, speciesRaw, localityRaw] = await Promise.all([
+    db.species.findMany({
+      select: { latinName: true },
+      orderBy: { latinName: "asc" },
+    }),
     db.treeRecord.findMany({
       where: baseWhere,
       select: { speciesLatin: true },
@@ -27,7 +31,12 @@ export async function GET(request: NextRequest) {
     }),
   ])
 
-  const species = speciesRaw.map((r) => r.speciesLatin).sort()
+  const species = [
+    ...new Set([
+      ...catalogSpecies.map((s) => s.latinName),
+      ...speciesRaw.map((r) => r.speciesLatin),
+    ]),
+  ].sort()
   const localities = localityRaw
     .map((r) => r.locality!)
     .sort()

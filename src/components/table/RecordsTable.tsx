@@ -19,7 +19,6 @@ import { cn } from '@/lib/utils'
 import { BulkActionBar } from '@/components/table/BulkActionBar'
 import { RecordsTableToolbar } from '@/components/table/RecordsTableToolbar'
 import { RecordsTablePagination } from '@/components/table/RecordsTablePagination'
-import { ImportDialog } from '@/components/ImportDialog'
 import { useRecordsTableController } from '@/hooks/useRecordsTableController'
 
 export function RecordsTable() {
@@ -38,16 +37,12 @@ export function RecordsTable() {
     setDateFrom,
     setDateTo,
     clearDateRange,
-    hasNoteFilter,
-    noReminderFilter,
     sorting,
     setSorting,
     rowSelection,
     setRowSelection,
     pagination,
     setPagination,
-    importOpen,
-    setImportOpen,
     isScrolled,
     tableScrollRef,
     resetPage,
@@ -65,8 +60,6 @@ export function RecordsTable() {
     columns,
     tableMeta,
     totalPages,
-    isPresetActive,
-    togglePreset,
   } = controller
 
   const table = useReactTable({
@@ -117,11 +110,6 @@ export function RecordsTable() {
         }}
         speciesOptions={speciesOptions}
         localityOptions={localityOptions}
-        isPresetActive={isPresetActive}
-        togglePreset={togglePreset}
-        onImportClick={() => setImportOpen(true)}
-        hasNoteFilter={hasNoteFilter}
-        noReminderFilter={noReminderFilter}
       />
 
       <div className="flex-1 overflow-auto relative" ref={tableScrollRef}>
@@ -222,8 +210,6 @@ export function RecordsTable() {
         onClearSelection={() => setRowSelection({})}
         className="scale-in"
       />
-
-      <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   )
 }

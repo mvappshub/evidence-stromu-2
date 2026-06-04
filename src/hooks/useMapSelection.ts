@@ -23,6 +23,7 @@ type UseMapSelectionArgs = {
   geoData: GeoJsonResponse | undefined
   createMutateRef: React.RefObject<((args: { lat: number; lng: number }) => void) | undefined>
   measureMode: boolean
+  linePlaceMode: boolean
   setMeasurePoints: React.Dispatch<React.SetStateAction<Array<{ lat: number; lng: number }>>>
 }
 
@@ -31,13 +32,19 @@ export function useMapSelection({
   geoData,
   createMutateRef,
   measureMode,
+  linePlaceMode,
   setMeasurePoints,
 }: UseMapSelectionArgs) {
   const selectedRecordNumber = useUiStore((s) => s.selectedRecordNumber)
   const setSelectedRecordNumber = useUiStore((s) => s.setSelectedRecordNumber)
   const placeMode = usePlantStore((s) => s.placeMode)
+  const addLinePlaceVertex = usePlantStore((s) => s.addLinePlaceVertex)
+  const linePlacePhase = usePlantStore((s) => s.linePlacePhase)
+
   const placeModeRef = useRef(placeMode)
   const measureModeRef = useRef(measureMode)
+  const linePlaceModeRef = useRef(linePlaceMode)
+  const linePlacePhaseRef = useRef(linePlacePhase)
   const [flashMarkers, setFlashMarkers] = useState<Array<{ id: number; x: number; y: number }>>([])
 
   useEffect(() => {
@@ -47,6 +54,14 @@ export function useMapSelection({
   useEffect(() => {
     measureModeRef.current = measureMode
   }, [measureMode])
+
+  useEffect(() => {
+    linePlaceModeRef.current = linePlaceMode
+  }, [linePlaceMode])
+
+  useEffect(() => {
+    linePlacePhaseRef.current = linePlacePhase
+  }, [linePlacePhase])
 
   const addFlashMarker = useCallback((x: number, y: number) => {
     const id = Date.now() + Math.random()
@@ -60,6 +75,10 @@ export function useMapSelection({
     if (!map) return
 
     const handleMapClick = (e: maplibregl.MapMouseEvent) => {
+      if (linePlaceModeRef.current && linePlacePhaseRef.current === 'drawing') {
+        addLinePlaceVertex({ lat: e.lngLat.lat, lng: e.lngLat.lng })
+        return
+      }
       if (placeModeRef.current) {
         addFlashMarker(e.point.x, e.point.y)
         createMutateRef.current?.({ lat: e.lngLat.lat, lng: e.lngLat.lng })
@@ -86,13 +105,21 @@ export function useMapSelection({
     return () => {
       map.off('click', handleMapClick)
     }
-  }, [map, addFlashMarker, createMutateRef, setMeasurePoints, setSelectedRecordNumber])
+  }, [
+    map,
+    addFlashMarker,
+    createMutateRef,
+    setMeasurePoints,
+    setSelectedRecordNumber,
+    addLinePlaceVertex,
+  ])
+
+  const crosshairActive = placeMode || measureMode || linePlaceMode
 
   useEffect(() => {
     if (!map) return
-    map.getCanvas().style.cursor =
-      placeMode || measureMode ? 'crosshair' : ''
-  }, [map, placeMode, measureMode])
+    map.getCanvas().style.cursor = crosshairActive ? 'crosshair' : ''
+  }, [map, crosshairActive])
 
   const selectedTreeInfo = useMemo(() => {
     if (selectedRecordNumber == null || !geoData?.features) return null

@@ -37,6 +37,10 @@ Soubor se vytvoří při prvním `bun run db:migrate` (doporučeno) nebo `bun ru
 
 **Migrace:** Po změně `schema.prisma` používejte `bun run db:migrate`. Stav ověříte přes `bun run db:migrate:status`. Obsah DB zobrazí `bun run db:check`.
 
+**Po `git pull` s novou migrací:** zastavte běžící dev server, spusťte `npm run db:migrate:deploy` a `npm run db:generate`, pak znovu `npm run dev`. Bez `db:generate` může API padat chybou `Unknown argument orpKod` (zastaralý Prisma klient).
+
+**Bun na Windows:** pokud `bun` v PowerShellu „není rozpoznán“, je často nainstalovaný v `%USERPROFILE%\.bun\bin` — přidejte do PATH, nebo: `& "$env:USERPROFILE\.bun\bin\bun.exe" run db:generate`
+
 **Pozor:** Soubor `db/custom.db` v kořeni je legacy — aplikace i Prisma CLI používají `prisma/db/custom.db`. Po ověření dat můžete kořenovou kopii smazat.
 
 ## Testovací účet (po seedu)

@@ -75,15 +75,5 @@ export async function updateTreeRecord(
   })
 
   const changedFields = Object.keys(data)
-  await db.activityLog.create({
-    data: {
-      action: "update",
-      entityType: "record",
-      entityId: String(recordNumber),
-      details: JSON.stringify({ recordNumber, changedFields }),
-      userId,
-    },
-  })
-
   return { ok: true, record, changedFields }
 }

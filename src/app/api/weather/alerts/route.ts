@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
   const auth = await requireAuth(request)
   if ('error' in auth) return auth.error
 
+  try {
   const feed = await fetchCapFeed()
+  // #region agent log
+  fetch('http://127.0.0.1:7523/ingest/0259359b-fd4a-4d37-9a15-91386e6888b7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'dc463d'},body:JSON.stringify({sessionId:'dc463d',location:'weather/alerts/route.ts:feed',message:'CAP feed loaded',data:{hasFeed:Boolean(feed),alertCount:feed?.alerts?.length??0},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   if (!feed) {
     return NextResponse.json({
       active: false,
@@ -59,6 +63,9 @@ export async function GET(request: NextRequest) {
     treeCount: treeCountPerAlert(userRecords, alert),
   }))
 
+  // #region agent log
+  fetch('http://127.0.0.1:7523/ingest/0259359b-fd4a-4d37-9a15-91386e6888b7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'dc463d'},body:JSON.stringify({sessionId:'dc463d',location:'weather/alerts/route.ts:ok',message:'alerts response ok',data:{active:true,affectedTreeCount,affectedOrpCount},timestamp:Date.now(),hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
+  // #endregion
   return NextResponse.json({
     active: true,
     alerts: alertsForUi,
@@ -67,4 +74,16 @@ export async function GET(request: NextRequest) {
     recordsWithoutOrp,
     fetchedAt: new Date().toISOString(),
   })
+  } catch (err) {
+    const name = err instanceof Error ? err.name : 'unknown'
+    const message = err instanceof Error ? err.message.slice(0, 200) : String(err)
+    // #region agent log
+    fetch('http://127.0.0.1:7523/ingest/0259359b-fd4a-4d37-9a15-91386e6888b7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'dc463d'},body:JSON.stringify({sessionId:'dc463d',location:'weather/alerts/route.ts:error',message:'alerts route failed',data:{name,message},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    console.error('GET /api/weather/alerts failed:', err)
+    return NextResponse.json(
+      { error: 'Internal server error', detail: name === 'PrismaClientValidationError' ? 'schema_client_mismatch' : 'unknown' },
+      { status: 500 }
+    )
+  }
 }

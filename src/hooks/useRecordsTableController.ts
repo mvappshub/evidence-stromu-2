@@ -11,10 +11,6 @@ import {
   hasActiveRecordFilters,
   recordFiltersToQueryString,
 } from '@/lib/record-filters-client'
-import {
-  getRecordsTablePresetToggle,
-  isRecordsTablePresetActive,
-} from '@/lib/records-table-presets'
 import type { RecordsResponse } from '@/lib/types'
 
 export function useRecordsTableController() {
@@ -32,14 +28,11 @@ export function useRecordsTableController() {
   const setDateTo = useUiStore((s) => s.setDateTo)
   const clearDateRange = useUiStore((s) => s.clearDateRange)
   const hasNoteFilter = useUiStore((s) => s.hasNoteFilter)
-  const setHasNoteFilter = useUiStore((s) => s.setHasNoteFilter)
   const noReminderFilter = useUiStore((s) => s.noReminderFilter)
-  const setNoReminderFilter = useUiStore((s) => s.setNoReminderFilter)
 
   const [sorting, setSorting] = useState<SortingState>([{ id: 'recordNumber', desc: true }])
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [pagination, setPagination] = useState({ page: 0, pageSize: 50 })
-  const [importOpen, setImportOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const tableScrollRef = useRef<HTMLDivElement>(null)
 
@@ -164,30 +157,6 @@ export function useRecordsTableController() {
   )
 
   const totalPages = Math.ceil((data?.count ?? 0) / pagination.pageSize)
-  const presetState = { dateFrom, dateTo, hasNoteFilter, noReminderFilter }
-  const isPresetActive = (preset: string) => isRecordsTablePresetActive(preset, presetState)
-
-  const togglePreset = (preset: string) => {
-    const result = getRecordsTablePresetToggle(preset, presetState)
-    if (!result) return
-
-    switch (result.action) {
-      case 'clearDateRange':
-        clearDateRange()
-        break
-      case 'setDateRange':
-        setDateFrom(result.dateFrom)
-        setDateTo(result.dateTo)
-        break
-      case 'setHasNoteFilter':
-        setHasNoteFilter(result.value)
-        break
-      case 'setNoReminderFilter':
-        setNoReminderFilter(result.value)
-        break
-    }
-    resetPage()
-  }
 
   return {
     searchQuery,
@@ -203,16 +172,12 @@ export function useRecordsTableController() {
     setDateFrom,
     setDateTo,
     clearDateRange,
-    hasNoteFilter,
-    noReminderFilter,
     sorting,
     setSorting,
     rowSelection,
     setRowSelection,
     pagination,
     setPagination,
-    importOpen,
-    setImportOpen,
     isScrolled,
     tableScrollRef,
     resetPage,
@@ -230,7 +195,5 @@ export function useRecordsTableController() {
     columns,
     tableMeta,
     totalPages,
-    isPresetActive,
-    togglePreset,
   }
 }

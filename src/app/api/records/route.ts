@@ -86,17 +86,6 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Log activity
-    await db.activityLog.create({
-      data: {
-        action: "create",
-        entityType: "record",
-        entityId: String(record.recordNumber),
-        details: JSON.stringify({ speciesLatin, recordNumber: record.recordNumber }),
-        userId: auth.userId,
-      },
-    })
-
     return NextResponse.json({ record }, { status: 201 })
   } catch (error) {
     console.error("Create record error:", error)

@@ -2,9 +2,14 @@ import type maplibregl from 'maplibre-gl'
 import { isAerialBasemap, type MapStyleKey } from '@/lib/map-basemaps'
 import { applyTreeLayerPaints } from '@/lib/map-tree-layer-paints'
 import { ensureHeatmapLayer } from '@/lib/map-heatmap'
+import { MAP_LINE_PLACE } from '@/lib/map-colors'
 import {
   FIRST_TREE_LAYER_ID,
   LEGACY_CLUSTER_LAYER_IDS,
+  LINE_PLACE_LINE_LAYER_ID,
+  LINE_PLACE_PREVIEW_LAYER_ID,
+  LINE_PLACE_SOURCE_ID,
+  LINE_PLACE_VERTEX_LAYER_ID,
   MEASURE_LINE_LAYER_ID,
   MEASURE_POINTS_LAYER_ID,
   HEATMAP_LAYER_ID,
@@ -85,6 +90,50 @@ export function ensureMeasureLayers(map: maplibregl.Map): void {
   }
 }
 
+export function ensureLinePlaceLayers(map: maplibregl.Map): void {
+  if (!map.getSource(LINE_PLACE_SOURCE_ID)) {
+    map.addSource(LINE_PLACE_SOURCE_ID, {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    })
+    map.addLayer({
+      id: LINE_PLACE_LINE_LAYER_ID,
+      type: 'line',
+      source: LINE_PLACE_SOURCE_ID,
+      filter: ['==', ['get', 'kind'], 'line'],
+      paint: {
+        'line-color': MAP_LINE_PLACE.line,
+        'line-width': 2,
+        'line-dasharray': [4, 3],
+      },
+    })
+    map.addLayer({
+      id: LINE_PLACE_VERTEX_LAYER_ID,
+      type: 'circle',
+      source: LINE_PLACE_SOURCE_ID,
+      filter: ['==', ['get', 'kind'], 'vertex'],
+      paint: {
+        'circle-color': MAP_LINE_PLACE.vertex,
+        'circle-radius': 5,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff',
+      },
+    })
+    map.addLayer({
+      id: LINE_PLACE_PREVIEW_LAYER_ID,
+      type: 'circle',
+      source: LINE_PLACE_SOURCE_ID,
+      filter: ['==', ['get', 'kind'], 'preview'],
+      paint: {
+        'circle-color': MAP_LINE_PLACE.previewPoint,
+        'circle-radius': 5,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#ffffff',
+      },
+    })
+  }
+}
+
 export function ensureTreeStack(
   map: maplibregl.Map,
   mapStyle: MapStyleKey,
@@ -93,6 +142,7 @@ export function ensureTreeStack(
   ensureTreeLayers(map, mapStyle)
   ensureHeatmapLayer(map, layerMode === 'heatmap', isAerialBasemap(mapStyle))
   ensureMeasureLayers(map)
+  ensureLinePlaceLayers(map)
   applyLayerModeVisibility(map, layerMode)
 }
 

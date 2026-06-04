@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, BarChart3, Flower2, Activity, Keyboard } from 'lucide-react'
+import { ChevronDown, BarChart3, Keyboard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -11,15 +11,11 @@ import {
 
 interface ToolsMenuProps {
   onOpenStats: () => void
-  onOpenSpecies: () => void
-  onOpenActivity: () => void
   onOpenShortcuts: () => void
 }
 
 export function ToolsMenu({
   onOpenStats,
-  onOpenSpecies,
-  onOpenActivity,
   onOpenShortcuts,
 }: ToolsMenuProps) {
   return (
@@ -34,14 +30,6 @@ export function ToolsMenu({
         <DropdownMenuItem onSelect={onOpenStats}>
           <BarChart3 className="size-3.5 mr-2" />
           Statistiky
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onOpenSpecies}>
-          <Flower2 className="size-3.5 mr-2" />
-          Přehled druhů
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onOpenActivity}>
-          <Activity className="size-3.5 mr-2" />
-          Log aktivit
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onOpenShortcuts}>
           <Keyboard className="size-3.5 mr-2" />

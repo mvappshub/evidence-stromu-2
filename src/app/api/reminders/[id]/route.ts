@@ -116,23 +116,6 @@ function buildReminderPatchData(
   return data
 }
 
-async function logReminderUpdate(
-  id: string,
-  userId: string,
-  recordNumber: number,
-  changedFields: string[]
-) {
-  await db.activityLog.create({
-    data: {
-      action: "update",
-      entityType: "reminder",
-      entityId: id,
-      details: JSON.stringify({ recordNumber, changedFields }),
-      userId,
-    },
-  })
-}
-
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -160,8 +143,6 @@ export async function PATCH(
       data,
     })
 
-    await logReminderUpdate(id, auth.userId, existing.recordNumber, Object.keys(data))
-
     return NextResponse.json({ reminder })
   } catch (error) {
     console.error("Update reminder error:", error)
@@ -184,20 +165,6 @@ export async function DELETE(
     }
 
     await db.reminder.delete({ where: { id } })
-
-    // Log activity
-    await db.activityLog.create({
-      data: {
-        action: "delete",
-        entityType: "reminder",
-        entityId: id,
-        details: JSON.stringify({
-          recordNumber: existing.recordNumber,
-          text: existing.text.slice(0, 100),
-        }),
-        userId: auth.userId,
-      },
-    })
 
     return NextResponse.json({ message: "Reminder deleted successfully" })
   } catch (error) {

@@ -45,19 +45,6 @@ export async function POST(request: NextRequest) {
 
     await Promise.all(toDelete.map((r) => deletePhotoFile(r.photoPath)))
 
-    await db.activityLog.create({
-      data: {
-        action: "delete",
-        entityType: "record",
-        entityId: "bulk",
-        details: JSON.stringify({
-          bulk: true,
-          count: toDelete.length,
-          recordNumbers: toDelete.map((r) => r.recordNumber),
-        }),
-        userId: auth.userId,
-      },
-    })
 
     return NextResponse.json({ deleted: toDelete.length })
   } catch (error) {

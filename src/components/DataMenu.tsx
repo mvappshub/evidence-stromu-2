@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useCallback, useState } from 'react'
-import { ChevronDown, Upload, Printer, FileSpreadsheet, FileJson } from 'lucide-react'
+import { ChevronDown, Upload, Printer, FileSpreadsheet, FileJson, Flower2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -17,9 +17,10 @@ import { BackupRestoreMenuItems } from '@/components/BackupRestore'
 
 interface DataMenuProps {
   onImport: () => void
+  onOpenSpecies: () => void
 }
 
-export function DataMenu({ onImport }: DataMenuProps) {
+export function DataMenu({ onImport, onOpenSpecies }: DataMenuProps) {
   const searchQuery = useUiStore((s) => s.searchQuery)
   const filterSpecies = useUiStore((s) => s.filterSpecies)
   const filterLocality = useUiStore((s) => s.filterLocality)
@@ -59,6 +60,10 @@ export function DataMenu({ onImport }: DataMenuProps) {
         <DropdownMenuItem onClick={onImport}>
           <Upload className="size-3.5 mr-2" />
           Import CSV
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onOpenSpecies}>
+          <Flower2 className="size-3.5 mr-2" />
+          Katalog druhů
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handlePrint}>
           <Printer className="size-3.5 mr-2" />

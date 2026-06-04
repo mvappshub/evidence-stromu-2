@@ -4,11 +4,10 @@ Aktualizováno: 2026-06-04 · zdroj pravdy: `prisma/schema.prisma`, `src/app/api
 
 ## 1. Doménové entity
 
-- **User**, **TreeRecord**, **Reminder**, **ActivityLog**
+- **User**, **TreeRecord**, **Reminder**, **Species** (katalog druhů)
 - User 1:N TreeRecord (`createdBy`)
-- User 1:N ActivityLog
+- Katalog **Species** je globální (latinské názvy); záznamy odkazují na druh textem v `speciesLatin`
 - TreeRecord 1:N Reminder (`onDelete: Cascade`)
-- ActivityLog odkazuje na záznam/připomínku přes `entityId` (string), bez FK na TreeRecord ani Reminder
 
 ## 2. Data a toky
 
@@ -16,7 +15,7 @@ Aktualizováno: 2026-06-04 · zdroj pravdy: `prisma/schema.prisma`, `src/app/api
 - Fotografie: `public/uploads/` (`POST /api/upload`, cesta v `TreeRecord.photoPath`)
 - Serverová cache, Redis, S3: nepoužíváno
 - Přihlášení: klient → `POST /api/auth/login` → JWT v httpOnly cookie a v těle → `localStorage` → `Authorization: Bearer` na `/api/*` (fetch interceptor)
-- API → Prisma → SQLite; `ActivityLog` při mutacích záznamů a připomínek
+- API → Prisma → SQLite
 - Klient → React Query (výchozí `staleTime` 30 s, některé dotazy 60 s)
 - Podklad mapy: raster dlaždice z prohlížeče (`src/lib/map-basemaps.ts`); OSM stromy přes `GET /api/map/osm-trees` (Overpass proxy, auth)
 - Záloha: `GET /api/records/backup` → JSON
@@ -46,7 +45,7 @@ Aktualizováno: 2026-06-04 · zdroj pravdy: `prisma/schema.prisma`, `src/app/api
 ## 5. Procesy
 
 - Registrace → `User` (pokud registrace povolena)
-- Vytvoření stromu → `TreeRecord` + `ActivityLog` create
+- Vytvoření stromu → `TreeRecord`
 - Úprava/smazání včetně fotky → log
 - Import CSV/JSON → nové záznamy, nevalidní řádky přeskočeny
 - Export → CSV nebo GeoJSON

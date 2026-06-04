@@ -17,6 +17,7 @@ export function useMapInit(
   mapRef: React.RefObject<maplibregl.Map | null>,
   updateMapSourceRef: React.RefObject<(map: maplibregl.Map) => void>,
   applyMeasureRef: React.RefObject<(map: maplibregl.Map) => void>,
+  applyLinePlaceRef: React.RefObject<(map: maplibregl.Map) => void>,
   placeModeRef: React.RefObject<boolean>,
   onLayersRestored: () => void,
   mapStyleRef: React.MutableRefObject<MapStyleKey>,
@@ -109,6 +110,7 @@ export function useMapInit(
         {
           updateTrees: (m) => updateMapSourceRef.current(m),
           updateMeasure: (m) => applyMeasureRef.current(m),
+          updateLinePlace: (m) => applyLinePlaceRef.current(m),
           onLayersRestored,
         }
       )
@@ -147,6 +149,7 @@ export function useMapInit(
     setBearing,
     updateMapSourceRef,
     applyMeasureRef,
+    applyLinePlaceRef,
     placeModeRef,
     onLayersRestored,
     mapStyleRef,

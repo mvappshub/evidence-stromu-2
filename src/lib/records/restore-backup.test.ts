@@ -7,16 +7,11 @@ function createDbMock(currentUserEmail = 'user@example.com') {
     deleteMany: vi.fn().mockResolvedValue(undefined),
     create: vi.fn().mockResolvedValue(undefined),
   }
-  const activityLog = {
-    create: vi.fn().mockResolvedValue(undefined),
-  }
-
   return {
     user: {
       findUnique: vi.fn().mockResolvedValue({ email: currentUserEmail }),
     },
     treeRecord,
-    activityLog,
     $transaction: vi.fn(async (callback: (tx: { treeRecord: typeof treeRecord }) => Promise<number>) =>
       callback({ treeRecord })
     ),
@@ -118,7 +113,6 @@ describe('createRestoreBackupService', () => {
       where: { createdById: 'user-1' },
     })
     expect(db.treeRecord.create).toHaveBeenCalledTimes(1)
-    expect(db.activityLog.create).toHaveBeenCalledTimes(1)
     expect(deletePhotoFile).toHaveBeenCalledWith('old-photo.jpg')
   })
 })

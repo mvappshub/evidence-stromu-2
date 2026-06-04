@@ -38,7 +38,7 @@ export function useBulkRecordActions(
     onSuccess: async () => {
       await invalidateRecordsDomain(queryClient, {
         includeStats: true,
-        includeActivityLog: true,
+        includeSpeciesCatalog: true,
       })
       onNoteSuccess()
       onClearSelection()
@@ -81,7 +81,7 @@ export function useBulkRecordActions(
     onSuccess: async () => {
       await invalidateRecordsDomain(queryClient, {
         includeStats: true,
-        includeActivityLog: true,
+        includeSpeciesCatalog: true,
       })
       onEditSuccess()
       onClearSelection()
@@ -110,7 +110,7 @@ export function useBulkRecordActions(
         includeCount: true,
         includeFilters: true,
         includeStats: true,
-        includeActivityLog: true,
+        includeSpeciesCatalog: true,
       })
       onClearSelection()
       toast.success('Záznamy smazány', {

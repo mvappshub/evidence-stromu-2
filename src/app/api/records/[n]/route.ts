@@ -112,17 +112,6 @@ export async function DELETE(
     // Cascade delete reminders via Prisma schema onDelete: Cascade
     await db.treeRecord.delete({ where: { recordNumber } })
 
-    // Log activity
-    await db.activityLog.create({
-      data: {
-        action: "delete",
-        entityType: "record",
-        entityId: String(recordNumber),
-        details: JSON.stringify({ recordNumber, speciesLatin: existing.speciesLatin }),
-        userId: auth.userId,
-      },
-    })
-
     return NextResponse.json({ message: "Record deleted successfully" })
   } catch (error) {
     console.error("Delete record error:", error)

@@ -243,12 +243,12 @@
   0% {
     transform: translate(-50%, -50%) scale(0.6);
     opacity: 0.85;
-    background-color: rgb(88 166 255 / 0.65);
+    background-color: rgb(22 101 52 / 0.65);
   }
   100% {
     transform: translate(-50%, -50%) scale(1.6);
     opacity: 0;
-    background-color: rgb(88 166 255 / 0);
+    background-color: rgb(22 101 52 / 0);
   }
 }
 .tree-flash-marker {

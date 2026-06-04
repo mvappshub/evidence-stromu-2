@@ -19,7 +19,7 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "test:smoke": "node scripts/smoke-test.mjs",
-    "prepare": "husky"
+    "prepare": "prisma generate && husky"
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint"

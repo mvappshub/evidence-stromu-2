@@ -10,7 +10,7 @@ describe('query invalidation helpers', () => {
       includeCount: true,
       includeFilters: true,
       includeStats: true,
-      includeActivityLog: true,
+      includeSpeciesCatalog: true,
       includeRecord: 42,
     })
 
@@ -20,7 +20,7 @@ describe('query invalidation helpers', () => {
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['records-count'] })
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['records-filters'] })
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['records-stats'] })
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['activity-log'] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['species-catalog'] })
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['record', 42] })
   })
 

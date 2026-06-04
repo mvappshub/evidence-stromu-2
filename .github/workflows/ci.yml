@@ -39,15 +39,23 @@ jobs:
         run: bun run db:migrate:deploy
 
       - name: Seed smoke user
-        if: ${{ secrets.SMOKE_PASSWORD != '' }}
         env:
           SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
           SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
-        run: bun run scripts/seed-data.ts 0 "${SMOKE_EMAIL:-test@example.com}" "$SMOKE_PASSWORD"
+        run: |
+          if [ -z "${SMOKE_PASSWORD:-}" ]; then
+            echo "SMOKE_PASSWORD secret not set; skipping seed and smoke"
+            exit 0
+          fi
+          bun run scripts/seed-data.ts 0 "${SMOKE_EMAIL:-test@example.com}" "$SMOKE_PASSWORD"
 
       - name: Start server for smoke
-        if: ${{ secrets.SMOKE_PASSWORD != '' }}
+        env:
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
         run: |
+          if [ -z "${SMOKE_PASSWORD:-}" ]; then
+            exit 0
+          fi
           bun run start &
           echo $! > server.pid
           for i in $(seq 1 60); do
@@ -61,16 +69,19 @@ jobs:
           exit 1
 
       - name: API smoke tests
-        if: ${{ secrets.SMOKE_PASSWORD != '' }}
         env:
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
           CI: "1"
           SMOKE_BASE_URL: http://localhost:3000
           SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
-          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
-        run: bun run test:smoke
+        run: |
+          if [ -z "${SMOKE_PASSWORD:-}" ]; then
+            exit 0
+          fi
+          bun run test:smoke
 
       - name: Stop server
-        if: ${{ always() && secrets.SMOKE_PASSWORD != '' }}
+        if: always()
         run: |
           if [ -f server.pid ]; then
             kill "$(cat server.pid)" 2>/dev/null || true

@@ -11,6 +11,7 @@ jobs:
     env:
       NEXTAUTH_SECRET: ci-placeholder-nextauth-secret-min-32-chars
       DATABASE_URL: "file:./db/custom.db"
+      NEXTAUTH_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
 
@@ -30,3 +31,48 @@ jobs:
 
       - name: Unit tests
         run: bun run test
+
+      - name: Build
+        run: bun run build
+
+      - name: Prepare database for smoke
+        run: bun run db:migrate:deploy
+
+      - name: Seed smoke user
+        if: ${{ secrets.SMOKE_PASSWORD != '' }}
+        env:
+          SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+        run: bun run scripts/seed-data.ts 0 "${SMOKE_EMAIL:-test@example.com}" "$SMOKE_PASSWORD"
+
+      - name: Start server for smoke
+        if: ${{ secrets.SMOKE_PASSWORD != '' }}
+        run: |
+          bun run start &
+          echo $! > server.pid
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/ >/dev/null; then
+              echo "Server ready after ${i} attempt(s)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Server did not become ready on port 3000"
+          exit 1
+
+      - name: API smoke tests
+        if: ${{ secrets.SMOKE_PASSWORD != '' }}
+        env:
+          CI: "1"
+          SMOKE_BASE_URL: http://localhost:3000
+          SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+        run: bun run test:smoke
+
+      - name: Stop server
+        if: ${{ always() && secrets.SMOKE_PASSWORD != '' }}
+        run: |
+          if [ -f server.pid ]; then
+            kill "$(cat server.pid)" 2>/dev/null || true
+          fi
+          pkill -f ".next/standalone/server.js" 2>/dev/null || true
